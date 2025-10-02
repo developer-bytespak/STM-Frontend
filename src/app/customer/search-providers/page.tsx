@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SearchBar from '../components/SearchBar';
 import FilterChips from '../components/FilterChips';
@@ -16,7 +16,7 @@ interface FilterChip {
   editable?: boolean;
 }
 
-export default function SearchProviders() {
+function SearchProvidersContent() {
   const searchParams = useSearchParams();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
@@ -180,5 +180,13 @@ export default function SearchProviders() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchProviders() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchProvidersContent />
+    </Suspense>
   );
 }
