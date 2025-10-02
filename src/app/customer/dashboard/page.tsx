@@ -1,34 +1,28 @@
-import SearchBar from '../components/SearchBar';
-
 export default function CustomerDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to ServiceHub
+          Welcome to Your Dashboard
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Connect with trusted service providers in your area. Find professionals for all your home and business needs.
+          Manage your bookings, view your profile, and track your service requests.
         </p>
       </div>
 
-      {/* Search Bar */}
-      <SearchBar />
-
-      {/* Quick Stats or Featured Services */}
+      {/* Dashboard Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Local Experts</h3>
-              <p className="text-gray-600">Verified professionals in your area</p>
+              <h3 className="text-lg font-semibold text-gray-900">Active Bookings</h3>
+              <p className="text-gray-600">3 upcoming services</p>
             </div>
           </div>
         </div>
@@ -41,8 +35,8 @@ export default function CustomerDashboard() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Quality Assured</h3>
-              <p className="text-gray-600">Background checked & insured</p>
+              <h3 className="text-lg font-semibold text-gray-900">Completed</h3>
+              <p className="text-gray-600">12 services completed</p>
             </div>
           </div>
         </div>
@@ -55,10 +49,37 @@ export default function CustomerDashboard() {
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Fair Pricing</h3>
-              <p className="text-gray-600">Transparent, competitive rates</p>
+              <h3 className="text-lg font-semibold text-gray-900">Total Spent</h3>
+              <p className="text-gray-600">$1,250 this year</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="text-2xl mb-2">🔍</div>
+            <h3 className="font-semibold text-gray-900">Find Providers</h3>
+            <p className="text-sm text-gray-600">Search for services</p>
+          </button>
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="text-2xl mb-2">📅</div>
+            <h3 className="font-semibold text-gray-900">New Booking</h3>
+            <p className="text-sm text-gray-600">Schedule a service</p>
+          </button>
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="text-2xl mb-2">👤</div>
+            <h3 className="font-semibold text-gray-900">My Profile</h3>
+            <p className="text-sm text-gray-600">Update information</p>
+          </button>
+          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+            <div className="text-2xl mb-2">💳</div>
+            <h3 className="font-semibold text-gray-900">Payments</h3>
+            <p className="text-sm text-gray-600">Manage billing</p>
+          </button>
         </div>
       </div>
     </div>

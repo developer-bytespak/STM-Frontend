@@ -11,6 +11,8 @@ export const ROUTES = {
   // Authentication routes
   LOGIN: '/login',
   REGISTER: '/register',
+  SIGNUP: '/signup',
+  SERVICE_PROVIDER_SIGNUP: '/serviceprovider/signup',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',

@@ -1,0 +1,144 @@
+[
+  {
+    "category": "Accountant",
+    "subcategories": ["Tax Filing", "Accountant", "Business Planning"]
+  },
+  {
+    "category": "Architect",
+    "subcategories": ["Construction Drawings"]
+  },
+  {
+    "category": "Engineer",
+    "subcategories": ["Engineer"]
+  },
+  {
+    "category": "Land Surveyor",
+    "subcategories": ["Land Surveyor"]
+  },
+  {
+    "category": "Computer Programmer",
+    "subcategories": ["Computer Programmer"]
+  },
+  {
+    "category": "Consultant",
+    "subcategories": ["Business Planning"]
+  },
+  {
+    "category": "Software Specialist",
+    "subcategories": ["Software Implementation"]
+  },
+  {
+    "category": "Handyman",
+    "subcategories": ["Toilet Replacment", "Appliance Repair / Replacement"]
+  },
+  {
+    "category": "Veterinarian",
+    "subcategories": ["Veterinarian"]
+  },
+  {
+    "category": "Photographer",
+    "subcategories": ["Photographer"]
+  },
+  {
+    "category": "Real Estate Agent",
+    "subcategories": ["Real Estate Agent"]
+  },
+  {
+    "category": "Mental Health Counselor",
+    "subcategories": ["Mental Health Counselor"]
+  },
+  {
+    "category": "In Home Health Care",
+    "subcategories": ["In Home Health Care"]
+  },
+  {
+    "category": "Tutor / Coach",
+    "subcategories": [
+      "Guitar Lesson",
+      "Piano Lessons",
+      "Jewelry Making Party",
+      "Voice Coach",
+      "Stained Glass Making Tutor",
+      "Spanish Language Tutor"
+    ]
+  },
+  {
+    "category": "Baseball Coach",
+    "subcategories": ["Baseball Coach"]
+  },
+  {
+    "category": "Softball Coach",
+    "subcategories": ["Softball Coach"]
+  },
+  {
+    "category": "Babbysitting",
+    "subcategories": ["Babbysitting"]
+  },
+  {
+    "category": "Plumber",
+    "subcategories": ["Toiler Clog", "Toilet Replacement"]
+  },
+  {
+    "category": "Electrician",
+    "subcategories": ["Electrician"]
+  },
+  {
+    "category": "HVAC",
+    "subcategories": ["HVAC"]
+  },
+  {
+    "category": "Carpenter",
+    "subcategories": ["Carpenter"]
+  },
+  {
+    "category": "Garage Door Technician",
+    "subcategories": ["Garage Door Technician"]
+  },
+  {
+    "category": "Windshield Technician",
+    "subcategories": ["Windshield Technician"]
+  },
+  {
+    "category": "Exterior Cleaner",
+    "subcategories": [
+      "House Wash / Building Wash (Not Roof)",
+      "Gutter Cleaning",
+      "Roof Cleaning",
+      "Driveway Wash",
+      "Deck Cleaning",
+      "Window Washing"
+    ]
+  },
+  {
+    "category": "Garbage and Junk Removal Specialist",
+    "subcategories": ["Garbage and Junk Removal Specialist"]
+  },
+  {
+    "category": "Copywriter",
+    "subcategories": ["Copywriter"]
+  },
+  {
+    "category": "Publisher",
+    "subcategories": ["Publisher"]
+  },
+  {
+    "category": "Interior Cleaning / Janitorial",
+    "subcategories": ["House Cleaning", "Office Cleaning"]
+  },
+  {
+    "category": "Pest Control",
+    "subcategories": ["Pest Control"]
+  },
+  {
+    "category": "Media Organizing",
+    "subcategories": ["Media Organizing"]
+  },
+  {
+    "category": "Barber",
+    "subcategories": ["Barber"]
+  },
+  {
+    "category": "Hair Stylist",
+    "subcategories": ["Hair Stylist"]
+  }
+]

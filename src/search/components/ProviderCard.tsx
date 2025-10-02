@@ -1,5 +1,23 @@
 import Link from 'next/link';
-import { Provider } from '@/types/provider';
+
+interface Provider {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  businessName?: string;
+  description?: string;
+  rating?: number;
+  reviewCount?: number;
+  hourlyRate?: number;
+  isAvailable?: boolean;
+  services?: Array<{
+    name: string;
+  }>;
+  address?: {
+    city?: string;
+    zipCode?: string;
+  };
+}
 
 interface ProviderCardProps {
   provider: Provider;
@@ -7,7 +25,7 @@ interface ProviderCardProps {
 
 export default function ProviderCard({ provider }: ProviderCardProps) {
   return (
-    <Link href={`/customer/providers/${provider.id}`} className="block">
+    <Link href={`/providers/${provider.id}`} className="block">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 p-6">
         {/* Provider Header */}
         <div className="flex items-start justify-between mb-4">

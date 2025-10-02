@@ -1,0 +1,72 @@
+[
+  {
+    "city": "New York",
+    "state": "NY",
+    "zipCode": "10001",
+    "population": 8336817,
+    "popular": true
+  },
+  {
+    "city": "Los Angeles",
+    "state": "CA",
+    "zipCode": "90001",
+    "population": 3979576,
+    "popular": true
+  },
+  {
+    "city": "Chicago",
+    "state": "IL",
+    "zipCode": "60601",
+    "population": 2693976,
+    "popular": true
+  },
+  {
+    "city": "Houston",
+    "state": "TX",
+    "zipCode": "77001",
+    "population": 2320268,
+    "popular": true
+  },
+  {
+    "city": "Phoenix",
+    "state": "AZ",
+    "zipCode": "85001",
+    "population": 1680992,
+    "popular": false
+  },
+  {
+    "city": "Philadelphia",
+    "state": "PA",
+    "zipCode": "19101",
+    "population": 1584064,
+    "popular": false
+  },
+  {
+    "city": "San Antonio",
+    "state": "TX",
+    "zipCode": "78201",
+    "population": 1547253,
+    "popular": false
+  },
+  {
+    "city": "San Diego",
+    "state": "CA",
+    "zipCode": "92101",
+    "population": 1423851,
+    "popular": false
+  },
+  {
+    "city": "Dallas",
+    "state": "TX",
+    "zipCode": "75201",
+    "population": 1343573,
+    "popular": false
+  },
+  {
+    "city": "San Jose",
+    "state": "CA",
+    "zipCode": "95101",
+    "population": 1035317,
+    "popular": false
+  }
+]

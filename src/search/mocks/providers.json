@@ -1,0 +1,774 @@
+[
+  {
+    "id": "1",
+    "firstName": "John",
+    "lastName": "Smith",
+    "businessName": "Smith Plumbing Services",
+    "description": "Professional plumbing services with over 15 years of experience. Specializing in residential and commercial plumbing repairs, installations, and maintenance.",
+    "rating": 4.8,
+    "reviewCount": 127,
+    "hourlyRate": 75,
+    "isAvailable": true,
+    "services": [
+      { "name": "Toiler Clog", "description": "Fix clogged toilets", "basePrice": 150, "duration": 60 },
+      { "name": "Toilet Replacement", "description": "Replace old toilets", "basePrice": 300, "duration": 120 },
+      { "name": "Plumber", "description": "General plumbing services", "basePrice": 100, "duration": 60 }
+    ],
+    "address": {
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Plumber", "Insurance Certified"],
+    "experience": "15+ years in residential and commercial plumbing"
+  },
+  {
+    "id": "2",
+    "firstName": "Sarah",
+    "lastName": "Johnson",
+    "businessName": "Spark Electric",
+    "description": "Licensed electrician providing safe and reliable electrical services for homes and businesses. Available 24/7 for emergencies.",
+    "rating": 4.9,
+    "reviewCount": 89,
+    "hourlyRate": 85,
+    "isAvailable": true,
+    "services": [
+      { "name": "Electrician", "description": "Electrical repairs and installations", "basePrice": 120, "duration": 60 },
+      { "name": "Wiring Installation", "description": "Install new wiring and circuits", "basePrice": 300, "duration": 120 },
+      { "name": "Light Fixture Installation", "description": "Install and repair light fixtures", "basePrice": 150, "duration": 90 }
+    ],
+    "address": {
+      "street": "456 Oak Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10002"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Electrician", "Master Electrician"],
+    "experience": "12+ years in electrical services"
+  },
+  {
+    "id": "3",
+    "firstName": "Mike",
+    "lastName": "Rodriguez",
+    "businessName": "Clean Pro Services",
+    "description": "Professional cleaning services for homes and offices. Eco-friendly products and reliable service guaranteed.",
+    "rating": 4.7,
+    "reviewCount": 156,
+    "hourlyRate": 45,
+    "isAvailable": false,
+    "services": [
+      { "name": "House Cleaning", "description": "Complete house cleaning service", "basePrice": 120, "duration": 180 },
+      { "name": "Office Cleaning", "description": "Professional office cleaning", "basePrice": 100, "duration": 120 },
+      { "name": "Interior Cleaning / Janitorial", "description": "Thorough cleaning service", "basePrice": 250, "duration": 240 }
+    ],
+    "address": {
+      "street": "789 Pine St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10003"
+    },
+    "isVerified": true,
+    "certifications": ["Cleaning Certification", "Eco-Friendly Certified"],
+    "experience": "8+ years in professional cleaning"
+  },
+  {
+    "id": "4",
+    "firstName": "Lisa",
+    "lastName": "Chen",
+    "businessName": "Cool Air HVAC",
+    "description": "HVAC specialist providing heating, ventilation, and air conditioning services. Expert installation and repair services.",
+    "rating": 4.6,
+    "reviewCount": 98,
+    "hourlyRate": 95,
+    "isAvailable": true,
+    "services": [
+      { "name": "HVAC", "description": "Air conditioning and heating services", "basePrice": 150, "duration": 90 },
+      { "name": "AC Repair", "description": "Air conditioning repair and maintenance", "basePrice": 180, "duration": 120 },
+      { "name": "HVAC Installation", "description": "Complete HVAC system installation", "basePrice": 800, "duration": 480 }
+    ],
+    "address": {
+      "street": "321 Elm St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10004"
+    },
+    "isVerified": true,
+    "certifications": ["HVAC Certified", "EPA Certified"],
+    "experience": "10+ years in HVAC services"
+  },
+  {
+    "id": "5",
+    "firstName": "David",
+    "lastName": "Wilson",
+    "businessName": "Wilson Painting Co",
+    "description": "Professional painting services for interior and exterior projects. High-quality materials and expert craftsmanship.",
+    "rating": 4.5,
+    "reviewCount": 73,
+    "hourlyRate": 65,
+    "isAvailable": true,
+    "services": [
+      { "name": "Interior Painting", "description": "Professional interior painting", "basePrice": 300, "duration": 240 },
+      { "name": "Exterior Painting", "description": "Exterior house painting", "basePrice": 500, "duration": 360 },
+      { "name": "Color Consultation", "description": "Expert color selection advice", "basePrice": 100, "duration": 60 }
+    ],
+    "address": {
+      "street": "654 Maple Dr",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10005"
+    },
+    "isVerified": true,
+    "certifications": ["Painting Certification", "Safety Certified"],
+    "experience": "18+ years in professional painting"
+  },
+  {
+    "id": "6",
+    "firstName": "Emily",
+    "lastName": "Garcia",
+    "businessName": "Capture Moments Photography",
+    "description": "Professional photographer specializing in portraits, events, and commercial photography. Creating stunning memories.",
+    "rating": 4.9,
+    "reviewCount": 234,
+    "hourlyRate": 125,
+    "isAvailable": true,
+    "services": [
+      { "name": "Photographer", "description": "Professional photography services", "basePrice": 300, "duration": 120 },
+      { "name": "Event Photography", "description": "Weddings, parties, and corporate events", "basePrice": 500, "duration": 240 },
+      { "name": "Portrait Photography", "description": "Family and individual portraits", "basePrice": 250, "duration": 90 }
+    ],
+    "address": {
+      "street": "890 Broadway",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10003"
+    },
+    "isVerified": true,
+    "certifications": ["Professional Photographer's Association", "Certified Portrait Photographer"],
+    "experience": "10+ years in professional photography"
+  },
+  {
+    "id": "7",
+    "firstName": "Marcus",
+    "lastName": "Thompson",
+    "businessName": "Thompson Carpentry",
+    "description": "Expert carpenter providing custom woodworking, furniture building, and home improvement carpentry services.",
+    "rating": 4.7,
+    "reviewCount": 145,
+    "hourlyRate": 70,
+    "isAvailable": true,
+    "services": [
+      { "name": "Carpenter", "description": "Custom carpentry and woodworking", "basePrice": 200, "duration": 180 },
+      { "name": "Furniture Building", "description": "Custom furniture construction", "basePrice": 400, "duration": 360 },
+      { "name": "Cabinet Installation", "description": "Install kitchen and bathroom cabinets", "basePrice": 350, "duration": 240 }
+    ],
+    "address": {
+      "street": "567 West End Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10025"
+    },
+    "isVerified": true,
+    "certifications": ["Master Carpenter", "Licensed Contractor"],
+    "experience": "20+ years in carpentry"
+  },
+  {
+    "id": "8",
+    "firstName": "Jennifer",
+    "lastName": "Martinez",
+    "businessName": "Elite Tutoring",
+    "description": "Experienced tutor and coach offering personalized lessons in music, languages, and academic subjects.",
+    "rating": 5.0,
+    "reviewCount": 67,
+    "hourlyRate": 60,
+    "isAvailable": true,
+    "services": [
+      { "name": "Guitar Lesson", "description": "Learn guitar from beginner to advanced", "basePrice": 60, "duration": 60 },
+      { "name": "Piano Lessons", "description": "Professional piano instruction", "basePrice": 65, "duration": 60 },
+      { "name": "Spanish Language Tutor", "description": "Spanish language lessons", "basePrice": 55, "duration": 60 },
+      { "name": "Tutor / Coach", "description": "Academic tutoring and coaching", "basePrice": 50, "duration": 60 }
+    ],
+    "address": {
+      "street": "234 Park Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10017"
+    },
+    "isVerified": true,
+    "certifications": ["Certified Music Teacher", "Language Instructor"],
+    "experience": "8+ years in tutoring"
+  },
+  {
+    "id": "9",
+    "firstName": "Robert",
+    "lastName": "Davis",
+    "businessName": "Handy Bob Services",
+    "description": "Your go-to handyman for home repairs, appliance installations, and general maintenance tasks.",
+    "rating": 4.6,
+    "reviewCount": 198,
+    "hourlyRate": 55,
+    "isAvailable": true,
+    "services": [
+      { "name": "Handyman", "description": "General handyman services", "basePrice": 80, "duration": 60 },
+      { "name": "Toilet Replacment", "description": "Replace broken toilets", "basePrice": 200, "duration": 120 },
+      { "name": "Appliance Repair / Replacement", "description": "Fix or replace home appliances", "basePrice": 150, "duration": 90 }
+    ],
+    "address": {
+      "street": "345 Lexington Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10016"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Handyman", "Insured"],
+    "experience": "15+ years in home repair"
+  },
+  {
+    "id": "10",
+    "firstName": "Amanda",
+    "lastName": "Brown",
+    "businessName": "Exterior Shine Cleaning",
+    "description": "Professional exterior cleaning services including house washing, roof cleaning, and window washing.",
+    "rating": 4.8,
+    "reviewCount": 112,
+    "hourlyRate": 50,
+    "isAvailable": true,
+    "services": [
+      { "name": "House Wash / Building Wash (Not Roof)", "description": "Pressure washing for buildings", "basePrice": 200, "duration": 180 },
+      { "name": "Gutter Cleaning", "description": "Clean and clear gutters", "basePrice": 120, "duration": 90 },
+      { "name": "Roof Cleaning", "description": "Professional roof washing", "basePrice": 250, "duration": 180 },
+      { "name": "Window Washing", "description": "Streak-free window cleaning", "basePrice": 100, "duration": 120 },
+      { "name": "Exterior Cleaner", "description": "Complete exterior cleaning", "basePrice": 300, "duration": 240 }
+    ],
+    "address": {
+      "street": "678 Madison Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10065"
+    },
+    "isVerified": true,
+    "certifications": ["Power Washing Certified", "Insured"],
+    "experience": "7+ years in exterior cleaning"
+  },
+  {
+    "id": "11",
+    "firstName": "Dr. Michael",
+    "lastName": "Peterson",
+    "businessName": "Peterson Veterinary Care",
+    "description": "Licensed veterinarian providing compassionate care for your pets. House calls available.",
+    "rating": 4.9,
+    "reviewCount": 203,
+    "hourlyRate": 100,
+    "isAvailable": false,
+    "services": [
+      { "name": "Veterinarian", "description": "Complete veterinary services", "basePrice": 150, "duration": 60 },
+      { "name": "Pet Checkup", "description": "Routine health examinations", "basePrice": 100, "duration": 45 },
+      { "name": "Vaccination Services", "description": "Pet vaccinations", "basePrice": 80, "duration": 30 }
+    ],
+    "address": {
+      "street": "789 5th Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10022"
+    },
+    "isVerified": true,
+    "certifications": ["DVM", "Licensed Veterinarian"],
+    "experience": "12+ years in veterinary medicine"
+  },
+  {
+    "id": "12",
+    "firstName": "Thomas",
+    "lastName": "Anderson",
+    "businessName": "Anderson Tax & Accounting",
+    "description": "Certified public accountant offering tax preparation, business planning, and financial consulting services.",
+    "rating": 4.7,
+    "reviewCount": 89,
+    "hourlyRate": 90,
+    "isAvailable": true,
+    "services": [
+      { "name": "Tax Filing", "description": "Individual and business tax preparation", "basePrice": 200, "duration": 120 },
+      { "name": "Accountant", "description": "Accounting and bookkeeping services", "basePrice": 180, "duration": 120 },
+      { "name": "Business Planning", "description": "Strategic business planning", "basePrice": 250, "duration": 180 }
+    ],
+    "address": {
+      "street": "456 Wall St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10005"
+    },
+    "isVerified": true,
+    "certifications": ["CPA", "Licensed Tax Preparer"],
+    "experience": "18+ years in accounting"
+  },
+  {
+    "id": "13",
+    "firstName": "Rachel",
+    "lastName": "Kim",
+    "businessName": "Kim Architecture Studio",
+    "description": "Licensed architect specializing in residential and commercial construction drawings and design.",
+    "rating": 4.8,
+    "reviewCount": 54,
+    "hourlyRate": 120,
+    "isAvailable": true,
+    "services": [
+      { "name": "Construction Drawings", "description": "Detailed architectural drawings", "basePrice": 800, "duration": 480 },
+      { "name": "Architect", "description": "Architectural design services", "basePrice": 500, "duration": 360 },
+      { "name": "Building Consultation", "description": "Expert building advice", "basePrice": 200, "duration": 120 }
+    ],
+    "address": {
+      "street": "123 Columbus Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10023"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Architect", "LEED Certified"],
+    "experience": "14+ years in architecture"
+  },
+  {
+    "id": "14",
+    "firstName": "Carlos",
+    "lastName": "Rivera",
+    "businessName": "Rivera Baseball Academy",
+    "description": "Professional baseball coach offering private and group lessons for all skill levels.",
+    "rating": 4.9,
+    "reviewCount": 87,
+    "hourlyRate": 65,
+    "isAvailable": true,
+    "services": [
+      { "name": "Baseball Coach", "description": "Baseball coaching and training", "basePrice": 65, "duration": 90 },
+      { "name": "Batting Practice", "description": "Improve your batting skills", "basePrice": 60, "duration": 60 },
+      { "name": "Pitching Lessons", "description": "Professional pitching instruction", "basePrice": 70, "duration": 90 }
+    ],
+    "address": {
+      "street": "890 Amsterdam Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10025"
+    },
+    "isVerified": true,
+    "certifications": ["Professional Baseball Coach", "CPR Certified"],
+    "experience": "10+ years coaching baseball"
+  },
+  {
+    "id": "15",
+    "firstName": "Nicole",
+    "lastName": "Taylor",
+    "businessName": "Clean Sweep Pest Control",
+    "description": "Professional pest control services for residential and commercial properties. Safe and effective solutions.",
+    "rating": 4.6,
+    "reviewCount": 156,
+    "hourlyRate": 75,
+    "isAvailable": true,
+    "services": [
+      { "name": "Pest Control", "description": "Complete pest elimination", "basePrice": 150, "duration": 120 },
+      { "name": "Termite Treatment", "description": "Termite inspection and treatment", "basePrice": 300, "duration": 180 },
+      { "name": "Rodent Removal", "description": "Humane rodent removal", "basePrice": 200, "duration": 90 }
+    ],
+    "address": {
+      "street": "567 3rd Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10016"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Pest Control", "EPA Certified"],
+    "experience": "12+ years in pest control"
+  },
+  {
+    "id": "16",
+    "firstName": "James",
+    "lastName": "Miller",
+    "businessName": "Miller Real Estate Group",
+    "description": "Experienced real estate agent helping clients buy, sell, and rent properties. Expert knowledge of the New York market.",
+    "rating": 4.8,
+    "reviewCount": 312,
+    "hourlyRate": 0,
+    "isAvailable": true,
+    "services": [
+      { "name": "Real Estate Agent", "description": "Buy, sell, and rent properties", "basePrice": 0, "duration": 0 },
+      { "name": "Property Consultation", "description": "Expert property advice", "basePrice": 150, "duration": 60 },
+      { "name": "Market Analysis", "description": "Property market analysis", "basePrice": 200, "duration": 90 }
+    ],
+    "address": {
+      "street": "890 Park Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10021"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Real Estate Broker", "Certified Negotiator"],
+    "experience": "15+ years in real estate"
+  },
+  {
+    "id": "17",
+    "firstName": "Patricia",
+    "lastName": "Lee",
+    "businessName": "Elite Properties NY",
+    "description": "Top-rated real estate professional specializing in luxury homes and commercial properties.",
+    "rating": 4.9,
+    "reviewCount": 278,
+    "hourlyRate": 0,
+    "isAvailable": true,
+    "services": [
+      { "name": "Real Estate Agent", "description": "Residential and commercial real estate", "basePrice": 0, "duration": 0 },
+      { "name": "Home Staging Advice", "description": "Professional staging consultation", "basePrice": 100, "duration": 60 }
+    ],
+    "address": {
+      "street": "234 Madison Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10016"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Real Estate Agent", "Luxury Home Specialist"],
+    "experience": "12+ years in real estate"
+  },
+  {
+    "id": "18",
+    "firstName": "Dr. Susan",
+    "lastName": "Roberts",
+    "businessName": "Mindful Therapy Center",
+    "description": "Licensed mental health counselor providing therapy for anxiety, depression, and stress management.",
+    "rating": 5.0,
+    "reviewCount": 145,
+    "hourlyRate": 120,
+    "isAvailable": true,
+    "services": [
+      { "name": "Mental Health Counselor", "description": "Individual and group therapy", "basePrice": 120, "duration": 60 },
+      { "name": "Stress Management", "description": "Coping strategies and techniques", "basePrice": 100, "duration": 60 },
+      { "name": "Family Counseling", "description": "Family therapy sessions", "basePrice": 150, "duration": 90 }
+    ],
+    "address": {
+      "street": "456 Central Park West",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10025"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Mental Health Counselor", "LCSW"],
+    "experience": "10+ years in mental health counseling"
+  },
+  {
+    "id": "19",
+    "firstName": "Dr. Michael",
+    "lastName": "Chang",
+    "businessName": "Harmony Mental Wellness",
+    "description": "Compassionate mental health professional specializing in cognitive behavioral therapy and mindfulness.",
+    "rating": 4.8,
+    "reviewCount": 189,
+    "hourlyRate": 130,
+    "isAvailable": false,
+    "services": [
+      { "name": "Mental Health Counselor", "description": "CBT and mindfulness therapy", "basePrice": 130, "duration": 60 },
+      { "name": "Couples Therapy", "description": "Relationship counseling", "basePrice": 160, "duration": 90 }
+    ],
+    "address": {
+      "street": "789 Broadway",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10003"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Therapist", "CBT Certified"],
+    "experience": "8+ years in therapy"
+  },
+  {
+    "id": "20",
+    "firstName": "Linda",
+    "lastName": "Johnson",
+    "businessName": "Caring Hands Home Health",
+    "description": "Professional in-home health care services for seniors and individuals with medical needs.",
+    "rating": 4.9,
+    "reviewCount": 156,
+    "hourlyRate": 45,
+    "isAvailable": true,
+    "services": [
+      { "name": "In Home Health Care", "description": "Personal care and medical assistance", "basePrice": 45, "duration": 60 },
+      { "name": "Medication Management", "description": "Medication reminders and administration", "basePrice": 50, "duration": 30 },
+      { "name": "Companion Care", "description": "Companionship and daily activities", "basePrice": 35, "duration": 60 }
+    ],
+    "address": {
+      "street": "123 Lexington Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10010"
+    },
+    "isVerified": true,
+    "certifications": ["CNA", "Home Health Aide Certified"],
+    "experience": "15+ years in home health care"
+  },
+  {
+    "id": "21",
+    "firstName": "Maria",
+    "lastName": "Gonzalez",
+    "businessName": "Compassionate Care Services",
+    "description": "Experienced home health care provider offering personalized care for elderly and disabled individuals.",
+    "rating": 4.7,
+    "reviewCount": 134,
+    "hourlyRate": 42,
+    "isAvailable": true,
+    "services": [
+      { "name": "In Home Health Care", "description": "Daily living assistance", "basePrice": 42, "duration": 60 },
+      { "name": "Meal Preparation", "description": "Nutritious meal planning and cooking", "basePrice": 40, "duration": 60 }
+    ],
+    "address": {
+      "street": "567 Amsterdam Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10024"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Home Health Aide", "CPR Certified"],
+    "experience": "12+ years in caregiving"
+  },
+  {
+    "id": "22",
+    "firstName": "Sarah",
+    "lastName": "Williams",
+    "businessName": "Little Stars Babysitting",
+    "description": "Trusted and reliable babysitter with experience caring for children of all ages. CPR certified and background checked.",
+    "rating": 5.0,
+    "reviewCount": 98,
+    "hourlyRate": 25,
+    "isAvailable": true,
+    "services": [
+      { "name": "Babbysitting", "description": "Professional childcare services", "basePrice": 25, "duration": 60 },
+      { "name": "Evening Care", "description": "Evening and overnight care", "basePrice": 30, "duration": 60 },
+      { "name": "Activity Planning", "description": "Educational activities and games", "basePrice": 28, "duration": 60 }
+    ],
+    "address": {
+      "street": "890 Columbus Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10025"
+    },
+    "isVerified": true,
+    "certifications": ["CPR Certified", "First Aid", "Background Checked"],
+    "experience": "6+ years babysitting"
+  },
+  {
+    "id": "23",
+    "firstName": "Jessica",
+    "lastName": "Brown",
+    "businessName": "Caring Nannies",
+    "description": "Professional nanny and babysitter providing safe, fun, and educational childcare in your home.",
+    "rating": 4.8,
+    "reviewCount": 112,
+    "hourlyRate": 28,
+    "isAvailable": true,
+    "services": [
+      { "name": "Babbysitting", "description": "Reliable childcare", "basePrice": 28, "duration": 60 },
+      { "name": "Homework Help", "description": "Academic support for kids", "basePrice": 30, "duration": 60 }
+    ],
+    "address": {
+      "street": "234 East 86th St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10028"
+    },
+    "isVerified": true,
+    "certifications": ["Certified Nanny", "CPR/AED"],
+    "experience": "8+ years in childcare"
+  },
+  {
+    "id": "24",
+    "firstName": "Robert",
+    "lastName": "Taylor",
+    "businessName": "Taylor Garage Solutions",
+    "description": "Expert garage door installation, repair, and maintenance. Available for emergency repairs 24/7.",
+    "rating": 4.7,
+    "reviewCount": 167,
+    "hourlyRate": 80,
+    "isAvailable": true,
+    "services": [
+      { "name": "Garage Door Technician", "description": "Garage door repair and installation", "basePrice": 150, "duration": 90 },
+      { "name": "Spring Replacement", "description": "Garage door spring repair", "basePrice": 180, "duration": 60 },
+      { "name": "Opener Installation", "description": "Automatic opener installation", "basePrice": 250, "duration": 120 }
+    ],
+    "address": {
+      "street": "456 Queens Blvd",
+      "city": "Queens",
+      "state": "NY",
+      "zipCode": "11104"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Garage Door Technician", "Insured"],
+    "experience": "14+ years in garage door services"
+  },
+  {
+    "id": "25",
+    "firstName": "Kevin",
+    "lastName": "White",
+    "businessName": "Precision Garage Doors",
+    "description": "Professional garage door services including repairs, installations, and maintenance for residential and commercial properties.",
+    "rating": 4.6,
+    "reviewCount": 143,
+    "hourlyRate": 75,
+    "isAvailable": true,
+    "services": [
+      { "name": "Garage Door Technician", "description": "Complete garage door services", "basePrice": 140, "duration": 90 },
+      { "name": "Track Repair", "description": "Bent track straightening", "basePrice": 120, "duration": 60 }
+    ],
+    "address": {
+      "street": "789 Northern Blvd",
+      "city": "Queens",
+      "state": "NY",
+      "zipCode": "11372"
+    },
+    "isVerified": true,
+    "certifications": ["Certified Technician", "Safety Certified"],
+    "experience": "11+ years in garage doors"
+  },
+  {
+    "id": "26",
+    "firstName": "Daniel",
+    "lastName": "Moore",
+    "businessName": "Clear View Windshield Repair",
+    "description": "Mobile windshield repair and replacement service. We come to you for convenient, professional service.",
+    "rating": 4.8,
+    "reviewCount": 201,
+    "hourlyRate": 60,
+    "isAvailable": true,
+    "services": [
+      { "name": "Windshield Technician", "description": "Windshield repair and replacement", "basePrice": 120, "duration": 60 },
+      { "name": "Chip Repair", "description": "Quick chip and crack repair", "basePrice": 75, "duration": 30 },
+      { "name": "Full Replacement", "description": "Complete windshield replacement", "basePrice": 300, "duration": 90 }
+    ],
+    "address": {
+      "street": "123 Brooklyn Ave",
+      "city": "Brooklyn",
+      "state": "NY",
+      "zipCode": "11211"
+    },
+    "isVerified": true,
+    "certifications": ["Auto Glass Certified", "Mobile Service"],
+    "experience": "9+ years in windshield repair"
+  },
+  {
+    "id": "27",
+    "firstName": "Chris",
+    "lastName": "Adams",
+    "businessName": "Auto Glass Experts",
+    "description": "Professional windshield and auto glass services. Same-day service available for most repairs.",
+    "rating": 4.7,
+    "reviewCount": 178,
+    "hourlyRate": 65,
+    "isAvailable": true,
+    "services": [
+      { "name": "Windshield Technician", "description": "Expert auto glass services", "basePrice": 130, "duration": 60 },
+      { "name": "Side Window Replacement", "description": "Car side window repair", "basePrice": 150, "duration": 45 }
+    ],
+    "address": {
+      "street": "456 Atlantic Ave",
+      "city": "Brooklyn",
+      "state": "NY",
+      "zipCode": "11217"
+    },
+    "isVerified": true,
+    "certifications": ["Certified Glass Technician", "Insured"],
+    "experience": "12+ years in auto glass"
+  },
+  {
+    "id": "28",
+    "firstName": "Anna",
+    "lastName": "Martinez",
+    "businessName": "Fresh Cuts Hair Salon",
+    "description": "Professional hair stylist offering cuts, color, and styling services. Specializing in modern and classic styles.",
+    "rating": 4.9,
+    "reviewCount": 234,
+    "hourlyRate": 70,
+    "isAvailable": true,
+    "services": [
+      { "name": "Hair Stylist", "description": "Haircuts and styling", "basePrice": 60, "duration": 60 },
+      { "name": "Hair Coloring", "description": "Professional color services", "basePrice": 120, "duration": 120 },
+      { "name": "Highlights", "description": "Balayage and highlights", "basePrice": 150, "duration": 150 }
+    ],
+    "address": {
+      "street": "567 Bleecker St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10012"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Cosmetologist", "Color Specialist"],
+    "experience": "10+ years in hair styling"
+  },
+  {
+    "id": "29",
+    "firstName": "Sophia",
+    "lastName": "Harris",
+    "businessName": "Glamour Hair Studio",
+    "description": "Expert hair stylist providing premium hair services including extensions, treatments, and special event styling.",
+    "rating": 5.0,
+    "reviewCount": 187,
+    "hourlyRate": 85,
+    "isAvailable": false,
+    "services": [
+      { "name": "Hair Stylist", "description": "Premium hair services", "basePrice": 75, "duration": 60 },
+      { "name": "Hair Extensions", "description": "Professional extensions", "basePrice": 300, "duration": 180 },
+      { "name": "Bridal Hair", "description": "Wedding hair styling", "basePrice": 200, "duration": 120 }
+    ],
+    "address": {
+      "street": "890 5th Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10021"
+    },
+    "isVerified": true,
+    "certifications": ["Master Stylist", "Extension Specialist"],
+    "experience": "15+ years in professional styling"
+  },
+  {
+    "id": "30",
+    "firstName": "Marcus",
+    "lastName": "Jackson",
+    "businessName": "Classic Cuts Barbershop",
+    "description": "Traditional barbershop offering classic cuts, beard trims, and hot towel shaves. Walk-ins welcome.",
+    "rating": 4.8,
+    "reviewCount": 267,
+    "hourlyRate": 40,
+    "isAvailable": true,
+    "services": [
+      { "name": "Barber", "description": "Men's haircuts and grooming", "basePrice": 35, "duration": 30 },
+      { "name": "Beard Trim", "description": "Professional beard grooming", "basePrice": 20, "duration": 20 },
+      { "name": "Hot Towel Shave", "description": "Traditional straight razor shave", "basePrice": 40, "duration": 30 }
+    ],
+    "address": {
+      "street": "234 Harlem Ave",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10027"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Barber", "Master Barber"],
+    "experience": "18+ years in barbering"
+  },
+  {
+    "id": "31",
+    "firstName": "Tyrone",
+    "lastName": "Smith",
+    "businessName": "Elite Barber Lounge",
+    "description": "Modern barbershop providing fresh cuts, fades, and grooming services in a relaxed atmosphere.",
+    "rating": 4.9,
+    "reviewCount": 198,
+    "hourlyRate": 45,
+    "isAvailable": true,
+    "services": [
+      { "name": "Barber", "description": "Premium haircuts and fades", "basePrice": 40, "duration": 40 },
+      { "name": "Lineup", "description": "Edge up and lineup", "basePrice": 25, "duration": 20 },
+      { "name": "Hair Design", "description": "Custom hair designs", "basePrice": 50, "duration": 45 }
+    ],
+    "address": {
+      "street": "456 Flatbush Ave",
+      "city": "Brooklyn",
+      "state": "NY",
+      "zipCode": "11225"
+    },
+    "isVerified": true,
+    "certifications": ["Licensed Barber", "Fade Specialist"],
+    "experience": "12+ years in barbering"
+  }
+]
