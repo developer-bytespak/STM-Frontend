@@ -15,7 +15,7 @@ export default function SearchPage() {
   const [selectedService, setSelectedService] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredServices, setFilteredServices] = useState<string[]>([]);
-  const [providers, setProviders] = useState<any[]>([]);
+  const [providers, setProviders] = useState<Array<typeof providersData[0]>>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -206,7 +206,7 @@ export default function SearchPage() {
           <div className="mt-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Providers for "{selectedService}"
+                Providers for &quot;{selectedService}&quot;
               </h2>
               <p className="text-gray-600">
                 Found {providers.length} {providers.length === 1 ? 'provider' : 'providers'}
@@ -227,7 +227,7 @@ export default function SearchPage() {
                   </svg>
                   <h3 className="mt-4 text-lg font-medium text-gray-900">No providers found</h3>
                   <p className="mt-2 text-sm text-gray-500">
-                    We couldn't find any providers for "{selectedService}". Try searching for a different service.
+                    We couldn&apos;t find any providers for &quot;{selectedService}&quot;. Try searching for a different service.
                   </p>
                 </div>
               </div>

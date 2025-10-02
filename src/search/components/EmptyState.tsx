@@ -22,14 +22,14 @@ export default function EmptyState({ searchTerm, location }: EmptyStateProps) {
         <p className="text-gray-600 mb-6">
           {searchTerm && location ? (
             <>
-              We couldn't find any providers for <strong>"{searchTerm}"</strong> in <strong>"{location}"</strong>.
+              We couldn&apos;t find any providers for <strong>&quot;{searchTerm}&quot;</strong> in <strong>&quot;{location}&quot;</strong>.
             </>
           ) : searchTerm ? (
             <>
-              We couldn't find any providers for <strong>"{searchTerm}"</strong>.
+              We couldn&apos;t find any providers for <strong>&quot;{searchTerm}&quot;</strong>.
             </>
           ) : (
-            'We couldn\'t find any providers matching your criteria.'
+            'We couldn&apos;t find any providers matching your criteria.'
           )}
         </p>
         

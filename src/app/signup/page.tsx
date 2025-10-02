@@ -12,7 +12,7 @@ export default function Signup() {
             Choose Your Account Type
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Select how you'd like to use ServiceHub
+            Select how you&apos;d like to use ServiceHub
           </p>
         </div>
 

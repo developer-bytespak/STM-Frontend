@@ -16,7 +16,7 @@ export default function Home() {
   const [location, setLocation] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredServices, setFilteredServices] = useState<string[]>([]);
-  const [providers, setProviders] = useState<any[]>([]);
+  const [providers, setProviders] = useState<Array<typeof providersData[0]>>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -147,7 +147,7 @@ export default function Home() {
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
             Connect with trusted professionals in your area. From home repairs to business services, 
-            we've got you covered with quality-assured providers.
+            we&apos;ve got you covered with quality-assured providers.
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export default function Home() {
                     setShowSuggestions(true);
                   }
                 }}
-                placeholder="Type to search services (e.g., Plumber, Photographer, Tutor...)"
+                placeholder="Type to search services (e.g., Plumber, Photographer, Tutor)"
                 className="w-full px-4 py-4 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-lg"
               />
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -257,7 +257,7 @@ export default function Home() {
           <div className="mt-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Providers for "{selectedService}"
+                Providers for &quot;{selectedService}&quot;
                 {location && <span className="text-blue-600"> in {location}</span>}
               </h2>
               <p className="text-gray-600">
@@ -280,7 +280,7 @@ export default function Home() {
                   </svg>
                   <h3 className="mt-4 text-lg font-medium text-gray-900">No providers found</h3>
                   <p className="mt-2 text-sm text-gray-500">
-                    We couldn't find any providers for "{selectedService}"
+                    We couldn&apos;t find any providers for &quot;{selectedService}&quot;
                     {location && ` in ${location}`}. 
                     {location ? ' Try a different location or service.' : ' Try searching for a different service.'}
                   </p>
