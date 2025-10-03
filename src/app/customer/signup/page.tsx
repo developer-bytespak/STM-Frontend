@@ -3,18 +3,41 @@
 import React, { useState } from 'react';
 import { OTPVerification } from '@/components/auth/OTPVerification';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
-import { validateEmail, validateName, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
+import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 import { generateOTP, storeOTPSession, clearOTPSession } from '@/lib/otp';
 import { sendOTPEmail } from '@/lib/emailjs';
-import { registerUser, checkEmailExists, verifyOTPAndActivate } from '@/lib/mockAuthApi';
-import { SignupFormData, SignupStep, FormErrors } from '@/types/auth';
+
+interface CustomerFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  password: string;
+  acceptedTerms: boolean;
+}
+
+interface FormErrors {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  password?: string;
+  acceptedTerms?: string;
+  general?: string;
+}
+
+type SignupStep = 'form' | 'otp' | 'success';
 
 export default function CustomerSignupPage() {
   const [currentStep, setCurrentStep] = useState<SignupStep>('form');
-  const [formData, setFormData] = useState<SignupFormData>({
-    name: '',
+  const [formData, setFormData] = useState<CustomerFormData>({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
+    address: '',
     password: '',
     acceptedTerms: false,
   });
@@ -22,7 +45,7 @@ export default function CustomerSignupPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleInputChange = (field: keyof SignupFormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof CustomerFormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
     if (errors[field]) {
@@ -30,13 +53,21 @@ export default function CustomerSignupPage() {
     }
   };
 
-  const validateForm = async (): Promise<boolean> => {
+  const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Validate name
-    const nameValidation = validateName(formData.name);
-    if (!nameValidation.valid) {
-      newErrors.name = nameValidation.error;
+    // Validate first name
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    }
+
+    // Validate last name
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
     }
 
     // Validate email
@@ -44,9 +75,10 @@ export default function CustomerSignupPage() {
     if (!emailValidation.valid) {
       newErrors.email = emailValidation.error;
     } else {
-      // Check if email already exists
-      const emailCheck = await checkEmailExists(formData.email);
-      if (emailCheck.exists) {
+      // Check if email already exists in localStorage
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const emailExists = existingUsers.some((user: any) => user.email === formData.email);
+      if (emailExists) {
         newErrors.email = 'Email already registered. Please login instead.';
       }
     }
@@ -55,6 +87,13 @@ export default function CustomerSignupPage() {
     const phoneValidation = validatePhone(formData.phone);
     if (!phoneValidation.valid) {
       newErrors.phone = phoneValidation.error;
+    }
+
+    // Validate address
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    } else if (formData.address.trim().length < 10) {
+      newErrors.address = 'Please provide a complete address';
     }
 
     // Validate password
@@ -79,7 +118,7 @@ export default function CustomerSignupPage() {
 
     try {
       // Validate form
-      const isValid = await validateForm();
+      const isValid = validateForm();
       if (!isValid) {
         setLoading(false);
         return;
@@ -88,26 +127,19 @@ export default function CustomerSignupPage() {
       // Sanitize inputs
       const sanitizedData = {
         ...formData,
-        name: sanitizeInput(formData.name),
+        firstName: sanitizeInput(formData.firstName),
+        lastName: sanitizeInput(formData.lastName),
         email: sanitizeInput(formData.email),
         phone: formatPhoneNumber(sanitizeInput(formData.phone)),
+        address: sanitizeInput(formData.address),
       };
-
-      // Register user (pending status)
-      const registerResponse = await registerUser(sanitizedData);
-      
-      if (!registerResponse.success) {
-        setErrors({ general: registerResponse.error || 'Registration failed' });
-        setLoading(false);
-        return;
-      }
 
       // Generate and send OTP
       const otp = generateOTP();
       const emailResult = await sendOTPEmail(
         sanitizedData.email,
         otp,
-        sanitizedData.name
+        sanitizedData.firstName
       );
 
       if (!emailResult.success) {
@@ -135,21 +167,29 @@ export default function CustomerSignupPage() {
     setLoading(true);
 
     try {
-      // Verify OTP and activate account
-      const activateResponse = await verifyOTPAndActivate(formData.email);
+      // Create customer user in localStorage
+      const newCustomer = {
+        id: Date.now().toString(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        role: 'customer',
+        isEmailVerified: true,
+        createdAt: new Date().toISOString(),
+      };
 
-      if (!activateResponse.success) {
-        setErrors({ general: activateResponse.error || 'Activation failed' });
-        setLoading(false);
-        return;
-      }
+      // Get existing users and add new customer
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      existingUsers.push(newCustomer);
+      localStorage.setItem('users', JSON.stringify(existingUsers));
 
-      // Create authenticated session (auto-login after signup)
-      if (activateResponse.data?.token) {
-        localStorage.setItem('auth_token', activateResponse.data.token);
-        localStorage.setItem('user_email', formData.email);
-        localStorage.setItem('user_role', 'customer');
-      }
+      // Create authenticated session
+      localStorage.setItem('auth_token', 'mock-customer-token-' + Date.now());
+      localStorage.setItem('user_email', formData.email);
+      localStorage.setItem('user_role', 'customer');
+      localStorage.setItem('user_id', newCustomer.id);
 
       // Clear OTP session
       clearOTPSession();
@@ -186,32 +226,54 @@ export default function CustomerSignupPage() {
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Name Field */}
+                {/* First Name Field */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
                     className={`
                       w-full px-4 py-2 border rounded-lg
                       focus:outline-none focus:ring-2 focus:ring-navy-500
-                      ${errors.name ? 'border-red-500' : 'border-gray-300'}
+                      ${errors.firstName ? 'border-red-500' : 'border-gray-300'}
                     `}
-                    placeholder="John Doe"
+                    placeholder="John"
                   />
-                  {errors.name && (
-                    <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
+
+                {/* Last Name Field */}
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    className={`
+                      w-full px-4 py-2 border rounded-lg
+                      focus:outline-none focus:ring-2 focus:ring-navy-500
+                      ${errors.lastName ? 'border-red-500' : 'border-gray-300'}
+                    `}
+                    placeholder="Doe"
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
                   )}
                 </div>
 
                 {/* Email Field */}
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -233,7 +295,7 @@ export default function CustomerSignupPage() {
                 {/* Phone Field */}
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
+                    Phone Number <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -252,10 +314,32 @@ export default function CustomerSignupPage() {
                   )}
                 </div>
 
+                {/* Address Field */}
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    rows={3}
+                    className={`
+                      w-full px-4 py-2 border rounded-lg
+                      focus:outline-none focus:ring-2 focus:ring-navy-500
+                      ${errors.address ? 'border-red-500' : 'border-gray-300'}
+                    `}
+                    placeholder="Enter your complete address including city and postal code"
+                  />
+                  {errors.address && (
+                    <p className="text-red-500 text-xs mt-1">{errors.address}</p>
+                  )}
+                </div>
+
                 {/* Password Field */}
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
+                    Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -365,7 +449,7 @@ export default function CustomerSignupPage() {
               {/* Login Link */}
               <p className="text-center text-sm text-gray-600 mt-6">
                 Already have an account?{' '}
-                <a href="/customer/login" className="text-navy-600 font-medium hover:underline">
+                <a href="/login" className="text-navy-600 font-medium hover:underline">
                   Login
                 </a>
               </p>
@@ -375,7 +459,7 @@ export default function CustomerSignupPage() {
           {currentStep === 'otp' && (
             <OTPVerification
               email={formData.email}
-              userName={formData.name}
+              userName={`${formData.firstName} ${formData.lastName}`}
               phone={formData.phone}
               onVerificationSuccess={handleOTPVerificationSuccess}
               onBack={() => setCurrentStep('form')}
@@ -395,5 +479,3 @@ export default function CustomerSignupPage() {
     </div>
   );
 }
-
-
