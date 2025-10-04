@@ -475,7 +475,7 @@ export default function ServiceProviderSignupPage() {
                           focus:outline-none focus:ring-2 focus:ring-navy-500
                           ${errors.phone ? 'border-red-500' : 'border-gray-300'}
                         `}
-                        placeholder="03001234567"
+                        placeholder="01234567890"
                       />
                       {errors.phone && (
                         <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
@@ -625,7 +625,7 @@ export default function ServiceProviderSignupPage() {
                           focus:outline-none focus:ring-2 focus:ring-navy-500
                           ${errors.location ? 'border-red-500' : 'border-gray-300'}
                         `}
-                        placeholder="Karachi, Pakistan"
+                        placeholder="New York, USA"
                       />
                       {errors.location && (
                         <p className="text-red-500 text-xs mt-1">{errors.location}</p>
@@ -635,7 +635,7 @@ export default function ServiceProviderSignupPage() {
                     {/* Min Price */}
                     <div>
                       <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                        Minimum Price (PKR) <span className="text-red-500">*</span>
+                        Minimum Price (USD) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -658,7 +658,7 @@ export default function ServiceProviderSignupPage() {
                     {/* Max Price */}
                     <div>
                       <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                        Maximum Price (PKR) <span className="text-red-500">*</span>
+                        Maximum Price (USD) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
