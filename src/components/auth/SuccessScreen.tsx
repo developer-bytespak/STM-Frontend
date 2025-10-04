@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface SuccessScreenProps {
   title: string;
@@ -16,7 +15,6 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
   redirectTo,
   redirectDelay = 2000,
 }) => {
-  const router = useRouter();
   const [countdown, setCountdown] = useState(Math.ceil(redirectDelay / 1000));
 
   useEffect(() => {
@@ -25,16 +23,16 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
       setCountdown((prev) => Math.max(0, prev - 1));
     }, 1000);
 
-    // Redirect after delay
+    // Redirect after delay - use window.location for full reload
     const redirectTimer = setTimeout(() => {
-      router.push(redirectTo);
+      window.location.href = redirectTo;
     }, redirectDelay);
 
     return () => {
       clearInterval(countdownInterval);
       clearTimeout(redirectTimer);
     };
-  }, [redirectTo, redirectDelay, router]);
+  }, [redirectTo, redirectDelay]);
 
   return (
     <div className="w-full max-w-md mx-auto text-center">
@@ -83,7 +81,7 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
 
       {/* Manual Redirect Button */}
       <button
-        onClick={() => router.push(redirectTo)}
+        onClick={() => window.location.href = redirectTo}
         className="text-navy-600 hover:text-navy-700 text-sm font-medium"
       >
         Go to Dashboard Now →

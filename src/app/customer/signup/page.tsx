@@ -6,6 +6,7 @@ import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 import { generateOTP, storeOTPSession, clearOTPSession } from '@/lib/otp';
 import { sendOTPEmail } from '@/lib/emailjs';
+import { hashPassword } from '@/lib/crypto';
 
 interface CustomerFormData {
   firstName: string;
@@ -167,6 +168,9 @@ export default function CustomerSignupPage() {
     setLoading(true);
 
     try {
+      // Hash password before storing (basic security)
+      const hashedPassword = await hashPassword(formData.password);
+      
       // Create customer user in localStorage
       const newCustomer = {
         id: Date.now().toString(),
@@ -175,6 +179,7 @@ export default function CustomerSignupPage() {
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
+        passwordHash: hashedPassword, // Store hashed password, not plain text
         role: 'customer',
         isEmailVerified: true,
         createdAt: new Date().toISOString(),
@@ -185,7 +190,21 @@ export default function CustomerSignupPage() {
       existingUsers.push(newCustomer);
       localStorage.setItem('users', JSON.stringify(existingUsers));
 
-      // Create authenticated session
+      // Store in customers array (used by profile page)
+      const existingCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+      existingCustomers.push(newCustomer);
+      localStorage.setItem('customers', JSON.stringify(existingCustomers));
+
+      // Create authenticated session (for useAuth hook)
+      const authUser = {
+        id: newCustomer.id,
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        role: 'customer' as const
+      };
+      
+      // Save all localStorage data
+      localStorage.setItem('auth_user', JSON.stringify(authUser));
       localStorage.setItem('auth_token', 'mock-customer-token-' + Date.now());
       localStorage.setItem('user_email', formData.email);
       localStorage.setItem('user_role', 'customer');
@@ -193,6 +212,13 @@ export default function CustomerSignupPage() {
 
       // Clear OTP session
       clearOTPSession();
+
+      // Ensure localStorage is written before continuing
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Log for debugging
+      console.log('✅ Customer signup complete:', authUser);
+      console.log('✅ localStorage auth_user:', localStorage.getItem('auth_user'));
 
       // Move to success screen (will redirect to dashboard)
       setCurrentStep('success');

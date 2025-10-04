@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { validateEmail, sanitizeInput } from '@/lib/validation';
-import { authManager } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { validateEmail } from '@/lib/validation';
+import Link from 'next/link';
 
 interface FormErrors {
   email?: string;
@@ -12,7 +12,7 @@ interface FormErrors {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -33,21 +33,6 @@ export default function LoginPage() {
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.valid) {
-      newErrors.email = emailValidation.error;
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,113 +40,28 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      // Validate form
-      if (!validateForm()) {
+      if (!formData.email || !formData.password) {
+        setErrors({ general: 'Email and password are required' });
         setLoading(false);
         return;
       }
 
-      const sanitizedEmail = sanitizeInput(formData.email);
-      const sanitizedPassword = sanitizeInput(formData.password);
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Mock login API call - in real implementation, this would call your backend
-      const mockLoginResponse = await mockLogin(sanitizedEmail, sanitizedPassword);
-
-      if (!mockLoginResponse.success || !mockLoginResponse.data) {
-        setErrors({ general: mockLoginResponse.error || 'Login failed' });
-        setLoading(false);
-        return;
-      }
-
-      // Store authentication data
-      authManager.login(mockLoginResponse.data.token, mockLoginResponse.data.user);
+      // Use the login function from useAuth hook
+      await login(formData.email, formData.password);
       
-      // Redirect based on user role and approval status
-      const { role, approvalStatus } = mockLoginResponse.data.user;
-      
-      // Handle different user roles and their specific routing
-      switch (role) {
-        case 'customer':
-          router.push('/customer/dashboard');
-          break;
-        case 'service_provider':
-          if (approvalStatus === 'pending') {
-            router.push('/provider/dashboard?status=pending');
-          } else if (approvalStatus === 'approved') {
-            router.push('/provider/dashboard');
-          } else {
-            router.push('/provider/dashboard?status=pending'); // Default to pending for safety
-          }
-          break;
-        case 'local_service_manager':
-          router.push('/lsm/dashboard');
-          break;
-        case 'admin':
-          router.push('/admin/dashboard');
-          break;
-        default:
-          console.error('Unknown user role:', role);
-          router.push('/');
-      }
+      // Login function will automatically redirect based on user role
+      // No need for manual redirect here
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+      const errorMessage = error instanceof Error ? error.message : 'Invalid email or password';
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
-  // Login function using localStorage
-  const mockLogin = async (email: string, password: string) => {
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Validate inputs
-    if (!email || !password) {
-      return { success: false, error: 'Email and password are required.' };
-    }
-
-    // Find user by BOTH email AND password combination
-    const user = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (!user) {
-      // Check if email exists but password is wrong
-      const emailExists = users.find((u: any) => u.email === email);
-      if (emailExists) {
-        return { success: false, error: 'Invalid password. Please try again.' };
-      } else {
-        return { success: false, error: 'No account found with this email. Please sign up first.' };
-      }
-    }
-
-    // Check if email is verified
-    if (!user.isEmailVerified) {
-      return { success: false, error: 'Please verify your email before logging in.' };
-    }
-
-    return {
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          // Only service providers have approval status, others are always 'approved'
-          approvalStatus: user.role === 'service_provider' ? (user.approvalStatus || 'pending') : 'approved'
-        },
-        token: `mock-${user.role}-token-${Date.now()}`
-      }
-    };
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
+    <div className="flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-navy-50 to-white">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -249,24 +149,36 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Test Accounts Info */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs font-semibold text-blue-900 mb-2">Test Accounts:</p>
+            <div className="space-y-1 text-xs text-blue-800">
+              <p><strong>Customer:</strong> customer@test.com</p>
+              <p><strong>Provider:</strong> provider@test.com</p>
+              <p><strong>Admin:</strong> admin@test.com</p>
+              <p><strong>LSM:</strong> lsm@test.com</p>
+              <p className="mt-2"><strong>Password:</strong> password123</p>
+            </div>
+          </div>
+
           {/* Links */}
           <div className="mt-6 space-y-2">
             <p className="text-center">
-              <a href="/forgot-password" className="text-sm text-navy-600 hover:underline font-medium">
+              <Link href="/forgot-password" className="text-sm text-navy-600 hover:underline font-medium">
                 Forgot your password?
-              </a>
+              </Link>
             </p>
             
             <div className="text-center text-sm text-gray-600">
               Don&apos;t have an account?{' '}
               <div className="flex justify-center gap-4 mt-2">
-                <a href="/customer/signup" className="text-navy-600 font-medium hover:underline">
+                <Link href="/customer/signup" className="text-navy-600 font-medium hover:underline">
                   Sign up as Customer
-                </a>
+                </Link>
                 <span className="text-gray-400">|</span>
-                <a href="/serviceprovider/signup" className="text-navy-600 font-medium hover:underline">
+                <Link href="/serviceprovider/signup" className="text-navy-600 font-medium hover:underline">
                   Sign up as Provider
-                </a>
+                </Link>
               </div>
             </div>
           </div>

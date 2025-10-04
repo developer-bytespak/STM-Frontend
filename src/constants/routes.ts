@@ -22,7 +22,7 @@ export const ROUTES = {
     BOOKINGS: '/customer/bookings',
     BOOKING_DETAILS: (id: string) => `/customer/bookings/${id}`,
     NEW_BOOKING: '/customer/bookings/new',
-    SEARCH_PROVIDERS: '/customer/search-providers',
+    SEARCH_PROVIDERS: '/', // Updated to use homepage search
     PAYMENTS: '/customer/payments',
     PROFILE: '/customer/profile',
     SETTINGS: '/customer/settings',
