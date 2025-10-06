@@ -166,4 +166,37 @@ export interface AuthContextType {
   error: string | null;
 }
 
+// Feedback and Rating types
+export interface RatingFeedback {
+  id?: number;
+  job_id: number;
+  customer_id: number;
+  provider_id: number;
+  rating: number; // Overall rating (1-5)
+  feedback?: string; // Optional text feedback
+  punctuality_rating: number; // 1-5
+  response_time: number; // 1-5
+  created_at: string;
+}
+
+export interface FeedbackFormData {
+  rating: number; // Overall rating (1-5)
+  punctuality_rating: number; // 1-5
+  response_time: number; // 1-5
+  feedback?: string; // Optional text
+}
+
+export interface FeedbackSubmissionData extends FeedbackFormData {
+  job_id: number;
+  customer_id: number;
+  provider_id: number;
+}
+
+export interface FeedbackContext {
+  jobId: number;
+  providerId: number;
+  providerName: string;
+  serviceName: string;
+}
+
 
