@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -9,22 +10,62 @@ export default function LSMLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+      
+      if (user?.role !== 'local_service_manager') {
+        // Redirect to appropriate dashboard based on role
+        switch (user?.role) {
+          case 'admin':
+            router.push('/admin/dashboard');
+            break;
+          case 'customer':
+            router.push('/customer/dashboard');
+            break;
+          case 'service_provider':
+            router.push('/provider/dashboard');
+            break;
+          default:
+            router.push('/');
+        }
+        return;
+      }
+    }
+  }, [isAuthenticated, user, isLoading, router]);
+  
+  const handleLogout = async () => {
+    await logout();
   };
   
-  const userRole = isAuthenticated && user?.role ? user.role : undefined;
-  const userName = isAuthenticated && user?.name ? user.name : undefined;
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Don't render content if not authenticated or wrong role
+  if (!isAuthenticated || user?.role !== 'local_service_manager') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
-        userRole={userRole} 
-        userName={userName}
+        userRole={user.role} 
+        userName={user.name}
         onLogout={handleLogout}
       />
       <main>

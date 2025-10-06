@@ -12,8 +12,9 @@ interface FormData {
   password: string;
   confirmPassword: string;
   region: string;
-  address: string;
+  location: string;
   zipcode: string;
+  experience: number;
   acceptedTerms: boolean;
 }
 
@@ -25,13 +26,14 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   region?: string;
-  address?: string;
+  location?: string;
   zipcode?: string;
+  experience?: string;
   acceptedTerms?: string;
   general?: string;
 }
 
-export default function RegisterForm() {
+export default function ProviderRegisterForm() {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -40,8 +42,9 @@ export default function RegisterForm() {
     password: '',
     confirmPassword: '',
     region: '',
-    address: '',
+    location: '',
     zipcode: '',
+    experience: 0,
     acceptedTerms: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -74,7 +77,7 @@ export default function RegisterForm() {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value) || 0 : value,
     }));
     
     // Clear error when user starts typing
@@ -125,8 +128,12 @@ export default function RegisterForm() {
       newErrors.region = 'Region is required';
     }
 
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
+    if (!formData.location.trim()) {
+      newErrors.location = 'Location is required';
+    }
+
+    if (formData.experience < 0) {
+      newErrors.experience = 'Experience cannot be negative';
     }
 
     if (!formData.acceptedTerms) {
@@ -152,10 +159,11 @@ export default function RegisterForm() {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         phoneNumber: formData.phoneNumber,
-        role: 'CUSTOMER',
+        role: 'PROVIDER',
         region: formData.region.trim(),
-        address: formData.address.trim(),
+        location: formData.location.trim(),
         zipcode: formData.zipcode.trim() || undefined,
+        experience: formData.experience,
       }, false); // Don't redirect after registration
       
       // Set success state
@@ -170,7 +178,7 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-green-100">
+    <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-purple-100">
       {isSuccess ? (
         <div className="text-center py-8">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -180,12 +188,15 @@ export default function RegisterForm() {
             Registration Successful!
           </h3>
           <p className="text-gray-600 mb-4">
-            Your customer account has been created successfully. You can now log in to access your dashboard.
+            Your service provider account has been created successfully. Your account is now pending approval by a Local Service Manager (LSM) in your region.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            You will receive an email notification once your account is approved. This process typically takes 1-2 business days.
           </p>
           <div className="space-y-2">
             <Link
               href="/login"
-              className="inline-block w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="inline-block w-full py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               Go to Login
             </Link>
@@ -200,8 +211,9 @@ export default function RegisterForm() {
                   password: '',
                   confirmPassword: '',
                   region: '',
-                  address: '',
+                  location: '',
                   zipcode: '',
+                  experience: 0,
                   acceptedTerms: false,
                 });
               }}
@@ -214,14 +226,14 @@ export default function RegisterForm() {
       ) : (
         <>
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">👤</span>
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🔧</span>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Create Customer Account
+              Create Service Provider Account
             </h2>
             <p className="text-gray-600 text-sm">
-              Join us today! Create your customer account to get started.
+              Join our network of service providers and start earning today!
             </p>
           </div>
 
@@ -245,7 +257,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               className={`
                 w-full px-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-green-500
+                focus:outline-none focus:ring-2 focus:ring-purple-500
                 ${errors.firstName ? 'border-red-500' : 'border-gray-300'}
               `}
               placeholder="First name"
@@ -268,7 +280,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               className={`
                 w-full px-4 py-2 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-green-500
+                focus:outline-none focus:ring-2 focus:ring-purple-500
                 ${errors.lastName ? 'border-red-500' : 'border-gray-300'}
               `}
               placeholder="Last name"
@@ -292,7 +304,7 @@ export default function RegisterForm() {
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
+              focus:outline-none focus:ring-2 focus:ring-purple-500
               ${errors.email ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your email"
@@ -315,7 +327,7 @@ export default function RegisterForm() {
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
+              focus:outline-none focus:ring-2 focus:ring-purple-500
               ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your phone number"
@@ -338,7 +350,7 @@ export default function RegisterForm() {
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
+              focus:outline-none focus:ring-2 focus:ring-purple-500
               ${errors.region ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your region"
@@ -350,25 +362,25 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-            Address <span className="text-red-500">*</span>
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+            Location <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            id="address"
-            name="address"
-            value={formData.address}
+            id="location"
+            name="location"
+            value={formData.location}
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
-              ${errors.address ? 'border-red-500' : 'border-gray-300'}
+              focus:outline-none focus:ring-2 focus:ring-purple-500
+              ${errors.location ? 'border-red-500' : 'border-gray-300'}
             `}
-            placeholder="Enter your address"
+            placeholder="Enter your location"
             disabled={isLoading}
           />
-          {errors.address && (
-            <p className="text-red-500 text-xs mt-1">{errors.address}</p>
+          {errors.location && (
+            <p className="text-red-500 text-xs mt-1">{errors.location}</p>
           )}
         </div>
 
@@ -384,7 +396,7 @@ export default function RegisterForm() {
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
+              focus:outline-none focus:ring-2 focus:ring-purple-500
               ${errors.zipcode ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your zip code"
@@ -392,6 +404,30 @@ export default function RegisterForm() {
           />
           {errors.zipcode && (
             <p className="text-red-500 text-xs mt-1">{errors.zipcode}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
+            Years of Experience <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            id="experience"
+            name="experience"
+            min="0"
+            value={formData.experience.toString()}
+            onChange={handleChange}
+            className={`
+              w-full px-4 py-2 border rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-purple-500
+              ${errors.experience ? 'border-red-500' : 'border-gray-300'}
+            `}
+            placeholder="Enter years of experience"
+            disabled={isLoading}
+          />
+          {errors.experience && (
+            <p className="text-red-500 text-xs mt-1">{errors.experience}</p>
           )}
         </div>
 
@@ -408,7 +444,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               className={`
                 w-full px-4 py-2 pr-10 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-green-500
+                focus:outline-none focus:ring-2 focus:ring-purple-500
                 ${errors.password ? 'border-red-500' : 'border-gray-300'}
               `}
               placeholder="Create a password"
@@ -486,7 +522,7 @@ export default function RegisterForm() {
               onChange={handleChange}
               className={`
                 w-full px-4 py-2 pr-10 border rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-green-500
+                focus:outline-none focus:ring-2 focus:ring-purple-500
                 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}
               `}
               placeholder="Confirm your password"
@@ -524,18 +560,18 @@ export default function RegisterForm() {
                 type="checkbox"
                 checked={formData.acceptedTerms}
                 onChange={handleChange}
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 disabled={isLoading}
               />
             </div>
             <div className="ml-3 text-sm">
               <label htmlFor="acceptedTerms" className="text-gray-700">
                 I agree to the{' '}
-                <Link href="/terms" className="text-green-600 hover:text-green-500">
+                <Link href="/terms" className="text-purple-600 hover:text-purple-500">
                   Terms and Conditions
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-green-600 hover:text-green-500">
+                <Link href="/privacy" className="text-purple-600 hover:text-purple-500">
                   Privacy Policy
                 </Link>
               </label>
@@ -546,24 +582,42 @@ export default function RegisterForm() {
           </div>
         </div>
 
+        <div className="bg-purple-50 border border-purple-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-purple-800">
+                Account Approval Required
+              </h3>
+              <div className="mt-2 text-sm text-purple-700">
+                <p>Your account will be reviewed by a Local Service Manager (LSM) in your region before activation. This process typically takes 1-2 business days.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={isLoading}
           className={`
             w-full py-3 px-4 rounded-lg font-medium text-white
-            bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
+            bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500
             disabled:opacity-50 disabled:cursor-not-allowed
             transition-colors duration-200
           `}
         >
-          {isLoading ? 'Creating Account...' : 'Create Customer Account'}
+          {isLoading ? 'Creating Account...' : 'Create Service Provider Account'}
         </button>
       </form>
 
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-600">
           Already have an account?{' '}
-          <Link href="/login" className="text-green-600 hover:text-green-500 font-medium">
+          <Link href="/login" className="text-purple-600 hover:text-purple-500 font-medium">
             Sign in here
           </Link>
         </p>
@@ -571,9 +625,9 @@ export default function RegisterForm() {
 
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-600">
-          Want to provide services?{' '}
-          <Link href="/provider/signup" className="text-green-600 hover:text-green-500 font-medium">
-            Sign up as a service provider
+          Looking for services?{' '}
+          <Link href="/register" className="text-purple-600 hover:text-purple-500 font-medium">
+            Sign up as a customer
           </Link>
         </p>
       </div>
