@@ -412,11 +412,11 @@ export default function Home() {
                   <div
                     key={provider.id}
                     className="block bg-white rounded-lg border border-gray-200 hover:border-navy-500 hover:shadow-lg transition-all overflow-hidden cursor-pointer"
-                    onClick={() => router.push(`/customer/providers/${provider.id}`)}
+                    onClick={() => router.push(`/providers/${provider.id}`)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        router.push(`/customer/providers/${provider.id}`);
+                        router.push(`/providers/${provider.id}`);
                       }
                     }}
                     role="button"
@@ -469,7 +469,7 @@ export default function Home() {
 
                       {/* Visit Profile Button */}
                       <Link
-                        href={`/customer/providers/${provider.id}`}
+                        href={`/providers/${provider.id}`}
                         className="block w-full text-center bg-navy-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors"
                       >
                         Visit Profile

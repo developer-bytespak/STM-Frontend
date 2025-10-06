@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 interface HeaderProps {
-  userRole?: 'customer' | 'provider' | 'admin' | 'lsm';
+  userRole?: 'customer' | 'service_provider' | 'admin' | 'local_service_manager';
   userName?: string;
   onLogout?: () => void;
 }
@@ -13,6 +13,24 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Map backend role names to frontend route names
+  const getRoleRoute = (role: string) => {
+    switch (role) {
+      case 'customer':
+        return 'customer';
+      case 'service_provider':
+        return 'provider';
+      case 'admin':
+        return 'admin';
+      case 'local_service_manager':
+        return 'lsm';
+      default:
+        return 'customer';
+    }
+  };
+
+  const roleRoute = userRole ? getRoleRoute(userRole) : '';
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -76,7 +94,7 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                       <p className="text-xs text-gray-500 capitalize">{userRole} Account</p>
                     </div>
                     <Link
-                      href={`/${userRole}/dashboard`}
+                      href={`/${roleRoute}/dashboard`}
                       className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
@@ -86,7 +104,7 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                       <span>Dashboard</span>
                     </Link>
                     <Link
-                      href={`/${userRole}/profile`}
+                      href={`/${roleRoute}/profile`}
                       className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
@@ -119,13 +137,13 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                   Login
                 </Link>
                 <Link
-                  href="/customer/signup"
+                  href="/register"
                   className="hidden sm:inline-block bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm"
                 >
                   Sign Up
                 </Link>
                 <Link
-                  href="/serviceprovider/signup"
+                  href="/provider/signup"
                   className="hidden lg:inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                 >
                   Become a Provider
@@ -158,7 +176,7 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
               Signed in as <span className="font-medium text-gray-900 capitalize">{userRole}</span>
             </div>
             <Link
-              href={`/${userRole}/dashboard`}
+              href={`/${roleRoute}/dashboard`}
               className="flex items-center space-x-2 px-3 py-2 text-base text-gray-700 hover:bg-gray-100"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -168,7 +186,7 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
               <span>Dashboard</span>
             </Link>
             <Link
-              href={`/${userRole}/profile`}
+              href={`/${roleRoute}/profile`}
               className="flex items-center space-x-2 px-3 py-2 text-base text-gray-700 hover:bg-gray-100"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -199,14 +217,14 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="space-y-2">
               <Link
-                href="/customer/signup"
+                href="/register"
                 className="block w-full text-center bg-navy-600 text-white px-4 py-3 rounded-lg hover:bg-navy-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign Up as Customer
               </Link>
                 <Link
-                href="/serviceprovider/signup"
+                href="/provider/signup"
                 className="block w-full text-center bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
