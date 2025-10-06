@@ -30,7 +30,7 @@ export default function AvailedJobsPage() {
     
     // Calculate start and end page numbers
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
     // Adjust start page if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
@@ -103,7 +103,7 @@ export default function AvailedJobsPage() {
             Completed Jobs
           </h1>
           <p className="text-gray-600">
-            Here are all the services you've completed. Leave feedback for your experience!
+            Here are all the services you&apos;ve completed. Leave feedback for your experience!
           </p>
           {totalJobs > 0 && (
             <p className="text-sm text-gray-500 mt-2">
