@@ -43,6 +43,7 @@ export const dummyProviders: Provider[] = [
       sunday: { isWorking: false }
     }
   },
+  
   {
     id: '2',
     role: 'provider',

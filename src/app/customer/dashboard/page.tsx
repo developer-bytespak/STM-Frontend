@@ -65,6 +65,20 @@ export default function CustomerDashboard() {
             View payment history and manage billing
           </p>
         </Link>
+        <Link
+          href="/customer/avalied-jobs"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed Jobs</h3>
+          <p className="text-gray-600 text-sm">
+            View completed jobs and leave feedback
+          </p>
+        </Link>
       </div>
 
       {/* Recent Activity */}

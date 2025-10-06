@@ -27,6 +27,8 @@ export const ROUTES = {
     PROFILE: '/customer/profile',
     SETTINGS: '/customer/settings',
     NOTIFICATIONS: '/customer/notifications',
+    FEEDBACK: '/customer/feedback',
+    AVAILED_JOBS: '/customer/avalied-jobs',
   },
   
   // Provider routes
@@ -131,6 +133,7 @@ export const NAVIGATION_ROUTES = {
   CUSTOMER: [
     { name: 'Dashboard', path: ROUTES.CUSTOMER.DASHBOARD, icon: '🏠' },
     { name: 'Bookings', path: ROUTES.CUSTOMER.BOOKINGS, icon: '📅' },
+    { name: 'Completed Jobs', path: ROUTES.CUSTOMER.AVAILED_JOBS, icon: '✅' },
     { name: 'Find Providers', path: ROUTES.CUSTOMER.SEARCH_PROVIDERS, icon: '🔍' },
     { name: 'Payments', path: ROUTES.CUSTOMER.PAYMENTS, icon: '💳' },
     { name: 'Profile', path: ROUTES.CUSTOMER.PROFILE, icon: '👤' },
