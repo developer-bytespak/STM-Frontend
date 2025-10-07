@@ -153,7 +153,7 @@ export default function LoginForm() {
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-blue-500
+              focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800
               ${errors.email ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your email"
@@ -167,7 +167,7 @@ export default function LoginForm() {
         {/* Password Field */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password <span className="text-red-500">*</span>
+            Password <span className="text-red-500 text-gray-800">*</span>
           </label>
           <div className="relative">
             <input
@@ -179,7 +179,7 @@ export default function LoginForm() {
               className={`
                 w-full px-4 py-2 pr-10 border rounded-lg
                 focus:outline-none focus:ring-2 focus:ring-blue-500
-                ${errors.password ? 'border-red-500' : 'border-gray-300'}
+                ${errors.password ? 'border-red-500' : 'border-gray-300 text-gray-800'}
               `}
               placeholder="Enter your password"
               disabled={isLoading}
