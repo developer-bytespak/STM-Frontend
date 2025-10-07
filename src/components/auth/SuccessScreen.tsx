@@ -15,9 +15,12 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
   redirectTo,
   redirectDelay = 2000,
 }) => {
-  const [countdown, setCountdown] = useState(Math.ceil(redirectDelay / 1000));
+  const [countdown, setCountdown] = useState(redirectTo ? Math.ceil(redirectDelay / 1000) : 0);
 
   useEffect(() => {
+    // Only start countdown and redirect if redirectTo is provided
+    if (!redirectTo) return;
+
     // Countdown timer
     const countdownInterval = setInterval(() => {
       setCountdown((prev) => Math.max(0, prev - 1));
@@ -70,22 +73,26 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
         {message}
       </p>
 
-      {/* Redirect Message */}
-      <div className="bg-navy-50 rounded-lg p-4 mb-6">
-        <p className="text-sm text-navy-700">
-          Redirecting to your dashboard in{' '}
-          <span className="font-bold text-navy-900">{countdown}</span>{' '}
-          {countdown === 1 ? 'second' : 'seconds'}...
-        </p>
-      </div>
+      {/* Redirect Message - only show if redirectTo is provided */}
+      {redirectTo && (
+        <div className="bg-navy-50 rounded-lg p-4 mb-6">
+          <p className="text-sm text-navy-700">
+            Redirecting to your dashboard in{' '}
+            <span className="font-bold text-navy-900">{countdown}</span>{' '}
+            {countdown === 1 ? 'second' : 'seconds'}...
+          </p>
+        </div>
+      )}
 
-      {/* Manual Redirect Button */}
-      <button
-        onClick={() => window.location.href = redirectTo}
-        className="text-navy-600 hover:text-navy-700 text-sm font-medium"
-      >
-        Go to Dashboard Now →
-      </button>
+      {/* Manual Redirect Button - only show if redirectTo is provided */}
+      {redirectTo && (
+        <button
+          onClick={() => window.location.href = redirectTo}
+          className="text-navy-600 hover:text-navy-700 text-sm font-medium"
+        >
+          Go to Dashboard Now →
+        </button>
+      )}
     </div>
   );
 };
