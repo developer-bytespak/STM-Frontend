@@ -36,6 +36,7 @@ export interface Provider extends User {
   experience?: string;
   certifications?: string[];
   portfolio?: PortfolioItem[];
+  image?: string;
 }
 
 export interface Admin extends User {

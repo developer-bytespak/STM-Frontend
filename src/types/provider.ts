@@ -17,6 +17,7 @@ export interface Provider extends User {
   workingHours?: WorkingHours;
   availability?: Availability;
   bankDetails?: BankDetails;
+  image?: string;
 }
 
 export interface WorkingHours {

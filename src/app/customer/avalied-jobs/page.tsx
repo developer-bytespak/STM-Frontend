@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import JobCard from '@/components/cards/JobCard';
-import { dummyCompletedJobs } from '../data/dummyjobdone';
+import { dummyCompletedJobs } from '@/data/dummyjobdone';
 
 const JOBS_PER_PAGE = 10;
 

@@ -17,9 +17,9 @@ export const dummyProviders: Provider[] = [
     description: 'Professional plumbing services with 15+ years of experience. Specializing in residential and commercial repairs, installations, and maintenance.',
     address: {
       street: '123 Main St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '11000',
+      city: 'Salem',
+      state: 'OR',
+      zipCode: '97301',
       country: 'USA'
     },
     services: [
@@ -102,9 +102,9 @@ export const dummyProviders: Provider[] = [
     description: 'Complete heating, ventilation, and air conditioning services. Available 24/7 for emergency repairs.',
     address: {
       street: '789 Pine St',
-      city: 'Cleveland',
-      state: 'OH',
-      zipCode: '44000',
+      city: 'Salem',
+      state: 'OR',
+      zipCode: '97302',
       country: 'USA'
     },
       services: [
@@ -144,9 +144,9 @@ export const dummyProviders: Provider[] = [
     description: 'Professional cleaning services for residential and commercial properties. Eco-friendly products used.',
     address: {
       street: '321 Elm St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '11000',
+      city: 'Portland',
+      state: 'OR',
+      zipCode: '97201',
       country: 'USA'
     },
       services: [
@@ -209,6 +209,174 @@ export const dummyProviders: Provider[] = [
       thursday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
       friday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
       saturday: { isWorking: false },
+      sunday: { isWorking: false }
+    }
+  },
+  {
+    id: '6',
+    role: 'provider',
+    firstName: 'Emily',
+    lastName: 'Davis',
+    email: 'emily.davis@example.com',
+    phone: '+1-555-0106',
+    isActive: true,
+    isVerified: true,
+    createdAt: '2024-05-10T10:00:00Z',
+    updatedAt: '2024-09-28T11:15:00Z',
+    businessName: 'Sparkle Clean Dallas',
+    businessType: ' House Cleaning',
+    description: 'Professional house and office cleaning services in Dallas. Eco-friendly products and 100% satisfaction guaranteed.',
+    image: '/housecleaning.png',
+    address: {
+      street: '890 Commerce St',
+      city: 'Dallas',
+      state: 'TX',
+      zipCode: '75001',
+      country: 'USA'
+    },
+    services: [
+      { id: '16', name: 'House Cleaning', category: 'Interior Cleaning', description: 'Deep cleaning for residential properties', basePrice: 50, duration: 180, isActive: true },
+      { id: '17', name: 'Office Cleaning', category: 'Interior Cleaning', description: 'Professional office and commercial space cleaning', basePrice: 70, duration: 240, isActive: true }
+    ],
+    rating: 4.5,
+    reviewCount: 145,
+    isAvailable: true,
+    hourlyRate: 50,
+    experience: '7 years',
+    certifications: ['Bonded & Insured', 'Green Seal Certified'],
+    workingHours: {
+      monday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      tuesday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      wednesday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      thursday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      friday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      saturday: { isWorking: true, startTime: '09:00', endTime: '15:00' },
+      sunday: { isWorking: false }
+    }
+  },
+  {
+    id: '7',
+    role: 'provider',
+    firstName: 'Robert',
+    lastName: 'Martinez',
+    email: 'robert.martinez@example.com',
+    phone: '+1-555-0107',
+    isActive: true,
+    isVerified: true,
+    createdAt: '2024-06-15T09:30:00Z',
+    updatedAt: '2024-09-29T14:00:00Z',
+    businessName: 'Elite Clean Services',
+    businessType: 'House Cleaning',
+    description: 'Premium cleaning services for homes and offices. Available 24/7 with same-day service options.',
+    image: '/cleaning.png',
+    address: {
+      street: '456 Main Street',
+      city: 'Dallas',
+      state: 'TX',
+      zipCode: '75001',
+      country: 'USA'
+    },
+    services: [
+      { id: '18', name: 'House Cleaning', category: 'Interior Cleaning', description: 'Thorough house cleaning services', basePrice: 55, duration: 200, isActive: true },
+      { id: '19', name: 'Office Cleaning', category: 'Interior Cleaning', description: 'Complete office cleaning and sanitization', basePrice: 75, duration: 220, isActive: true }
+    ],
+    rating: 5.0,
+    reviewCount: 98,
+    isAvailable: true,
+    hourlyRate: 55,
+    experience: '10 years',
+    certifications: ['Licensed', 'Insured', 'Background Checked'],
+    workingHours: {
+      monday: { isWorking: true, startTime: '07:00', endTime: '19:00' },
+      tuesday: { isWorking: true, startTime: '07:00', endTime: '19:00' },
+      wednesday: { isWorking: true, startTime: '07:00', endTime: '19:00' },
+      thursday: { isWorking: true, startTime: '07:00', endTime: '19:00' },
+      friday: { isWorking: true, startTime: '07:00', endTime: '19:00' },
+      saturday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      sunday: { isWorking: true, startTime: '10:00', endTime: '16:00' }
+    }
+  },
+  {
+    id: '8',
+    role: 'provider',
+    firstName: 'Jennifer',
+    lastName: 'Thompson',
+    email: 'jennifer.thompson@example.com',
+    phone: '+1-555-0108',
+    isActive: true,
+    isVerified: true,
+    createdAt: '2024-07-20T11:45:00Z',
+    updatedAt: '2024-09-30T10:20:00Z',
+    businessName: 'Fresh Start Cleaning Co',
+    businessType: 'House Cleaning',
+    description: 'Reliable and affordable cleaning services for residential and commercial properties in Dallas.',
+    image: '/cleaningexterior.png',
+    address: {
+      street: '789 Elm Avenue',
+      city: 'Dallas',
+      state: 'TX',
+      zipCode: '75001',
+      country: 'USA'
+    },
+    services: [
+      { id: '20', name: 'House Cleaning', category: 'Interior Cleaning', description: 'Expert residential cleaning services', basePrice: 48, duration: 190, isActive: true },
+      { id: '21', name: 'Office Cleaning', category: 'Interior Cleaning', description: 'Professional commercial cleaning solutions', basePrice: 68, duration: 230, isActive: true }
+    ],
+    rating: 4.0,
+    reviewCount: 112,
+    isAvailable: true,
+    hourlyRate: 48,
+    experience: '6 years',
+    certifications: ['Certified Professional Cleaner', 'OSHA Trained'],
+    workingHours: {
+      monday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      tuesday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      wednesday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      thursday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      friday: { isWorking: true, startTime: '08:00', endTime: '17:00' },
+      saturday: { isWorking: true, startTime: '09:00', endTime: '14:00' },
+      sunday: { isWorking: false }
+    }
+  },
+  {
+    id: '9',
+    role: 'provider',
+    firstName: 'Lisa',
+    lastName: 'Anderson',
+    email: 'lisa.anderson@example.com',
+    phone: '+1-555-0109',
+    isActive: true,
+    isVerified: true,
+    createdAt: '2024-08-01T08:00:00Z',
+    updatedAt: '2024-09-30T15:30:00Z',
+    businessName: 'Premier House Cleaners',
+    businessType: 'Cleaning',
+    description: 'Top-rated house and office cleaning services in Dallas. Professional, reliable, and detail-oriented.',
+    image: '/housecleaning.png',
+    address: {
+      street: '234 Oak Boulevard',
+      city: 'Dallas',
+      state: 'TX',
+      zipCode: '75002',
+      country: 'USA'
+    },
+    services: [
+      { id: '22', name: 'House Cleaning', category: 'Interior Cleaning', description: 'Premium residential cleaning', basePrice: 52, duration: 180, isActive: true },
+      { id: '23', name: 'Office Cleaning', category: 'Interior Cleaning', description: 'Executive office cleaning services', basePrice: 72, duration: 240, isActive: true }
+    ],
+    rating: 4.5,
+    reviewCount: 167,
+    isAvailable: true,
+    hourlyRate: 52,
+    experience: '9 years',
+    certifications: ['Licensed & Insured', 'Quality Certified'],
+    workingHours: {
+      monday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      tuesday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      wednesday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      thursday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      friday: { isWorking: true, startTime: '08:00', endTime: '18:00' },
+      saturday: { isWorking: true, startTime: '09:00', endTime: '15:00' },
       sunday: { isWorking: false }
     }
   }
