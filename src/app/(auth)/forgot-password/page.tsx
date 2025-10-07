@@ -195,7 +195,7 @@ export default function ForgotPasswordPage() {
                   className={`
                     w-full px-4 py-2 border rounded-lg
                     focus:outline-none focus:ring-2 focus:ring-navy-500
-                    ${errors.email ? 'border-red-500' : 'border-gray-300'}
+                    ${errors.email ? 'border-red-500' : 'border-gray-300 text-gray-800' }
                   `}
                   placeholder="john@example.com"
                 />
@@ -293,7 +293,7 @@ export default function ForgotPasswordPage() {
                     id="newPassword"
                     value={formData.newPassword}
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-800"
                     placeholder="••••••••"
                   />
                   <button
@@ -317,7 +317,7 @@ export default function ForgotPasswordPage() {
                     id="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-800"
                     placeholder="••••••••"
                   />
                   <button
