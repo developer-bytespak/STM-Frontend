@@ -71,22 +71,22 @@ export const getPasswordStrength = (
 };
 
 /**
- * Validate phone number (Pakistani format)
+ * Validate phone number (American format)
  */
 export const validatePhone = (phone: string): ValidationResult => {
   if (!phone) {
     return { valid: false, error: 'Phone number is required' };
   }
 
-  // Remove spaces and dashes
-  const cleanPhone = phone.replace(/[\s-]/g, '');
+  // Remove spaces, dashes, and parentheses
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
 
-  // Check for Pakistani format: +92XXXXXXXXXX or 03XXXXXXXXX
-  const phoneRegex = /^(\+92|92|0)?3[0-9]{9}$/;
+  // Check for American format: (XXX) XXX-XXXX or XXX-XXX-XXXX or XXXXXXXXXX
+  const phoneRegex = /^(\(?[0-9]{3}\)?[-.\s]?)?[0-9]{3}[-.\s]?[0-9]{4}$/;
   if (!phoneRegex.test(cleanPhone)) {
     return { 
       valid: false, 
-      error: 'Please enter a valid Pakistani phone number (e.g., 03001234567)' 
+      error: 'Please enter a valid American phone number (e.g., (555) 123-4567)' 
     };
   }
 
@@ -137,27 +137,39 @@ export const sanitizeInput = (input: string): string => {
 };
 
 /**
- * Format phone number for display
+ * Format phone number for display (American format)
  */
 export const formatPhoneNumber = (phone: string): string => {
-  const cleanPhone = phone.replace(/[\s-]/g, '');
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
   
-  // Convert to +92 format if starts with 0
-  if (cleanPhone.startsWith('0')) {
-    return '+92' + cleanPhone.substring(1);
+  // Format as (XXX) XXX-XXXX
+  if (cleanPhone.length === 10) {
+    return `(${cleanPhone.slice(0, 3)}) ${cleanPhone.slice(3, 6)}-${cleanPhone.slice(6)}`;
   }
   
-  // Add +92 if not present
-  if (!cleanPhone.startsWith('+92') && !cleanPhone.startsWith('92')) {
-    return '+92' + cleanPhone;
+  // If already formatted or has country code, return as is
+  return phone;
+};
+
+/**
+ * Format phone number to E.164 format for backend API
+ */
+export const formatPhoneToE164 = (phone: string): string => {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+  
+  // If it starts with 1 (US country code), add +
+  if (digits.startsWith('1') && digits.length === 11) {
+    return `+${digits}`;
   }
   
-  // Add + if starts with 92
-  if (cleanPhone.startsWith('92') && !cleanPhone.startsWith('+')) {
-    return '+' + cleanPhone;
+  // If it's 10 digits (US number without country code), add +1
+  if (digits.length === 10) {
+    return `+1${digits}`;
   }
   
-  return cleanPhone;
+  // Otherwise, add + if not present
+  return digits.startsWith('+') ? digits : `+${digits}`;
 };
 
 
