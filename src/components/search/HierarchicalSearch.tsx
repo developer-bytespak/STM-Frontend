@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ServiceSearch from './ServiceSearch';
 import CitySearch from './CitySearch';
 import ResultsDisplay from './ResultsDisplay';
-import { dummyProviders, filterProvidersByService, filterProvidersByZip } from '../../app/customer/data/dummyProviders';
+import { dummyProviders, filterProvidersByService, filterProvidersByZip } from '@/data/dummyProviders';
 import { Provider } from '@/types/provider';
 
 type SearchStep = 'service' | 'location' | 'results';
@@ -56,6 +56,9 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
         const zipCode = zipMatch[0];
         filteredProviders = filterProvidersByZip(filteredProviders, zipCode);
       }
+      
+      // Sort providers by rating (highest first)
+      filteredProviders.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       
       setProviders(filteredProviders);
     } catch (error) {

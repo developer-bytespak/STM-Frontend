@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BookingModal from '@/components/booking/BookingModal';
-import { dummyProviders } from '@/app/customer/data/dummyProviders';
+import { dummyProviders } from '@/data/dummyProviders';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
 
