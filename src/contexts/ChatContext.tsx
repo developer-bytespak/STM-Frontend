@@ -49,10 +49,12 @@ interface ChatContextType {
   createConversation: (providerId: string, providerName: string, formData: BookingFormData) => void;
   openConversation: (conversationId: string) => void;
   closeConversation: () => void;
-  minimizeConversation: () => void;
+  minimizeConversation: () => void; // Original minimize (to preview button)
+  minimizeToCompact: () => void; // New minimize (to compact chat)
   maximizeConversation: () => void;
   sendMessage: (content: string, files?: File[]) => void;
   addLSMToChat: (lsmId: string, lsmName: string) => void;
+  isPreviewMinimized: boolean; // New state for preview minimize
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -60,6 +62,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null);
+  const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
 
   // Load conversations from localStorage on mount
   useEffect(() => {
@@ -197,9 +200,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const minimizeConversation = () => {
     if (activeConversation) {
       setConversations(prev => prev.map(conv => 
+        conv.id === activeConversation.id ? { ...conv, isMinimized: false } : conv
+      ));
+      setActiveConversation(prev => prev ? { ...prev, isMinimized: false } : null);
+      setIsPreviewMinimized(true);
+    }
+  };
+
+  const minimizeToCompact = () => {
+    if (activeConversation) {
+      setConversations(prev => prev.map(conv => 
         conv.id === activeConversation.id ? { ...conv, isMinimized: true } : conv
       ));
       setActiveConversation(prev => prev ? { ...prev, isMinimized: true } : null);
+      setIsPreviewMinimized(false);
     }
   };
 
@@ -209,6 +223,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         conv.id === activeConversation.id ? { ...conv, isMinimized: false } : conv
       ));
       setActiveConversation(prev => prev ? { ...prev, isMinimized: false } : null);
+      setIsPreviewMinimized(false);
     }
   };
 
@@ -310,16 +325,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ChatContext.Provider value={{
+    <ChatContext.Provider     value={{
       conversations,
       activeConversation,
       createConversation,
       openConversation,
       closeConversation,
       minimizeConversation,
+      minimizeToCompact,
       maximizeConversation,
       sendMessage,
-      addLSMToChat
+      addLSMToChat,
+      isPreviewMinimized
     }}>
       {children}
     </ChatContext.Provider>
@@ -333,4 +350,3 @@ export function useChat() {
   }
   return context;
 }
-

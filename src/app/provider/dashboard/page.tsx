@@ -3,14 +3,26 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import { dummyCompletedJobs } from '@/data/dummyjobdone';
+import { dummyCustomerRequests } from '@/data/dummyCustomerRequests';
+import { dummyActiveJobs } from '@/data/dummyActiveJobs';
 
 function ProviderDashboardContent() {
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [approvalStatus, setApprovalStatus] = useState<string>('pending');
+  
+  // Calculate stats from dummy data (will come from API later)
+  // TODO: When backend ready, filter by currentProviderId from auth
+  const totalJobs = dummyCompletedJobs.length;
+  const totalEarnings = dummyCompletedJobs.reduce((sum, job) => sum + job.totalCost, 0);
+  const pendingRequests = dummyCustomerRequests.filter(r => r.status === 'pending').length;
+  const activeJobsCount = dummyActiveJobs.filter(job => !['completed', 'cancelled'].includes(job.status)).length;
 
   useEffect(() => {
     // Check approval status from URL params or localStorage
-    const status = searchParams.get('status') || localStorage.getItem('approval_status') || 'pending';
+    const status = searchParams.get('status') || localStorage.getItem('approval_status') || 'approved';
     setApprovalStatus(status);
   }, [searchParams]);
 
@@ -54,123 +66,118 @@ function ProviderDashboardContent() {
         </div>
       </div>
     );
-  }
+   }
 
   // Approved provider dashboard
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Provider Dashboard</h1>
-            <p className="mt-2 text-gray-600">Manage your services and bookings</p>
-          </div>
-        </div>
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-navy-600 to-blue-600 rounded-2xl p-8 text-white">
+        <h1 className="text-3xl font-bold mb-2">
+          Welcome back, {user?.name?.split(' ')[0] || 'Provider'}!
+        </h1>
+        <p className="text-blue-100">
+          Manage your services, track your earnings, and respond to customer requests.
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Stats Cards */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 text-sm">📊</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Jobs</p>
-                <p className="text-2xl font-semibold text-gray-900">0</p>
-              </div>
-            </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Link
+          href="/provider/jobs"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
           </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Job Requests</h3>
+          <p className="text-gray-600 text-sm">
+            Review and respond to customer requests
+          </p>
+        </Link>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 text-sm">💰</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Earnings</p>
-                <p className="text-2xl font-semibold text-gray-900">$0</p>
-              </div>
-            </div>
+        <Link
+          href="/provider/total_jobs"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Jobs</h3>
+          <p className="text-gray-600 text-sm">
+            View your completed jobs history
+          </p>
+        </Link>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <span className="text-yellow-600 text-sm">⭐</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Rating</p>
-                <p className="text-2xl font-semibold text-gray-900">-</p>
-              </div>
-            </div>
+        <Link
+          href="/provider/earnings"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
           </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Earnings</h3>
+          <p className="text-gray-600 text-sm">
+            View payment history and manage billing
+          </p>
+        </Link>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-purple-600 text-sm">📅</span>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Active Jobs</p>
-                <p className="text-2xl font-semibold text-gray-900">0</p>
-              </div>
-            </div>
+        <Link
+          href="/provider/activejobs"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-        </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Jobs</h3>
+          <p className="text-gray-600 text-sm">
+            Manage your ongoing and scheduled jobs
+          </p>
+        </Link>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              href="/provider/jobs"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-blue-600">📋</span>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">View Jobs</h3>
-                <p className="text-sm text-gray-500">Manage your job requests</p>
-              </div>
-            </Link>
-
-            <a
-              href="/provider/profile"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-green-600">👤</span>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Update Profile</h3>
-                <p className="text-sm text-gray-500">Edit your service details</p>
-              </div>
-            </a>
-
-            <a
-              href="/provider/earnings"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-yellow-600">💳</span>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">View Earnings</h3>
-                <p className="text-sm text-gray-500">Check your payments</p>
-              </div>
-            </a>
+        <Link
+          href="/provider/feedback"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+            </svg>
           </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Feedback</h3>
+          <p className="text-gray-600 text-sm">
+            View customer reviews and ratings
+          </p>
+        </Link>
+      </div>
+
+    
+
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <p className="text-gray-600 mb-4">No recent activity</p>
+          <Link
+            href="/provider/jobs"
+            className="text-navy-600 hover:text-navy-700 font-medium"
+          >
+            Check for new job requests →
+          </Link>
         </div>
       </div>
     </div>
