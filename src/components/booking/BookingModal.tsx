@@ -9,6 +9,9 @@ interface BookingModalProps {
   providerId: string;
   providerName: string;
   serviceType: string;
+  mode?: 'customer-booking' | 'sp-quote';
+  initialData?: BookingFormData;
+  customerName?: string;
 }
 
 export default function BookingModal({ 
@@ -16,17 +19,25 @@ export default function BookingModal({
   onClose, 
   providerId, 
   providerName, 
-  serviceType 
+  serviceType,
+  mode = 'customer-booking',
+  initialData,
+  customerName
 }: BookingModalProps) {
   const { createConversation } = useChat();
-  const [formData, setFormData] = useState<BookingFormData>({
-    serviceType: serviceType,
-    description: '',
-    dimensions: '',
-    budget: '',
-    preferredDate: '',
-    urgency: '3-7 days',
-    additionalDetails: ''
+  const [formData, setFormData] = useState<BookingFormData>(() => {
+    if (mode === 'sp-quote' && initialData) {
+      return initialData;
+    }
+    return {
+      serviceType: serviceType,
+      description: '',
+      dimensions: '',
+      budget: '',
+      preferredDate: '',
+      urgency: '3-7 days',
+      additionalDetails: ''
+    };
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,22 +61,28 @@ export default function BookingModal({
       return;
     }
 
-    // Create conversation with form data
-    createConversation(providerId, providerName, formData);
-    
-    // Close modal
-    onClose();
-    
-    // Reset form
-    setFormData({
-      serviceType: serviceType,
-      description: '',
-      dimensions: '',
-      budget: '',
-      preferredDate: '',
-      urgency: '3-7 days',
-      additionalDetails: ''
-    });
+    if (mode === 'customer-booking') {
+      // Create conversation with form data
+      createConversation(providerId, providerName, formData);
+      
+      // Close modal
+      onClose();
+      
+      // Reset form
+      setFormData({
+        serviceType: serviceType,
+        description: '',
+        dimensions: '',
+        budget: '',
+        preferredDate: '',
+        urgency: '3-7 days',
+        additionalDetails: ''
+      });
+    } else if (mode === 'sp-quote') {
+      // Handle SP quote submission
+      alert(`Sending quote to ${customerName}:\n\nService: ${formData.serviceType}\nBudget: $${formData.budget}\n\nIn production, this will:\n- Send quote to customer\n- Update request status to 'quoted'\n- Notify customer via email/SMS`);
+      onClose();
+    }
   };
 
   const getServiceSpecificQuestions = () => {
@@ -118,11 +135,15 @@ export default function BookingModal({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-navy-600 rounded-full flex items-center justify-center text-white font-bold">
-              {providerName.split(' ').map(n => n[0]).join('')}
+              {mode === 'sp-quote' ? 'SP' : providerName.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Request A Quote</h2>
-              <p className="text-sm text-gray-600">{providerName}</p>
+              <h2 className="text-xl font-bold text-gray-900">
+                {mode === 'sp-quote' ? 'Send Quote to Customer' : 'Request A Quote'}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {mode === 'sp-quote' ? `Replying to ${customerName}` : providerName}
+              </p>
             </div>
           </div>
           <button
@@ -145,7 +166,8 @@ export default function BookingModal({
             <input
               type="text"
               value={formData.serviceType}
-              disabled
+              disabled={mode === 'customer-booking'}
+              onChange={mode === 'sp-quote' ? (e) => setFormData({ ...formData, serviceType: e.target.value }) : undefined}
               className="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-700"
             />
           </div>
@@ -153,13 +175,13 @@ export default function BookingModal({
           {/* Service Description */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Describe the service you&apos;re looking to purchase - please be as detailed as possible:
+              {mode === 'sp-quote' ? 'Service Description & Quote Details:' : 'Describe the service you\'re looking to purchase - please be as detailed as possible:'}
               <span className="text-red-500 ml-1">*</span>
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="I'm looking for..."
+              placeholder={mode === 'sp-quote' ? 'Provide detailed quote including scope of work, timeline, and any special notes...' : "I'm looking for..."}
               rows={5}
               maxLength={2500}
               className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
@@ -228,7 +250,7 @@ export default function BookingModal({
           {/* Budget */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              What is your budget for this service?
+              {mode === 'sp-quote' ? 'Your Quote Amount:' : 'What is your budget for this service?'}
               <span className="text-red-500 ml-1">*</span>
             </label>
             <div className="relative">
@@ -247,6 +269,11 @@ export default function BookingModal({
             </div>
             {errors.budget && (
               <p className="text-sm text-red-500 mt-1">{errors.budget}</p>
+            )}
+            {mode === 'sp-quote' && (
+              <p className="text-xs text-blue-600 mt-1">
+                💡 You can modify the customer&apos;s requested budget and provide your professional quote
+              </p>
             )}
           </div>
 
@@ -269,11 +296,14 @@ export default function BookingModal({
             type="submit"
             className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg"
           >
-            Submit Request & Start Chat
+            {mode === 'sp-quote' ? 'Send Quote to Customer' : 'Submit Request & Start Chat'}
           </button>
 
           <p className="text-sm text-gray-600 text-center">
-            After submitting, a chat will open with the provider to discuss your project
+            {mode === 'sp-quote' 
+              ? 'This will send your quote to the customer for their review and approval'
+              : 'After submitting, a chat will open with the provider to discuss your project'
+            }
           </p>
         </form>
       </div>
