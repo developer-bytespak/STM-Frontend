@@ -65,21 +65,23 @@ export default function ChatPopup() {
   const formatMessageContent = (content: string) => {
     // Convert markdown-style formatting to HTML
     return content.split('\n').map((line, idx) => {
-      if (line.startsWith('') && line.endsWith('')) {
-        return <p key={idx} className="font-bold text-white mb-3 text-sm border-b border-white/30 pb-2 break-words">{line.slice(2, -2)}</p>;
-      } else if (line.trim()) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+        return <p key={idx} className="font-bold text-white mb-3 text-sm border-b border-white/30 pb-2 break-words overflow-wrap-anywhere hyphens-auto">{trimmedLine.slice(2, -2)}</p>;
+      } else if (trimmedLine) {
         // Split by colon to format as label: value
-        const colonIndex = line.indexOf(':');
+        const colonIndex = trimmedLine.indexOf(':');
         if (colonIndex > 0) {
-          const label = line.substring(0, colonIndex);
-          const value = line.substring(colonIndex + 1).trim();
+          const label = trimmedLine.substring(0, colonIndex).trim();
+          const value = trimmedLine.substring(colonIndex + 1).trim();
           return (
-            <div key={idx} className="text-white mb-2 text-xs leading-relaxed break-words">
+            <div key={idx} className="text-white mb-2 text-sm leading-relaxed break-words overflow-wrap-anywhere hyphens-auto">
               <span className="font-semibold">{label}:</span> {value}
             </div>
           );
         }
-        return <p key={idx} className="text-white mb-1 text-xs break-words">{line}</p>;
+        return <p key={idx} className="text-white mb-1 text-sm break-words overflow-wrap-anywhere hyphens-auto">{trimmedLine}</p>;
       }
       return null;
     });
@@ -108,7 +110,7 @@ export default function ChatPopup() {
   return (
     <>
       {/* Chat Popup - Full Size */}
-      <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col z-50">
+      <div className="fixed bottom-4 right-4 w-[420px] h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col z-50">
         {/* Header */}
         <div className="bg-navy-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -164,7 +166,7 @@ export default function ChatPopup() {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-gray-50">
           {activeConversation.messages.map((message) => {
             const isCustomer = message.senderRole === 'customer';
             const isSystem = message.senderId === 'system';
@@ -181,7 +183,7 @@ export default function ChatPopup() {
 
             return (
               <div key={message.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${isCustomer ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 max-w-[95%]' : 'order-1 max-w-[80%]'}`}>
+                <div className={`${isCustomer ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     {!isCustomer && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
@@ -195,7 +197,7 @@ export default function ChatPopup() {
                       isCustomer
                         ? 'text-white rounded-br-none px-4 py-3'
                         : message.type === 'form-data'
-                        ? 'rounded-bl-none px-6 py-4'
+                        ? 'rounded-bl-none px-3 py-4'
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-4 py-3'
                     }`}
                     style={isCustomer || message.type === 'form-data'
@@ -204,7 +206,7 @@ export default function ChatPopup() {
                     }
                   >
                     {message.type === 'form-data' ? (
-                      <div className="text-gray-900">
+                      <div className="text-gray-900 w-full">
                         {formatMessageContent(message.content)}
                       </div>
                     ) : message.type === 'file' && message.files ? (
