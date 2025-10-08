@@ -138,6 +138,17 @@ export default function ProviderJobs() {
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => window.history.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">Job Requests</h1>
             <p className="mt-2 text-gray-600">Review and respond to customer service requests</p>
           </div>
