@@ -66,7 +66,7 @@ export default function ChatPopup() {
     // Convert markdown-style formatting to HTML
     return content.split('\n').map((line, idx) => {
       if (line.startsWith('') && line.endsWith('')) {
-        return <p key={idx} className="font-bold text-white mb-3 text-base border-b border-white/30 pb-2">{line.slice(2, -2)}</p>;
+        return <p key={idx} className="font-bold text-white mb-3 text-sm border-b border-white/30 pb-2 break-words">{line.slice(2, -2)}</p>;
       } else if (line.trim()) {
         // Split by colon to format as label: value
         const colonIndex = line.indexOf(':');
@@ -74,12 +74,12 @@ export default function ChatPopup() {
           const label = line.substring(0, colonIndex);
           const value = line.substring(colonIndex + 1).trim();
           return (
-            <p key={idx} className="text-white mb-2 text-sm leading-relaxed">
+            <div key={idx} className="text-white mb-2 text-xs leading-relaxed break-words">
               <span className="font-semibold">{label}:</span> {value}
-            </p>
+            </div>
           );
         }
-        return <p key={idx} className="text-white mb-1 text-sm">{line}</p>;
+        return <p key={idx} className="text-white mb-1 text-xs break-words">{line}</p>;
       }
       return null;
     });
@@ -181,7 +181,7 @@ export default function ChatPopup() {
 
             return (
               <div key={message.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] ${isCustomer ? 'order-2' : 'order-1'}`}>
+                <div className={`${isCustomer ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 max-w-[95%]' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     {!isCustomer && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
@@ -191,12 +191,12 @@ export default function ChatPopup() {
                     )}
                   </div>
                   <div 
-                    className={`rounded-lg px-4 py-3 ${
+                    className={`rounded-lg ${
                       isCustomer
-                        ? 'text-white rounded-br-none'
+                        ? 'text-white rounded-br-none px-4 py-3'
                         : message.type === 'form-data'
-                        ? 'rounded-bl-none'
-                        : 'bg-white border border-gray-200 rounded-bl-none text-gray-900'
+                        ? 'rounded-bl-none px-6 py-4'
+                        : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-4 py-3'
                     }`}
                     style={isCustomer || message.type === 'form-data'
                       ? { backgroundColor: '#00a63e' } 

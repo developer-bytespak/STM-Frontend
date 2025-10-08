@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { authCookies } from '@/lib/cookies';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface FormErrors {
   email?: string;
@@ -20,6 +21,8 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -88,28 +91,33 @@ export default function LoginForm() {
         // Store in cookies for persistence
         authCookies.setUserData(userData);
         
-        // Redirect based on role
-        switch (testUser.role) {
-          case 'admin':
-            window.location.href = '/admin/dashboard';
-            break;
-          case 'customer':
-            window.location.href = '/customer/dashboard';
-            break;
-          case 'service_provider':
-            window.location.href = '/provider/dashboard';
-            break;
-          case 'local_service_manager':
-            window.location.href = '/lsm/dashboard';
-            break;
-          default:
-            window.location.href = '/';
+        // If there's a returnUrl, redirect there, otherwise redirect based on role
+        if (returnUrl) {
+          window.location.href = returnUrl;
+        } else {
+          // Redirect based on role
+          switch (testUser.role) {
+            case 'admin':
+              window.location.href = '/admin/dashboard';
+              break;
+            case 'customer':
+              window.location.href = '/customer/dashboard';
+              break;
+            case 'service_provider':
+              window.location.href = '/provider/dashboard';
+              break;
+            case 'local_service_manager':
+              window.location.href = '/lsm/dashboard';
+              break;
+            default:
+              window.location.href = '/';
+          }
         }
         return;
       }
 
       // Regular login for non-test accounts
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, returnUrl || undefined);
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed. Please try again.',
@@ -167,7 +175,7 @@ export default function LoginForm() {
         {/* Password Field */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password <span className="text-red-500 text-gray-800">*</span>
+            Password <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -177,9 +185,9 @@ export default function LoginForm() {
               value={formData.password}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 pr-10 border rounded-lg
+                w-full px-4 py-2 pr-10 border rounded-lg text-gray-800
                 focus:outline-none focus:ring-2 focus:ring-blue-500
-                ${errors.password ? 'border-red-500' : 'border-gray-300 text-gray-800'}
+                ${errors.password ? 'border-red-500' : 'border-gray-300'}
               `}
               placeholder="Enter your password"
               disabled={isLoading}

@@ -1,22 +1,44 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BookingModal from '@/components/booking/BookingModal';
 import { dummyProviders } from '@/data/dummyProviders';
 import { useAuth } from '@/hooks/useAuth';
-import Header from '@/components/layout/Header';
+import AuthenticatedHeader from '@/components/layout/AuthenticatedHeader';
+import { useChat } from '@/contexts/ChatContext';
 
 export default function PublicProviderProfile() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuth();
+  const { conversations, openConversation } = useChat();
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [backUrl, setBackUrl] = useState('/');
 
   // Find provider by ID
   const provider = dummyProviders.find(p => p.id === params.id);
+
+  // Check if there's an existing conversation with this provider
+  const existingConversation = conversations.find(conv => conv.providerId === params.id);
+
+  // Build back URL with search parameters
+  useEffect(() => {
+    const service = searchParams.get('service');
+    const category = searchParams.get('category');
+    const location = searchParams.get('location');
+    
+    if (service || category || location) {
+      const params = new URLSearchParams();
+      if (service) params.set('service', service);
+      if (category) params.set('category', category);
+      if (location) params.set('location', location);
+      setBackUrl(`/?${params.toString()}`);
+    }
+  }, [searchParams]);
 
   const handleBookNowClick = () => {
     // Check if user is authenticated and is a customer
@@ -30,13 +52,18 @@ export default function PublicProviderProfile() {
       return;
     }
 
-    setShowBookingModal(true);
+    // If conversation exists, open it; otherwise show booking modal
+    if (existingConversation) {
+      openConversation(existingConversation.id);
+    } else {
+      setShowBookingModal(true);
+    }
   };
 
   if (!provider) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <AuthenticatedHeader />
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Provider Not Found</h1>
@@ -52,13 +79,13 @@ export default function PublicProviderProfile() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Public Header */}
-      <Header />
+      <AuthenticatedHeader />
       
       {/* Provider Header */}
       <div className="bg-white border-b border-gray-200 mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push(backUrl)}
             className="flex items-center text-navy-600 hover:text-navy-700 mb-4"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,12 +134,25 @@ export default function PublicProviderProfile() {
               </div>
             </div>
 
-            {/* Book Now Button */}
+            {/* Book Now / Open Chat Button */}
             <button
               onClick={handleBookNowClick}
-              className="bg-navy-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-navy-700 transition-colors text-lg"
+              className={`${
+                existingConversation 
+                  ? 'bg-blue-800 hover:bg-blue-900' 
+                  : 'bg-navy-600 hover:bg-navy-700'
+              } text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg flex items-center gap-2`}
             >
-              Book Now
+              {existingConversation ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Open Chat
+                </>
+              ) : (
+                'Book Now'
+              )}
             </button>
           </div>
         </div>
@@ -210,15 +250,33 @@ export default function PublicProviderProfile() {
 
             {/* Contact CTA */}
             <div className="bg-navy-50 border-2 border-navy-200 rounded-lg p-6 text-center">
-              <h3 className="font-bold text-navy-900 mb-2">Ready to get started?</h3>
+              <h3 className="font-bold text-navy-900 mb-2">
+                {existingConversation ? 'Continue your conversation' : 'Ready to get started?'}
+              </h3>
               <p className="text-sm text-navy-700 mb-4">
-                Book a service and chat with {provider.firstName} directly
+                {existingConversation 
+                  ? `Continue chatting with ${provider.firstName}`
+                  : `Book a service and chat with ${provider.firstName} directly`
+                }
               </p>
               <button
                 onClick={handleBookNowClick}
-                className="w-full bg-navy-600 text-white py-3 rounded-lg font-semibold hover:bg-navy-700 transition-colors"
+                className={`w-full ${
+                  existingConversation 
+                    ? 'bg-blue-800 hover:bg-blue-900' 
+                    : 'bg-navy-600 hover:bg-navy-700'
+                } text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2`}
               >
-                Book Now
+                {existingConversation ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Open Chat
+                  </>
+                ) : (
+                  'Book Now'
+                )}
               </button>
             </div>
           </div>
@@ -252,7 +310,7 @@ export default function PublicProviderProfile() {
 
             <div className="space-y-3">
               <Link
-                href="/login"
+                href={`/login?returnUrl=${encodeURIComponent(window.location.pathname)}`}
                 className="block w-full bg-navy-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors text-center"
               >
                 Log In

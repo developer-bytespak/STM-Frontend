@@ -34,12 +34,22 @@ interface ResultsDisplayProps {
 
 export default function ResultsDisplay({
   service,
+  category,
   location,
   providers,
   onClear,
   onGetEstimate,
   onCallNow
 }: ResultsDisplayProps) {
+  // Build search params string for provider links
+  const searchParamsString = React.useMemo(() => {
+    const params = new URLSearchParams();
+    if (service) params.set('service', service);
+    if (category) params.set('category', category);
+    if (location) params.set('location', location);
+    return params.toString();
+  }, [service, category, location]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
       {/* Search Summary with Clear Option */}
@@ -76,6 +86,7 @@ export default function ResultsDisplay({
                 provider={provider}
                 onCallNow={onCallNow}
                 index={index}
+                searchParams={searchParamsString}
               />
             ))}
           </div>

@@ -14,7 +14,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, returnUrl?: string) => Promise<void>;
   register: (data: RegisterData, shouldRedirect?: boolean) => Promise<User>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, returnUrl?: string) => {
     try {
       const response = await apiClient.login({ email, password });
       
@@ -164,8 +164,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       authCookies.setUserData(userData);
       
-      // Redirect based on role
-      redirectBasedOnRole(userData.role);
+      // If there's a returnUrl, redirect there, otherwise redirect based on role
+      if (returnUrl) {
+        router.push(returnUrl);
+      } else {
+        redirectBasedOnRole(userData.role);
+      }
     } catch (error) {
       const apiError = error as ApiError;
       throw new Error(apiError.message || 'Login failed');
