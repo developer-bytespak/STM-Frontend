@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import LoginForm from '@/components/forms/LoginForm';
 import Link from 'next/link';
 
@@ -17,7 +17,28 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <LoginForm />
+        <Suspense fallback={
+          <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-blue-100">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🔐</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Sign In
+              </h2>
+              <p className="text-gray-600 text-sm">
+                Loading...
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="h-20 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div className="h-20 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div className="h-12 bg-gray-100 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+        }>
+          <LoginForm />
+        </Suspense>
 
         {/* Test Accounts Info */}
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import BookingModal from '@/components/booking/BookingModal';
@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import AuthenticatedHeader from '@/components/layout/AuthenticatedHeader';
 import { useChat } from '@/contexts/ChatContext';
 
-export default function PublicProviderProfile() {
+function PublicProviderProfileContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -334,5 +334,32 @@ export default function PublicProviderProfile() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PublicProviderProfile() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <AuthenticatedHeader />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-32 bg-gray-200 rounded-lg mb-8"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-64 bg-gray-200 rounded-lg"></div>
+                <div className="h-96 bg-gray-200 rounded-lg"></div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-48 bg-gray-200 rounded-lg"></div>
+                <div className="h-64 bg-gray-200 rounded-lg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <PublicProviderProfileContent />
+    </Suspense>
   );
 }

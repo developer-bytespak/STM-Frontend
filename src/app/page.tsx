@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -36,7 +37,27 @@ export default function Home() {
       />
 
       {/* Hierarchical Search */}
-      <HierarchicalSearch onClear={handleClearSearch} />
+      <Suspense fallback={
+        <div className="relative bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 overflow-hidden">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 lg:py-32">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+                Find the right <span className="italic">service</span>
+                <br />
+                professional, right away
+              </h1>
+            </div>
+            <div className="max-w-3xl mx-auto">
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100 h-32 animate-pulse"></div>
+                <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100 h-32 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }>
+        <HierarchicalSearch onClear={handleClearSearch} />
+      </Suspense>
 
       {/* Footer */}
       <footer className="bg-navy-900 text-white py-12 mt-16">
