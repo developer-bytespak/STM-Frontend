@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import ServiceSearch from './ServiceSearch';
 import CitySearch from './CitySearch';
 import ResultsDisplay from './ResultsDisplay';
@@ -14,28 +15,69 @@ interface HierarchicalSearchProps {
 }
 
 export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [currentStep, setCurrentStep] = useState<SearchStep>('service');
   const [selectedService, setSelectedService] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const hasSelectedGranular = selectedService.length > 0;
   
   const searchRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Restore state from URL on mount
+  useEffect(() => {
+    if (!isInitialized) {
+      const service = searchParams.get('service');
+      const category = searchParams.get('category');
+      const location = searchParams.get('location');
+      
+      if (service && location) {
+        setSelectedService(service);
+        setSelectedCategory(category || '');
+        setSelectedLocation(location);
+        setCurrentStep('results');
+        searchProviders(service, location);
+      } else if (service) {
+        setSelectedService(service);
+        setSelectedCategory(category || '');
+        setCurrentStep('location');
+      }
+      
+      setIsInitialized(true);
+    }
+  }, [isInitialized, searchParams]);
+
+  // Update URL when search state changes
+  const updateURL = (service?: string, category?: string, location?: string) => {
+    const params = new URLSearchParams();
+    if (service) params.set('service', service);
+    if (category) params.set('category', category);
+    if (location) params.set('location', location);
+    
+    const queryString = params.toString();
+    const newUrl = queryString ? `/?${queryString}` : '/';
+    router.replace(newUrl, { scroll: false });
+  };
 
   // Handle service selection
   const handleServiceSelect = (service: string, category?: string) => {
     setSelectedService(service);
     setSelectedCategory(category || '');
     setCurrentStep('location');
+    updateURL(service, category || '', '');
   };
 
   // Handle location selection
   const handleLocationSelect = (location: string) => {
     setSelectedLocation(location);
     setCurrentStep('results');
+    updateURL(selectedService, selectedCategory, location);
     searchProviders(selectedService, location);
   };
 
@@ -76,6 +118,7 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
     setSelectedCategory('');
     setSelectedLocation('');
     setProviders([]);
+    router.replace('/', { scroll: false });
     onClear();
   };
 
@@ -86,6 +129,7 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
       setCurrentStep('location');
       setProviders([]);
     }
+    updateURL(selectedService, selectedCategory, '');
   };
 
   // Handle get estimate

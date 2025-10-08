@@ -21,9 +21,10 @@ interface ProviderCardProps {
   };
   onCallNow?: () => void;
   index?: number;
+  searchParams?: string;
 }
 
-export default function ProviderCard({ provider, onCallNow, index = 0 }: ProviderCardProps) {
+export default function ProviderCard({ provider, onCallNow, index = 0, searchParams }: ProviderCardProps) {
   // Determine star color based on rating
   const getStarColor = (rating: number = 0) => {
     if (rating >= 5.0) return 'text-yellow-500'; // Bright yellow for perfect rating
@@ -32,8 +33,12 @@ export default function ProviderCard({ provider, onCallNow, index = 0 }: Provide
     return 'text-gray-300'; // Gray for lower ratings
   };
 
+  const providerUrl = searchParams 
+    ? `/providers/${provider.id}?${searchParams}`
+    : `/providers/${provider.id}`;
+
   return (
-    <Link href={`/providers/${provider.id}`}>
+    <Link href={providerUrl}>
       <div
         className="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all overflow-hidden animate-fade-in w-full max-w-4xl mx-auto cursor-pointer"
         style={{ animationDelay: `${index * 100}ms` }}

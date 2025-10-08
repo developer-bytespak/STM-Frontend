@@ -162,7 +162,7 @@ export default function BookingModal({
               placeholder="I'm looking for..."
               rows={5}
               maxLength={2500}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+              className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                 errors.description ? 'border-red-500' : 'border-gray-300'
               }`}
             />
@@ -184,7 +184,7 @@ export default function BookingModal({
               value={formData.dimensions}
               onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
               placeholder={serviceQuestions.dimensionPlaceholder}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
             />
           </div>
 
@@ -221,7 +221,7 @@ export default function BookingModal({
               value={formData.preferredDate}
               onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
               min={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy-500"
             />
           </div>
 
@@ -240,7 +240,7 @@ export default function BookingModal({
                 placeholder="0"
                 min="0"
                 step="0.01"
-                className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                className={`w-full pl-8 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                   errors.budget ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -260,7 +260,7 @@ export default function BookingModal({
               onChange={(e) => setFormData({ ...formData, additionalDetails: e.target.value })}
               placeholder="e.g., specific materials, access restrictions, scheduling preferences..."
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
             />
           </div>
 
