@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
       // Clear OTP session
       clearOTPSession();
 
-      // Redirect to admin dashboard
+      // Redirect to admin dashboard (admin should go to dashboard)
       router.push('/admin/dashboard');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';

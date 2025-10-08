@@ -36,6 +36,15 @@ export default function CitySearch({
     setQuery(selectedLocation || '');
   }, [selectedLocation]);
 
+  // Clear query when component is disabled (when service is cleared)
+  useEffect(() => {
+    if (disabled && query) {
+      setQuery('');
+      setShowDropdown(false);
+      setSelectedIndex(-1);
+    }
+  }, [disabled, query]);
+
   // Filter locations based on query
   const filteredLocations = !disabled && query.length >= 2 
     ? LOCATION_SUGGESTIONS.filter(location => 
@@ -72,6 +81,23 @@ export default function CitySearch({
     setSelectedIndex(-1);
     onClear();
     inputRef.current?.focus();
+  };
+
+  // Handle search button click
+  const handleSearchClick = () => {
+    if (disabled) return;
+    
+    if (query.length >= 2 && filteredLocations.length > 0) {
+      // Show the dropdown instead of auto-selecting
+      setShowDropdown(true);
+      setSelectedIndex(-1);
+    } else if (query.length >= 2) {
+      // If no results but query is long enough, show message
+      alert('No locations found for your search. Please try a different term.');
+    } else {
+      // If query is too short
+      alert('Please enter at least 2 characters to search.');
+    }
   };
 
   // Handle keyboard navigation
@@ -174,7 +200,11 @@ export default function CitySearch({
         {/* Search Button */}
         <button
           type="button"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-4 py-2 rounded-md hover:bg-navy-700 transition-colors"
+          onClick={handleSearchClick}
+          disabled={disabled}
+          className={`absolute right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-4 py-2 rounded-md hover:bg-navy-700 transition-colors ${
+            disabled ? 'cursor-not-allowed opacity-50' : ''
+          }`}
         >
           Search
         </button>
@@ -184,7 +214,12 @@ export default function CitySearch({
       {showDropdown && filteredLocations.length > 0 && (
         <div 
           ref={dropdownRef}
-          className="absolute z-10 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          style={{ 
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#D1D5DB #F3F4F6'
+          }}
         >
           {filteredLocations.map((location, index) => (
             <button
@@ -204,6 +239,8 @@ export default function CitySearch({
               </div>
             </button>
           ))}
+          {/* Extra padding at bottom to ensure last item is fully visible */}
+          <div className="h-2"></div>
         </div>
       )}
     </div>

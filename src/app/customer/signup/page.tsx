@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { OTPVerification } from '@/components/auth/OTPVerification';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
@@ -32,6 +33,9 @@ interface FormErrors {
 type SignupStep = 'form' | 'otp' | 'success';
 
 export default function CustomerSignupPage() {
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/';
+  
   const [currentStep, setCurrentStep] = useState<SignupStep>('form');
   const [formData, setFormData] = useState<CustomerFormData>({
     firstName: '',
@@ -495,8 +499,8 @@ export default function CustomerSignupPage() {
           {currentStep === 'success' && (
             <SuccessScreen
               title="Account Created Successfully!"
-              message="You're now logged in! Taking you to your dashboard..."
-              redirectTo="/customer/dashboard"
+              message="You're all set! Welcome to ServiceProStars."
+              redirectTo={returnUrl}
               redirectDelay={2000}
             />
           )}

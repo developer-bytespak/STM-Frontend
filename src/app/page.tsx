@@ -39,9 +39,9 @@ export default function Home() {
       {/* Hierarchical Search */}
       <Suspense fallback={
         <div className="relative bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 overflow-hidden">
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 lg:py-32">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-16">
             <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 leading-tight">
                 Find the right <span className="italic">service</span>
                 <br />
                 professional, right away
@@ -49,10 +49,13 @@ export default function Home() {
             </div>
             <div className="max-w-3xl mx-auto">
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100 h-32 animate-pulse"></div>
-                <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100 h-32 animate-pulse"></div>
+                <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100 h-40 animate-pulse"></div>
+                <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100 h-40 animate-pulse"></div>
               </div>
             </div>
+            
+            {/* Extra bottom padding to maintain section height */}
+            <div className="h-16 md:h-20 lg:h-24"></div>
           </div>
         </div>
       }>
@@ -60,7 +63,7 @@ export default function Home() {
       </Suspense>
 
       {/* Footer */}
-      <footer className="bg-navy-900 text-white py-12 mt-16">
+      <footer className="bg-navy-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>

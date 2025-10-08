@@ -91,26 +91,23 @@ export default function LoginForm() {
         // Store in cookies for persistence
         authCookies.setUserData(userData);
         
-        // If there's a returnUrl, redirect there, otherwise redirect based on role
+        // If there's a returnUrl, redirect there
         if (returnUrl) {
           window.location.href = returnUrl;
         } else {
-          // Redirect based on role
-          switch (testUser.role) {
-            case 'admin':
-              window.location.href = '/admin/dashboard';
-              break;
-            case 'customer':
-              window.location.href = '/customer/dashboard';
-              break;
-            case 'service_provider':
-              window.location.href = '/provider/dashboard';
-              break;
-            case 'local_service_manager':
-              window.location.href = '/lsm/dashboard';
-              break;
-            default:
-              window.location.href = '/';
+          // Role-based redirect: Admin/LSM go to dashboard, Customer/Provider go to homepage
+          if (testUser.role === 'admin' || testUser.role === 'local_service_manager') {
+            switch (testUser.role) {
+              case 'admin':
+                window.location.href = '/admin/dashboard';
+                break;
+              case 'local_service_manager':
+                window.location.href = '/lsm/dashboard';
+                break;
+            }
+          } else {
+            // Customer and Provider go to homepage
+            window.location.href = '/';
           }
         }
         return;

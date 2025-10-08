@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber, formatPhoneToE164 } from '@/lib/validation';
 import { registerServiceProvider, uploadDocument, ApiError, handleApiError } from '@/lib/apiService';
@@ -53,6 +54,9 @@ interface FormErrors {
 type SignupStep = 'form' | 'success';
 
 export default function ServiceProviderSignupPage() {
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/';
+  
   const [currentStep, setCurrentStep] = useState<SignupStep>('form');
   const [formStep, setFormStep] = useState<number>(1); // 1: Personal, 2: Service, 3: Documents, 4: Review
   const [formData, setFormData] = useState<ServiceProviderFormData>({
@@ -1230,8 +1234,8 @@ export default function ServiceProviderSignupPage() {
             <SuccessScreen
               title="Account Created Successfully!"
               message="Your application is under review. You'll receive an email once approved by our Local Service Manager."
-              redirectTo=""
-              redirectDelay={10}
+              redirectTo={returnUrl}
+              redirectDelay={3000}
             />
           )}
         </div>

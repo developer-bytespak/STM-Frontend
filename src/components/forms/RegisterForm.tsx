@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
@@ -32,6 +33,9 @@ interface FormErrors {
 }
 
 export default function RegisterForm() {
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
+  
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -156,9 +160,9 @@ export default function RegisterForm() {
         region: formData.region.trim(),
         address: formData.address.trim(),
         zipcode: formData.zipcode.trim() || undefined,
-      }, false); // Don't redirect after registration
+      }, true, returnUrl || undefined); // Redirect after registration with returnUrl
       
-      // Set success state
+      // Set success state (though we're redirecting, this is for fallback)
       setIsSuccess(true);
     } catch (error) {
       setErrors({

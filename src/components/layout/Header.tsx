@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 interface HeaderProps {
@@ -10,9 +11,15 @@ interface HeaderProps {
 }
 
 export default function Header({ userRole, userName, onLogout }: HeaderProps) {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  
+  // Create return URL for login/signup (skip if already on auth pages)
+  const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || 
+                     pathname?.startsWith('/customer/signup') || pathname?.startsWith('/provider/signup');
+  const returnUrl = !isAuthPage && pathname ? `?returnUrl=${encodeURIComponent(pathname)}` : '';
 
   // Map backend role names to frontend route names
   const getRoleRoute = (role: string) => {
@@ -131,19 +138,19 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
               // Unauthenticated Auth Buttons
               <>
                 <Link
-                  href="/login"
+                  href={`/login${returnUrl}`}
                   className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2"
                 >
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href={`/register${returnUrl}`}
                   className="hidden sm:inline-block bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm"
                 >
                   Sign Up
                 </Link>
                 <Link
-                  href="/provider/signup"
+                  href={`/provider/signup${returnUrl}`}
                   className="hidden lg:inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                 >
                   Become a Provider
@@ -217,14 +224,14 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="space-y-2">
               <Link
-                href="/register"
+                href={`/register${returnUrl}`}
                 className="block w-full text-center bg-navy-600 text-white px-4 py-3 rounded-lg hover:bg-navy-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign Up as Customer
               </Link>
                 <Link
-                href="/provider/signup"
+                href={`/provider/signup${returnUrl}`}
                 className="block w-full text-center bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
