@@ -1,6 +1,6 @@
 'use client';
 
-import { SPRequest } from '@/app/lsm/Data/dummyRequest';
+import { SPRequest } from '@/data/dummyRequest';
 
 interface RequestCardProps {
   request: SPRequest;
