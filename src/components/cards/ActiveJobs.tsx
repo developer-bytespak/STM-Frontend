@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+  import { dummyActiveJobs, ActiveJob } from '@/data/dummyActiveJobs';
 
 interface ActiveJobsProps {
   maxItems?: number;
@@ -9,37 +10,16 @@ interface ActiveJobsProps {
 }
 
 export default function ActiveJobs({ maxItems = 3, showViewAll = true }: ActiveJobsProps) {
-  // Mock data for now - you can replace this with your actual data
-  const activeJobs = [
-    {
-      id: '1',
-      serviceType: 'Plumbing Repair',
-      description: 'Fix leaking kitchen sink pipe',
-      customerName: 'John Doe',
-      location: '123 Main St, Portland',
-      budget: '150',
-      estimatedDuration: '2 hours',
-      startDate: '2025-01-15',
-      status: 'in_progress',
-      urgency: '24 Hours'
-    },
-    {
-      id: '2', 
-      serviceType: 'Bathroom Remodeling',
-      description: 'Install new bathroom fixtures',
-      customerName: 'Jane Smith',
-      location: '456 Oak Ave, Salem',
-      budget: '300',
-      estimatedDuration: '4 hours',
-      startDate: '2025-01-16',
-      status: 'scheduled',
-      urgency: '3 Days'
-    }
-  ];
+  // Get active jobs (excluding completed and cancelled)
+  const activeJobs = dummyActiveJobs
+    .filter(job => !['completed', 'cancelled'].includes(job.status))
+    .slice(0, maxItems);
 
-  const totalActiveJobs = 5; // Mock total
+  const totalActiveJobs = dummyActiveJobs.filter(job => 
+    !['completed', 'cancelled'].includes(job.status)
+  ).length;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: ActiveJob['status']) => {
     switch (status) {
       case 'active':
         return 'bg-red-100 text-red-800';
@@ -54,7 +34,7 @@ export default function ActiveJobs({ maxItems = 3, showViewAll = true }: ActiveJ
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: ActiveJob['status']) => {
     switch (status) {
       case 'active':
         return '🔴';
@@ -72,7 +52,9 @@ export default function ActiveJobs({ maxItems = 3, showViewAll = true }: ActiveJ
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -101,38 +83,52 @@ export default function ActiveJobs({ maxItems = 3, showViewAll = true }: ActiveJ
       ) : (
         <div className="space-y-4">
           {activeJobs.map((job) => (
-            <div key={job.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div key={job.id} className="bg-white border border-gray-100 rounded-lg p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-sm mb-1">
+                  <h4 className="font-semibold text-gray-900 text-sm mb-1">
                     {job.serviceType}
                   </h4>
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                  <p className="text-xs text-gray-600 mb-2">
                     {job.description}
                   </p>
-                  <div className="flex items-center space-x-2 text-xs text-gray-500">
-                    <span>👤 {job.customerName}</span>
-                    <span>•</span>
-                    <span>📍 {job.location.split(',')[0]}</span>
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 mb-1">
+                    <span className="flex items-center">
+                      <span className="text-purple-600 mr-1">👤</span>
+                      {job.customerName}
+                    </span>
+                    <span className="flex items-center">
+                      <span className="text-red-600 mr-1">📍</span>
+                      {job.location.split(',')[0]}
+                    </span>
                   </div>
                 </div>
-                <div className="ml-3">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                <div className="ml-3 flex flex-col items-end">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)} mb-1`}>
                     <span className="mr-1">{getStatusIcon(job.status)}</span>
                     {job.status.replace('_', ' ')}
                   </span>
+                  {job.urgency === '24 Hours' && (
+                    <span className="text-red-600 font-semibold text-xs flex items-center">
+                      🚨 URGENT
+                    </span>
+                  )}
                 </div>
               </div>
               
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-3">
-                  <span>💰 ${job.budget}</span>
-                  <span>⏱️ {job.estimatedDuration}</span>
-                  <span>📅 {formatDate(job.startDate)}</span>
-                </div>
-                {job.urgency === '24 Hours' && (
-                  <span className="text-red-600 font-medium">🚨 URGENT</span>
-                )}
+              <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <span className="flex items-center">
+                  <span className="text-yellow-600 mr-1">💰</span>
+                  ${job.budget}
+                </span>
+                <span className="flex items-center">
+                  <span className="text-purple-600 mr-1">⏱️</span>
+                  {job.estimatedDuration}
+                </span>
+                <span className="flex items-center">
+                  <span className="text-blue-600 mr-1">📅</span>
+                  {formatDate(job.startDate)}
+                </span>
               </div>
             </div>
           ))}

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import RequestCard from '@/components/cards/RequestCard';
-import { dummySPRequests } from '../Data/dummyRequest';
-import { SPRequest } from '../Data/dummyRequest';
+import { dummySPRequests } from '@/data/dummyRequest';
+import { SPRequest } from '@/data/dummyRequest';
 
 export default function SPRequestPage() {
   const [requests, setRequests] = useState<SPRequest[]>(dummySPRequests);
