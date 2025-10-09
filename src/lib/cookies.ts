@@ -124,7 +124,7 @@ export const authCookies = {
    */
   setAccessToken: (token: string): void => {
     cookieUtils.set('stm_access_token', token, {
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 24 * 60 * 60, // 1 day
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       httpOnly: false, // Needs to be accessible to JS for API calls
