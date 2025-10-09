@@ -1,60 +1,51 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { lsmApi, JobsInRegionFilters } from '@/api/lsm';
-import JobsInRegion from '@/components/lsm/JobsInRegion';
+import { lsmApi, ServiceRequestHistoryFilters } from '@/api/lsm';
+import ServiceRequestHistory from '@/components/lsm/ServiceRequestHistory';
 
-export default function JobsInRegionPage() {
+export default function RequestsHistoryPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<JobsInRegionFilters>({
+  const [filters, setFilters] = useState<ServiceRequestHistoryFilters>({
     page: 1,
     limit: 20,
   });
 
   const [statusFilter, setStatusFilter] = useState('');
-  const [providerIdFilter, setProviderIdFilter] = useState('');
-  const [fromDateFilter, setFromDateFilter] = useState('');
-  const [toDateFilter, setToDateFilter] = useState('');
 
   useEffect(() => {
-    fetchJobs();
+    fetchRequests();
   }, [filters]);
 
-  const fetchJobs = async () => {
+  const fetchRequests = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await lsmApi.getJobsInRegion(filters);
+      const response = await lsmApi.getServiceRequestsHistory(filters);
       setData(response);
     } catch (err: any) {
-      console.error('Error fetching jobs:', err);
-      setError(err.message || 'Failed to load jobs');
+      console.error('Error fetching service requests:', err);
+      setError(err.message || 'Failed to load service requests');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApplyFilters = () => {
-    const newFilters: JobsInRegionFilters = {
+    const newFilters: ServiceRequestHistoryFilters = {
       page: 1,
       limit: 20,
     };
 
     if (statusFilter) newFilters.status = statusFilter;
-    if (providerIdFilter) newFilters.providerId = parseInt(providerIdFilter);
-    if (fromDateFilter) newFilters.fromDate = fromDateFilter;
-    if (toDateFilter) newFilters.toDate = toDateFilter;
 
     setFilters(newFilters);
   };
 
   const handleResetFilters = () => {
     setStatusFilter('');
-    setProviderIdFilter('');
-    setFromDateFilter('');
-    setToDateFilter('');
     setFilters({ page: 1, limit: 20 });
   };
 
@@ -68,7 +59,7 @@ export default function JobsInRegionPage() {
         <div className="container mx-auto px-4">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading jobs...</p>
+            <p className="text-gray-600">Loading service requests...</p>
           </div>
         </div>
       </div>
@@ -95,15 +86,15 @@ export default function JobsInRegionPage() {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Jobs in Region</h1>
-          <p className="text-gray-600">View and manage all jobs in your service region</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Service Request History</h1>
+          <p className="text-gray-600">View and manage all service requests in your region</p>
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Filter Jobs</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Filter Requests</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Status Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -113,49 +104,11 @@ export default function JobsInRegionPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="">All Statuses</option>
-                <option value="new">New</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="paid">Paid</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="rejected_by_sp">Rejected by SP</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="under_review">Under Review</option>
               </select>
-            </div>
-
-            {/* Provider ID Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Provider ID
-              </label>
-              <input
-                type="number"
-                value={providerIdFilter}
-                onChange={(e) => setProviderIdFilter(e.target.value)}
-                placeholder="Enter provider ID"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-900"
-              />
-            </div>
-
-            {/* From Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-              <input
-                type="date"
-                value={fromDateFilter}
-                onChange={(e) => setFromDateFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              />
-            </div>
-
-            {/* To Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-              <input
-                type="date"
-                value={toDateFilter}
-                onChange={(e) => setToDateFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              />
             </div>
           </div>
 
@@ -177,12 +130,11 @@ export default function JobsInRegionPage() {
           </div>
         </div>
 
-        {/* Jobs Component */}
+        {/* Service Request History Component */}
         {data && (
-          <JobsInRegion
-            jobs={data.data}
-            totalJobs={data.summary.totalJobs}
-            totalValue={data.summary.totalValue}
+          <ServiceRequestHistory
+            requests={data.data}
+            totalRequests={data.pagination.total}
             currentPage={data.pagination.page}
             totalPages={data.pagination.totalPages}
             onPageChange={handlePageChange}

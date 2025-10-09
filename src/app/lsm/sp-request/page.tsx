@@ -1,38 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import RequestCard from '@/components/cards/RequestCard';
-import { dummySPRequests } from '@/data/dummyRequest';
-import { SPRequest } from '@/data/dummyRequest';
+import { useState, useEffect } from 'react';
+import { lsmApi, PendingOnboardingResponse } from '@/api/lsm';
+import { SPRequestStats, SPRequestList, SPRequestModal } from '@/components/lsm/sprequest';
 
 export default function SPRequestPage() {
-  const [requests, setRequests] = useState<SPRequest[]>(dummySPRequests);
-  const [selectedRequest, setSelectedRequest] = useState<SPRequest | null>(null);
+  const [requests, setRequests] = useState<PendingOnboardingResponse[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<PendingOnboardingResponse | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleApprove = (id: number) => {
-    setRequests(prevRequests => 
-      prevRequests.map(request => 
-        request.id === id ? { ...request, status: 'approved' as const } : request
-      )
-    );
-    alert(`Provider request #${id} has been approved!`);
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await lsmApi.getPendingOnboarding();
+        setRequests(data);
+      } catch (err: any) {
+        console.error('Error fetching pending requests:', err);
+        setError(err.message || 'Failed to load pending requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPendingRequests();
+  }, []);
+
+  const handleApprove = async (id: number) => {
+    try {
+      const result = await lsmApi.approveServiceRequest(id);
+      alert(`Service request #${id} has been approved! ${result.message}`);
+      // Refresh the list
+      const data = await lsmApi.getPendingOnboarding();
+      setRequests(data);
+    } catch (error) {
+      console.error('Error approving request:', error);
+      alert('Failed to approve request');
+    }
     setShowModal(false);
     setSelectedRequest(null);
   };
 
-  const handleReject = (id: number) => {
-    setRequests(prevRequests => 
-      prevRequests.map(request => 
-        request.id === id ? { ...request, status: 'rejected' as const } : request
-      )
-    );
-    alert(`Provider request #${id} has been rejected.`);
+  const handleReject = async (id: number, reason?: string) => {
+    try {
+      const result = await lsmApi.rejectServiceRequest(id, reason || 'No reason provided');
+      alert(`Service request #${id} has been rejected. ${result.message}`);
+      // Refresh the list
+      const data = await lsmApi.getPendingOnboarding();
+      setRequests(data);
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject request');
+    }
     setShowModal(false);
     setSelectedRequest(null);
   };
 
-  const openModal = (request: SPRequest) => {
+  const openModal = (request: PendingOnboardingResponse) => {
     setSelectedRequest(request);
     setShowModal(true);
   };
@@ -48,9 +75,38 @@ export default function SPRequestPage() {
     }
   };
 
-  const pendingRequests = requests.filter(req => req.status === 'pending');
-  const approvedRequests = requests.filter(req => req.status === 'approved');
-  const rejectedRequests = requests.filter(req => req.status === 'rejected');
+  // Since API only returns pending requests, we'll show them all
+  const pendingRequests = requests;
+  const approvedRequests: PendingOnboardingResponse[] = [];
+  const rejectedRequests: PendingOnboardingResponse[] = [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading pending requests...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-12">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md mx-auto">
+              <p className="font-semibold">Error</p>
+              <p>{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -58,94 +114,26 @@ export default function SPRequestPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Service Provider Requests
+            Service Provider Onboarding Requests
           </h1>
           <p className="text-gray-600">
-            Review and manage service provider approval requests
+            Review and manage pending service provider applications
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <div className="flex items-center">
-              <div className="text-3xl mr-4">⏳</div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">Pending Requests</h3>
-                <p className="text-3xl font-bold text-yellow-600">{pendingRequests.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <div className="flex items-center">
-              <div className="text-3xl mr-4">✅</div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">Approved</h3>
-                <p className="text-3xl font-bold text-green-600">{approvedRequests.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <div className="flex items-center">
-              <div className="text-3xl mr-4">❌</div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">Rejected</h3>
-                <p className="text-3xl font-bold text-red-600">{rejectedRequests.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SPRequestStats 
+          pendingCount={pendingRequests.length}
+          approvedCount={approvedRequests.length}
+          rejectedCount={rejectedRequests.length}
+        />
 
         {/* Requests Section */}
         <div className="max-w-6xl mx-auto">
-          {pendingRequests.length > 0 ? (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                Pending Approval ({pendingRequests.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    onClick={() => openModal(request)}
-                    className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {request.firstName} {request.lastName}
-                      </h3>
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                        ⏳ PENDING
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <p><span className="font-medium">Service:</span> {request.serviceType}</p>
-                      <p><span className="font-medium">Experience:</span> {request.experience}</p>
-                      <p><span className="font-medium">Location:</span> {request.location}</p>
-                      <p><span className="font-medium">Submitted:</span> {request.submittedDate}</p>
-                    </div>
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-blue-600 text-sm font-medium">
-                        Click to view details →
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                No Pending Requests
-              </h3>
-              <p className="text-gray-500">
-                All service provider requests have been reviewed.
-              </p>
-            </div>
-          )}
+          <SPRequestList 
+            requests={pendingRequests}
+            onRequestClick={openModal}
+          />
 
           {/* Recently Processed */}
           {(approvedRequests.length > 0 || rejectedRequests.length > 0) && (
@@ -154,40 +142,10 @@ export default function SPRequestPage() {
                 Recently Processed
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...approvedRequests, ...rejectedRequests]
-                  .sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
-                  .slice(0, 6)
-                  .map((request) => (
-                    <div
-                      key={request.id}
-                      onClick={() => openModal(request)}
-                      className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {request.firstName} {request.lastName}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          request.status === 'approved' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {request.status === 'approved' ? '✅ APPROVED' : '❌ REJECTED'}
-                        </span>
-                      </div>
-                      <div className="space-y-2 text-sm text-gray-600">
-                        <p><span className="font-medium">Service:</span> {request.serviceType}</p>
-                        <p><span className="font-medium">Experience:</span> {request.experience}</p>
-                        <p><span className="font-medium">Location:</span> {request.location}</p>
-                        <p><span className="font-medium">Submitted:</span> {request.submittedDate}</p>
-                      </div>
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-blue-600 text-sm font-medium">
-                          Click to view details →
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                {/* Since we only have pending requests from API, this section will be empty */}
+                <div className="text-center py-8 text-gray-500">
+                  <p>No recently processed requests to display.</p>
+                </div>
               </div>
             </div>
           )}
@@ -195,31 +153,13 @@ export default function SPRequestPage() {
 
         {/* Modal */}
         {showModal && selectedRequest && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={handleBackdropClick}
-          >
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Provider Request Details
-                  </h3>
-                  <button
-                    onClick={closeModal}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
-                  >
-                    ×
-                  </button>
-                </div>
-                <RequestCard
-                  request={selectedRequest}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                />
-              </div>
-            </div>
-          </div>
+          <SPRequestModal
+            request={selectedRequest}
+            onClose={closeModal}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onBackdropClick={handleBackdropClick}
+          />
         )}
       </div>
     </div>
