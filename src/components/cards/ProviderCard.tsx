@@ -20,11 +20,12 @@ interface ProviderCardProps {
     image?: string; // Optional image URL
   };
   onCallNow?: () => void;
+  onGetEstimate?: () => void;
   index?: number;
   searchParams?: string;
 }
 
-export default function ProviderCard({ provider, onCallNow, index = 0, searchParams }: ProviderCardProps) {
+export default function ProviderCard({ provider, onCallNow, onGetEstimate, index = 0, searchParams }: ProviderCardProps) {
   // Determine star color based on rating
   const getStarColor = (rating: number = 0) => {
     if (rating >= 5.0) return 'text-yellow-500'; // Bright yellow for perfect rating
@@ -87,7 +88,7 @@ export default function ProviderCard({ provider, onCallNow, index = 0, searchPar
           </div>
 
           {/* Business Details */}
-          <ul className="space-y-1 text-sm text-gray-800">
+          <ul className="space-y-1 text-sm text-gray-800 mb-4">
             <li className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0"></span>
               <span>{provider.experience || '5+'} in Business</span>
@@ -101,6 +102,37 @@ export default function ProviderCard({ provider, onCallNow, index = 0, searchPar
               <span>100% within hour response rate</span>
             </li>
           </ul>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onGetEstimate?.();
+              }}
+              className="bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-800 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Get Automated Estimate
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onCallNow?.();
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              Call Person Now
+            </button>
+          </div>
         </div>
 
         {/* Right: Badge and Rating */}
