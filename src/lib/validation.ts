@@ -94,6 +94,26 @@ export const validatePhone = (phone: string): ValidationResult => {
 };
 
 /**
+ * Validate zip code
+ */
+export const validateZipCode = (zipCode: string): ValidationResult => {
+  if (!zipCode) {
+    return { valid: false, error: 'ZIP code is required' };
+  }
+
+  // Remove all non-digit and non-hyphen characters
+  const cleanZipCode = zipCode.replace(/[^\d-]/g, '');
+  
+  // Check if it's a valid US ZIP code (5 digits or 5+4 format)
+  const zipRegex = /^\d{5}(-\d{4})?$/;
+  if (!zipRegex.test(cleanZipCode)) {
+    return { valid: false, error: 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)' };
+  }
+
+  return { valid: true };
+};
+
+/**
  * Validate name
  */
 export const validateName = (name: string): ValidationResult => {

@@ -4,17 +4,19 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
+import { validateEmail, validatePassword, validatePhone, validateZipCode, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
+import { SuccessScreen } from '@/components/auth/SuccessScreen';
 
 interface FormData {
   firstName: string;
   lastName: string;
   email: string;
-  phoneNumber: string;
-  password: string;
-  confirmPassword: string;
+  phone: string;
   region: string;
   address: string;
-  zipcode: string;
+  zipCode: string;
+  password: string;
+  confirmPassword: string;
   acceptedTerms: boolean;
 }
 
@@ -22,12 +24,12 @@ interface FormErrors {
   firstName?: string;
   lastName?: string;
   email?: string;
-  phoneNumber?: string;
-  password?: string;
-  confirmPassword?: string;
+  phone?: string;
   region?: string;
   address?: string;
-  zipcode?: string;
+  zipCode?: string;
+  password?: string;
+  confirmPassword?: string;
   acceptedTerms?: string;
   general?: string;
 }
@@ -40,12 +42,12 @@ export default function RegisterForm() {
     firstName: '',
     lastName: '',
     email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: '',
+    phone: '',
     region: '',
     address: '',
-    zipcode: '',
+    zipCode: '',
+    password: '',
+    confirmPassword: '',
     acceptedTerms: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -55,27 +57,11 @@ export default function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register } = useAuth();
 
-  const getPasswordStrength = (password: string) => {
-    let score = 0;
-    const checks = {
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-    };
+  const passwordStrength = getPasswordStrength(formData.password);
 
-    Object.values(checks).forEach(check => {
-      if (check) score++;
-    });
-
-    if (score < 2) return { strength: 'weak', color: 'text-red-500', bgColor: 'bg-red-100' };
-    if (score < 4) return { strength: 'medium', color: 'text-yellow-500', bgColor: 'bg-yellow-100' };
-    return { strength: 'strong', color: 'text-green-500', bgColor: 'bg-green-100' };
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -93,46 +79,60 @@ export default function RegisterForm() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
+    // Validate first name
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
     }
 
+    // Validate last name
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required';
     }
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    // Validate email
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.valid) {
+      newErrors.email = emailValidation.error;
     }
 
-    if (!formData.phoneNumber) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^\+?[\d\s-()]+$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = 'Phone number is invalid';
+  // Validate phone
+  const phoneValidation = validatePhone(formData.phone);
+  if (!phoneValidation.valid) {
+    newErrors.phone = phoneValidation.error;
+  }
+
+  // Validate region
+  if (!formData.region.trim()) {
+    newErrors.region = 'Region is required';
+  }
+
+  // Validate address
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    } else if (formData.address.trim().length < 10) {
+      newErrors.address = 'Please provide a complete address';
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    // Validate zip code
+    const zipCodeValidation = validateZipCode(formData.zipCode);
+    if (!zipCodeValidation.valid) {
+      newErrors.zipCode = zipCodeValidation.error;
     }
 
+    // Validate password
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.valid) {
+      newErrors.password = passwordValidation.error;
+    }
+
+    // Validate confirm password
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!formData.region.trim()) {
-      newErrors.region = 'Region is required';
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-
+    // Validate terms acceptance
     if (!formData.acceptedTerms) {
       newErrors.acceptedTerms = 'You must accept the terms and conditions';
     }
@@ -151,15 +151,15 @@ export default function RegisterForm() {
 
     try {
       await register({
-        email: formData.email,
+        email: sanitizeInput(formData.email),
         password: formData.password,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        phoneNumber: formData.phoneNumber,
+        firstName: sanitizeInput(formData.firstName.trim()),
+        lastName: sanitizeInput(formData.lastName.trim()),
+        phoneNumber: formatPhoneNumber(sanitizeInput(formData.phone)),
         role: 'CUSTOMER',
-        region: formData.region.trim(),
-        address: formData.address.trim(),
-        zipcode: formData.zipcode.trim() || undefined,
+        region: sanitizeInput(formData.region.trim()),
+        address: sanitizeInput(formData.address.trim()),
+        zipcode: sanitizeInput(formData.zipCode.trim()),
       }, true, returnUrl || undefined); // Redirect after registration with returnUrl
       
       // Set success state (though we're redirecting, this is for fallback)
@@ -176,45 +176,12 @@ export default function RegisterForm() {
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-green-100">
       {isSuccess ? (
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">✅</span>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Registration Successful!
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Your customer account has been created successfully. You can now log in to access your dashboard.
-          </p>
-          <div className="space-y-2">
-            <Link
-              href="/login"
-              className="inline-block w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Go to Login
-            </Link>
-            <button
-              onClick={() => {
-                setIsSuccess(false);
-                setFormData({
-                  firstName: '',
-                  lastName: '',
-                  email: '',
-                  phoneNumber: '',
-                  password: '',
-                  confirmPassword: '',
-                  region: '',
-                  address: '',
-                  zipcode: '',
-                  acceptedTerms: false,
-                });
-              }}
-              className="inline-block w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Register Another Account
-            </button>
-          </div>
-        </div>
+        <SuccessScreen
+          title="Account Created Successfully!"
+          message="You're all set! Welcome to ServiceProStars."
+          redirectTo={returnUrl || '/'}
+          redirectDelay={2000}
+        />
       ) : (
         <>
           <div className="text-center mb-6">
@@ -308,25 +275,25 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
             Phone Number <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
-            id="phoneNumber"
-            name="phoneNumber"
-            value={formData.phoneNumber}
+            id="phone"
+            name="phone"
+            value={formData.phone}
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2 focus:ring-green-500
-              ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'}
+              ${errors.phone ? 'border-red-500' : 'border-gray-300'}
             `}
             placeholder="Enter your phone number"
             disabled={isLoading}
           />
-          {errors.phoneNumber && (
-            <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>
+          {errors.phone && (
+            <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
           )}
         </div>
 
@@ -345,7 +312,7 @@ export default function RegisterForm() {
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.region ? 'border-red-500' : 'border-gray-300'}
             `}
-            placeholder="Enter your region"
+            placeholder="Dallas, TX"
             disabled={isLoading}
           />
           {errors.region && (
@@ -353,22 +320,23 @@ export default function RegisterForm() {
           )}
         </div>
 
+
         <div>
           <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
             Address <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
+          <textarea
             id="address"
             name="address"
             value={formData.address}
             onChange={handleChange}
+            rows={3}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.address ? 'border-red-500' : 'border-gray-300'}
             `}
-            placeholder="Enter your address"
+            placeholder="Enter your street address and city"
             disabled={isLoading}
           />
           {errors.address && (
@@ -377,25 +345,25 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="zipcode" className="block text-sm font-medium text-gray-700 mb-1">
-            Zip Code (Optional)
+          <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+            ZIP Code <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            id="zipcode"
-            name="zipcode"
-            value={formData.zipcode}
+            id="zipCode"
+            name="zipCode"
+            value={formData.zipCode}
             onChange={handleChange}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2 focus:ring-green-500
-              ${errors.zipcode ? 'border-red-500' : 'border-gray-300'}
+              ${errors.zipCode ? 'border-red-500' : 'border-gray-300'}
             `}
-            placeholder="Enter your zip code"
+            placeholder="Enter your ZIP code (e.g., 12345)"
             disabled={isLoading}
           />
-          {errors.zipcode && (
-            <p className="text-red-500 text-xs mt-1">{errors.zipcode}</p>
+          {errors.zipCode && (
+            <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>
           )}
         </div>
 
@@ -442,16 +410,19 @@ export default function RegisterForm() {
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      getPasswordStrength(formData.password).bgColor
+                      passwordStrength.strength === 'weak' ? 'bg-red-500' :
+                      passwordStrength.strength === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
                     style={{
-                      width: `${(getPasswordStrength(formData.password).strength === 'weak' ? 33 : 
-                               getPasswordStrength(formData.password).strength === 'medium' ? 66 : 100)}%`
+                      width: `${passwordStrength.score * 16.67}%`
                     }}
                   />
                 </div>
-                <span className={`text-xs font-medium ${getPasswordStrength(formData.password).color}`}>
-                  {getPasswordStrength(formData.password).strength}
+                <span className={`text-xs font-medium ${
+                  passwordStrength.strength === 'weak' ? 'text-red-500' :
+                  passwordStrength.strength === 'medium' ? 'text-yellow-500' : 'text-green-500'
+                }`}>
+                  {passwordStrength.strength}
                 </span>
               </div>
               <div className="mt-1 text-xs text-gray-500">

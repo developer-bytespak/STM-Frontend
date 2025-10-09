@@ -46,7 +46,7 @@ export default function LoginPage() {
           <div className="space-y-1 text-xs text-green-800">
             <p><strong>Customer:</strong> customer@test.com</p>
             <p><strong>Provider:</strong> provider@test.com</p>
-            {/* <p><strong>Admin:</strong> admin@test.com</p> */}
+            <p><strong>Admin:</strong> admin@test.com</p>
             <p><strong>LSM:</strong> lsm@test.com</p>
             <p className="mt-2"><strong>Password:</strong> password123</p>
             <p className="mt-2 text-green-700 font-medium">✨ These accounts bypass backend login for testing!</p>

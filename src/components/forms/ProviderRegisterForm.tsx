@@ -3,14 +3,25 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
-import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneNumber, formatPhoneToE164 } from '@/lib/validation';
+import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneToE164 } from '@/lib/validation';
 import { registerServiceProvider, uploadDocument, ApiError, handleApiError } from '@/lib/apiService';
 import { RegisterRequest } from '@/config/api';
+import { SERVICES, getGranularServices } from '@/data/services';
 
 interface DocumentData {
   file: File | null;
   description: string;
   type: string;
+}
+
+interface ServiceData {
+  id: string;
+  categoryType: string;
+  serviceType: string;
+  experience: string;
+  zipCodes: string[];
+  minPrice: string;
+  maxPrice: string;
 }
 
 interface ServiceProviderFormData {
@@ -19,15 +30,10 @@ interface ServiceProviderFormData {
   email: string;
   phone: string;
   businessName: string;
-  serviceType: string;
-  experience: string;
   description: string;
-  location: string;
-  zipCodes: string[];
-  multipleAreas: boolean;
-  minPrice: string;
-  maxPrice: string;
+  services: ServiceData[];
   password: string;
+  confirmPassword: string;
   acceptedTerms: boolean;
   documents: DocumentData[];
 }
@@ -38,14 +44,10 @@ interface FormErrors {
   email?: string;
   phone?: string;
   businessName?: string;
-  serviceType?: string;
-  experience?: string;
   description?: string;
-  location?: string;
-  zipCodes?: string;
-  minPrice?: string;
-  maxPrice?: string;
+  services?: { [key: string]: string };
   password?: string;
+  confirmPassword?: string;
   acceptedTerms?: string;
   documents?: string;
   general?: string;
@@ -65,36 +67,33 @@ export default function ServiceProviderSignupPage() {
     email: '',
     phone: '',
     businessName: '',
-    serviceType: '',
-    experience: '',
     description: '',
-    location: '',
-    zipCodes: [''],
-    multipleAreas: false,
-    minPrice: '',
-    maxPrice: '',
+    services: [{
+      id: '1',
+      categoryType: '',
+      serviceType: '',
+      experience: '',
+      zipCodes: [''],
+      minPrice: '',
+      maxPrice: '',
+    }],
     password: '',
+    confirmPassword: '',
     acceptedTerms: false,
-    documents: [],
+    documents: [{
+      file: null,
+      description: '',
+      type: ''
+    }],
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const serviceTypes = [
-    'Plumbing',
-    'Electrical',
-    'HVAC',
-    'Cleaning',
-    'Landscaping',
-    'Handyman',
-    'Painting',
-    'Carpentry',
-    'Consultation',
-    'Delivery',
-    'Other'
-  ];
-
+  // Get categories from services.ts
+  const categories = Object.keys(SERVICES);
+  
   const experienceLevels = [
     'Less than 1 year',
     '1-2 years',
@@ -102,6 +101,77 @@ export default function ServiceProviderSignupPage() {
     '6-10 years',
     'More than 10 years'
   ];
+
+  // Helper functions for managing multiple services
+  const addService = () => {
+    const newService: ServiceData = {
+      id: Date.now().toString(),
+      categoryType: '',
+      serviceType: '',
+      experience: '',
+      zipCodes: [''],
+      minPrice: '',
+      maxPrice: '',
+    };
+    setFormData(prev => ({
+      ...prev,
+      services: [...prev.services, newService]
+    }));
+  };
+
+  const removeService = (serviceId: string) => {
+    if (formData.services.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        services: prev.services.filter(service => service.id !== serviceId)
+      }));
+    }
+  };
+
+  const updateService = (serviceId: string, field: keyof ServiceData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      services: prev.services.map(service => 
+        service.id === serviceId ? { ...service, [field]: value } : service
+      )
+    }));
+  };
+
+  const addZipCode = (serviceId: string) => {
+    updateService(serviceId, 'zipCodes', [...formData.services.find(s => s.id === serviceId)?.zipCodes || [], '']);
+  };
+
+  const removeZipCode = (serviceId: string, index: number) => {
+    const service = formData.services.find(s => s.id === serviceId);
+    if (service && service.zipCodes.length > 1) {
+      const newZipCodes = service.zipCodes.filter((_, i) => i !== index);
+      updateService(serviceId, 'zipCodes', newZipCodes);
+    }
+  };
+
+  const updateZipCode = (serviceId: string, index: number, value: string) => {
+    const service = formData.services.find(s => s.id === serviceId);
+    if (service) {
+      const newZipCodes = [...service.zipCodes];
+      newZipCodes[index] = value;
+      updateService(serviceId, 'zipCodes', newZipCodes);
+    }
+  };
+
+  // Helper function to get available services for a category
+  const getAvailableServices = (categoryType: string): string[] => {
+    if (!categoryType) return [];
+    
+    const granularServices = getGranularServices(categoryType);
+    
+    // If category has granular services, return them
+    if (granularServices.length > 0) {
+      return granularServices;
+    }
+    
+    // If category has no granular services (empty array), return the category itself as a service
+    return [categoryType];
+  };
 
   const handleInputChange = (field: keyof ServiceProviderFormData, value: string | boolean | DocumentData[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -119,10 +189,13 @@ export default function ServiceProviderSignupPage() {
   };
 
   const removeDocument = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      documents: prev.documents.filter((_, i) => i !== index)
-    }));
+    // Don't allow removing the first document if it's the only one (minimum requirement)
+    if (formData.documents.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        documents: prev.documents.filter((_, i) => i !== index)
+      }));
+    }
   };
 
   const updateDocument = (index: number, field: keyof DocumentData, value: string | File | null) => {
@@ -134,32 +207,6 @@ export default function ServiceProviderSignupPage() {
     }));
   };
 
-  const addZipCode = () => {
-    setFormData(prev => ({
-      ...prev,
-      zipCodes: [...prev.zipCodes, '']
-    }));
-  };
-
-  const removeZipCode = (index: number) => {
-    if (formData.zipCodes.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        zipCodes: prev.zipCodes.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const updateZipCode = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      zipCodes: prev.zipCodes.map((zip, i) => i === index ? value : zip)
-    }));
-    // Clear error when user starts typing
-    if (errors.zipCodes) {
-      setErrors(prev => ({ ...prev, zipCodes: undefined }));
-    }
-  };
 
   const handleFileUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -225,6 +272,13 @@ export default function ServiceProviderSignupPage() {
       newErrors.password = passwordValidation.error;
     }
 
+    // Validate confirm password
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -232,69 +286,59 @@ export default function ServiceProviderSignupPage() {
   const validateStep2 = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Validate service type
-    if (!formData.serviceType) {
-      newErrors.serviceType = 'Please select a service type';
-    }
-
-    // Validate experience
-    if (!formData.experience) {
-      newErrors.experience = 'Please select your experience level';
-    }
-
-    // Validate location
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
-    } else if (formData.location.trim().length < 2) {
-      newErrors.location = 'Please provide a valid location';
-    }
-
-    // Validate zip codes
-    if (formData.zipCodes.length === 0 || formData.zipCodes.every(zip => !zip.trim())) {
-      newErrors.zipCodes = 'At least one zip code is required';
-    } else {
-      const invalidZipCodes = formData.zipCodes.filter(zip => {
-        if (!zip.trim()) return false;
-        return !/^\d{5}(-\d{4})?$/.test(zip.trim());
-      });
+    // Validate services
+    const serviceErrors: { [key: string]: string } = {};
+    
+    formData.services.forEach((service) => {
+      const serviceKey = service.id;
       
-      if (invalidZipCodes.length > 0) {
-        newErrors.zipCodes = 'Please enter valid 5-digit zip codes';
+      if (!service.categoryType) {
+        serviceErrors[`${serviceKey}.categoryType`] = 'Please select a category type';
       }
+      
+      if (!service.serviceType) {
+        serviceErrors[`${serviceKey}.serviceType`] = 'Please select a service type';
+      }
+      
+      if (!service.experience) {
+        serviceErrors[`${serviceKey}.experience`] = 'Please select your experience level';
+      }
+      
+      const validZipCodes = service.zipCodes.filter(zip => zip.trim().length > 0);
+      if (validZipCodes.length === 0) {
+        serviceErrors[`${serviceKey}.zipCodes`] = 'At least one zip code is required';
+      }
+      
+      if (!service.minPrice.trim()) {
+        serviceErrors[`${serviceKey}.minPrice`] = 'Minimum price is required';
+      } else {
+        const minPriceNum = parseInt(service.minPrice);
+        if (isNaN(minPriceNum) || minPriceNum < 0) {
+          serviceErrors[`${serviceKey}.minPrice`] = 'Please enter a valid minimum price';
+        }
+      }
+      
+      if (!service.maxPrice.trim()) {
+        serviceErrors[`${serviceKey}.maxPrice`] = 'Maximum price is required';
+      } else {
+        const maxPriceNum = parseInt(service.maxPrice);
+        if (isNaN(maxPriceNum) || maxPriceNum < 0) {
+          serviceErrors[`${serviceKey}.maxPrice`] = 'Please enter a valid maximum price';
+        }
+      }
+      
+      // Validate price range
+      if (!serviceErrors[`${serviceKey}.minPrice`] && !serviceErrors[`${serviceKey}.maxPrice`]) {
+        const minPriceNum = parseInt(service.minPrice);
+        const maxPriceNum = parseInt(service.maxPrice);
+        if (maxPriceNum < minPriceNum) {
+          serviceErrors[`${serviceKey}.maxPrice`] = 'Maximum price must be greater than minimum price';
+        }
+      }
+    });
 
-      const hasValidZipCode = formData.zipCodes.some(zip => zip.trim() !== '');
-      if (!hasValidZipCode) {
-        newErrors.zipCodes = 'At least one zip code is required';
-      }
-    }
-
-    // Validate min price
-    if (!formData.minPrice.trim()) {
-      newErrors.minPrice = 'Minimum price is required';
-    } else {
-      const minPriceNum = parseInt(formData.minPrice);
-      if (isNaN(minPriceNum) || minPriceNum < 0) {
-        newErrors.minPrice = 'Please enter a valid minimum price';
-      }
-    }
-
-    // Validate max price
-    if (!formData.maxPrice.trim()) {
-      newErrors.maxPrice = 'Maximum price is required';
-    } else {
-      const maxPriceNum = parseInt(formData.maxPrice);
-      if (isNaN(maxPriceNum) || maxPriceNum < 0) {
-        newErrors.maxPrice = 'Please enter a valid maximum price';
-      }
-    }
-
-    // Validate price range
-    if (!newErrors.minPrice && !newErrors.maxPrice) {
-      const minPriceNum = parseInt(formData.minPrice);
-      const maxPriceNum = parseInt(formData.maxPrice);
-      if (maxPriceNum < minPriceNum) {
-        newErrors.maxPrice = 'Maximum price must be greater than minimum price';
-      }
+    if (Object.keys(serviceErrors).length > 0) {
+      newErrors.services = serviceErrors;
     }
 
     setErrors(newErrors);
@@ -304,9 +348,14 @@ export default function ServiceProviderSignupPage() {
   const validateStep3 = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Validate documents (optional but if added, must have description)
+    // Validate documents - at least one document is required
     const documentsWithFiles = formData.documents.filter(doc => doc.file);
-    if (documentsWithFiles.length > 0) {
+    
+    // Check if at least one document is uploaded
+    if (documentsWithFiles.length === 0) {
+      newErrors.documents = 'Please upload at least one document to verify your credentials';
+    } else {
+      // If documents are uploaded, validate descriptions
       const invalidDocuments = documentsWithFiles.some(doc => 
         !doc.description.trim()
       );
@@ -387,12 +436,23 @@ export default function ServiceProviderSignupPage() {
         email: sanitizeInput(formData.email),
         phone: sanitizeInput(formData.phone),
         businessName: sanitizeInput(formData.businessName),
-        location: sanitizeInput(formData.location),
-        zipCodes: formData.zipCodes.filter(zip => zip.trim() !== '').map(zip => sanitizeInput(zip.trim())),
         description: sanitizeInput(formData.description),
+        services: formData.services.map(service => ({
+          ...service,
+          categoryType: sanitizeInput(service.categoryType),
+          serviceType: sanitizeInput(service.serviceType),
+          experience: sanitizeInput(service.experience),
+          zipCodes: service.zipCodes.filter(zip => zip.trim() !== '').map(zip => sanitizeInput(zip.trim())),
+          minPrice: sanitizeInput(service.minPrice),
+          maxPrice: sanitizeInput(service.maxPrice),
+        }))
       };
 
       // Prepare registration data for backend API
+      // For now, we'll use the first service as primary data for backend compatibility
+      const primaryService = sanitizedData.services[0];
+      const allZipCodes = sanitizedData.services.flatMap(service => service.zipCodes);
+      
       const registerData: RegisterRequest = {
         // Required fields
         email: sanitizedData.email,
@@ -401,17 +461,17 @@ export default function ServiceProviderSignupPage() {
         lastName: sanitizedData.lastName,
         phoneNumber: formatPhoneToE164(sanitizedData.phone), // Convert to E.164 format
         role: 'PROVIDER',
-        region: sanitizedData.location, // For LSM matching
+        region: primaryService.serviceType, // For LSM matching
         
         // Optional provider fields
         businessName: sanitizedData.businessName || undefined,
-        serviceType: formData.serviceType || undefined,
-        experienceLevel: formData.experience || undefined,
+        serviceType: primaryService.serviceType || undefined,
+        experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
-        location: sanitizedData.location || undefined,
-        zipCodes: sanitizedData.zipCodes.length > 0 ? sanitizedData.zipCodes : undefined,
-        minPrice: formData.minPrice ? parseInt(formData.minPrice) : undefined,
-        maxPrice: formData.maxPrice ? parseInt(formData.maxPrice) : undefined,
+        location: primaryService.serviceType || undefined, // Use serviceType as location
+        zipCodes: allZipCodes.length > 0 ? allZipCodes : undefined,
+        minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
+        maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
         acceptedTerms: formData.acceptedTerms || undefined,
       };
 
@@ -455,7 +515,7 @@ export default function ServiceProviderSignupPage() {
         if (error.status === 409) {
           setErrors({ email: errorMessage });
         } else if (error.status === 400 && error.data?.message?.includes('price')) {
-          setErrors({ maxPrice: errorMessage });
+          setErrors({ general: 'Please check your pricing information and try again.' });
         } else {
           setErrors({ general: errorMessage });
         }
@@ -478,28 +538,29 @@ export default function ServiceProviderSignupPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl">
-        {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+    <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-visible">
           {currentStep === 'form' && (
             <>
-              {/* Header */}
-              <div className="mb-8">
+              {/* Form Header */}
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔧</span>
+                </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Become a Service Provider
+                  Service Provider Application
                 </h2>
-                <p className="text-gray-600">
-                  Join our platform and start offering your professional services to customers.
+                <p className="text-gray-600 text-sm">
+                  Complete your application to start offering professional services.
                 </p>
               </div>
 
               {/* Progress Indicator */}
               <div className="mb-8">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-center">
                   {steps.map((step, index) => (
-                    <div key={step.number} className="flex items-start flex-1">
-                      <div className="flex flex-col items-center flex-1">
+                    <div key={step.number} className="flex items-center">
+                      {/* Step Circle and Label */}
+                      <div className="flex flex-col items-center">
                         {/* Step Circle */}
                         <div className={`
                           w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
@@ -532,7 +593,7 @@ export default function ServiceProviderSignupPage() {
                       {/* Connector Line */}
                       {index < steps.length - 1 && (
                         <div className={`
-                          h-1 flex-1 mx-2 rounded transition-all duration-200 mt-5
+                          w-16 h-1 mx-4 rounded transition-all duration-200 mt-5
                           ${formStep > step.number ? 'bg-green-500' : 'bg-gray-200'}
                         `} />
                       )}
@@ -724,6 +785,37 @@ export default function ServiceProviderSignupPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Confirm Password Field */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                          Confirm Password <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            id="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                            className={`
+                              w-full px-4 py-2 border rounded-lg pr-10 text-gray-900 placeholder-gray-500
+                              focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                              ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}
+                            `}
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                          >
+                            {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                          </button>
+                        </div>
+                        {errors.confirmPassword && (
+                          <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -731,209 +823,238 @@ export default function ServiceProviderSignupPage() {
                 {/* STEP 2: Service Information */}
                 {formStep === 2 && (
                   <div className="space-y-8">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Service Information</h3>
-                  
-                    {/* Service Type and Experience */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Service Type */}
-                      <div>
-                        <label htmlFor="serviceType" className="block text-sm font-medium text-gray-700 mb-1">
-                          Primary Service Type <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          id="serviceType"
-                          value={formData.serviceType}
-                          onChange={(e) => handleInputChange('serviceType', e.target.value)}
-                          className={`
-                            w-full px-4 py-2 border rounded-lg text-gray-900
-                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                            ${errors.serviceType ? 'border-red-500' : 'border-gray-300'}
-                          `}
-                        >
-                          <option value="">Select service type</option>
-                          {serviceTypes.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.serviceType && (
-                          <p className="text-red-500 text-xs mt-1">{errors.serviceType}</p>
-                        )}
-                      </div>
-
-                      {/* Experience */}
-                      <div>
-                        <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
-                          Experience Level <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          id="experience"
-                          value={formData.experience}
-                          onChange={(e) => handleInputChange('experience', e.target.value)}
-                          className={`
-                            w-full px-4 py-2 border rounded-lg text-gray-900
-                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                            ${errors.experience ? 'border-red-500' : 'border-gray-300'}
-                          `}
-                        >
-                          <option value="">Select experience level</option>
-                          {experienceLevels.map((level) => (
-                            <option key={level} value={level}>
-                              {level}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.experience && (
-                          <p className="text-red-500 text-xs mt-1">{errors.experience}</p>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-semibold text-gray-900">Service Information</h3>
+                      <button
+                        type="button"
+                        onClick={addService}
+                        className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors text-sm font-medium"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        Add Another Service
+                      </button>
                     </div>
 
-                    {/* Location and Zip Codes */}
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Location */}
-                        <div>
-                          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                            Service Area/Location <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            id="location"
-                            value={formData.location}
-                            onChange={(e) => handleInputChange('location', e.target.value)}
-                            className={`
-                              w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
-                              focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                              ${errors.location ? 'border-red-500' : 'border-gray-300'}
-                            `}
-                            placeholder="New York, USA"
-                          />
-                          {errors.location && (
-                            <p className="text-red-500 text-xs mt-1">{errors.location}</p>
+                    {/* Services List */}
+                    {formData.services.map((service, serviceIndex) => (
+                      <div key={service.id} className="border border-gray-200 rounded-lg p-6 bg-gray-50 relative overflow-visible">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            Service {serviceIndex + 1}
+                          </h4>
+                          {formData.services.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeService(service.id)}
+                              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Remove service"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
                           )}
                         </div>
 
-                        {/* Price Range */}
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Category Type and Service Type */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                          {/* Category Type */}
                           <div>
-                            <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Category Type <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={service.categoryType}
+                              onChange={(e) => {
+                                const categoryType = e.target.value;
+                                updateService(service.id, 'categoryType', categoryType);
+                                // Reset service type when category changes
+                                updateService(service.id, 'serviceType', '');
+                              }}
+                              className={`
+                                w-full px-4 py-2 border rounded-lg text-gray-900 relative z-10
+                                focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                ${errors.services?.[`${service.id}.categoryType`] ? 'border-red-500' : 'border-gray-300'}
+                              `}
+                              style={{ position: 'relative', zIndex: 1 }}
+                            >
+                              <option value="">Select category type</option>
+                              {categories.map((category) => (
+                                <option key={category} value={category}>
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
+                            {errors.services?.[`${service.id}.categoryType`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.categoryType`]}</p>
+                            )}
+                          </div>
+
+                          {/* Service Type */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Service Type <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={service.serviceType}
+                              onChange={(e) => updateService(service.id, 'serviceType', e.target.value)}
+                              disabled={!service.categoryType}
+                              className={`
+                                w-full px-4 py-2 border rounded-lg text-gray-900 relative z-10
+                                focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                ${!service.categoryType ? 'bg-gray-100' : ''}
+                                ${errors.services?.[`${service.id}.serviceType`] ? 'border-red-500' : 'border-gray-300'}
+                              `}
+                              style={{ position: 'relative', zIndex: 1 }}
+                            >
+                              <option value="">Select service type</option>
+                              {getAvailableServices(service.categoryType).map((serviceType) => (
+                                <option key={serviceType} value={serviceType}>
+                                  {serviceType}
+                                </option>
+                              ))}
+                            </select>
+                            {errors.services?.[`${service.id}.serviceType`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.serviceType`]}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Experience and Price Range */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                          {/* Experience Level - Give more space */}
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Experience Level <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={service.experience}
+                              onChange={(e) => updateService(service.id, 'experience', e.target.value)}
+                              className={`
+                                w-full px-4 py-2 border rounded-lg text-gray-900
+                                focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                ${errors.services?.[`${service.id}.experience`] ? 'border-red-500' : 'border-gray-300'}
+                              `}
+                            >
+                              <option value="">Select experience level</option>
+                              {experienceLevels.map((level) => (
+                                <option key={level} value={level}>
+                                  {level}
+                                </option>
+                              ))}
+                            </select>
+                            {errors.services?.[`${service.id}.experience`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.experience`]}</p>
+                            )}
+                          </div>
+
+                          {/* Min Price */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                               Min Price (USD) <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="number"
-                              id="minPrice"
-                              value={formData.minPrice}
-                              onChange={(e) => handleInputChange('minPrice', e.target.value)}
+                              value={service.minPrice}
+                              onChange={(e) => updateService(service.id, 'minPrice', e.target.value)}
                               min="0"
                               className={`
                                 w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                                 focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                                ${errors.minPrice ? 'border-red-500' : 'border-gray-300'}
+                                ${errors.services?.[`${service.id}.minPrice`] ? 'border-red-500' : 'border-gray-300'}
                               `}
                               placeholder="100"
                             />
-                            {errors.minPrice && (
-                              <p className="text-red-500 text-xs mt-1">{errors.minPrice}</p>
+                            {errors.services?.[`${service.id}.minPrice`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.minPrice`]}</p>
                             )}
                           </div>
+
+                          {/* Max Price */}
                           <div>
-                            <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                               Max Price (USD) <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="number"
-                              id="maxPrice"
-                              value={formData.maxPrice}
-                              onChange={(e) => handleInputChange('maxPrice', e.target.value)}
+                              value={service.maxPrice}
+                              onChange={(e) => updateService(service.id, 'maxPrice', e.target.value)}
                               min="0"
                               className={`
                                 w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                                 focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                                ${errors.maxPrice ? 'border-red-500' : 'border-gray-300'}
+                                ${errors.services?.[`${service.id}.maxPrice`] ? 'border-red-500' : 'border-gray-300'}
                               `}
                               placeholder="500"
                             />
-                            {errors.maxPrice && (
-                              <p className="text-red-500 text-xs mt-1">{errors.maxPrice}</p>
+                            {errors.services?.[`${service.id}.maxPrice`] && (
+                              <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.maxPrice`]}</p>
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Zip Codes Section */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                        {/* Zip Codes Section */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             Service Zip Code(s) <span className="text-red-500">*</span>
                           </label>
-                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.multipleAreas}
-                              onChange={(e) => handleInputChange('multipleAreas', e.target.checked)}
-                              className="w-4 h-4 text-navy-600 border-gray-300 rounded focus:ring-navy-500"
-                            />
-                            <span>Multiple areas</span>
-                          </label>
-                        </div>
+                          
+                          {/* Zip Code Inputs */}
+                          <div className="space-y-2 max-w-2xl">
+                            {service.zipCodes.map((zipCode, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={zipCode}
+                                  onChange={(e) => updateZipCode(service.id, index, e.target.value)}
+                                  className={`
+                                    flex-1 px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                                    focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                    ${errors.services?.[`${service.id}.zipCodes`] ? 'border-red-500' : 'border-gray-300'}
+                                  `}
+                                  placeholder="75001 - Dallas, TX"
+                                  maxLength={50}
+                                />
+                                {service.zipCodes.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeZipCode(service.id, index)}
+                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Remove zip code"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
 
-                        {/* Zip Code Inputs */}
-                        <div className="space-y-2">
-                          {formData.zipCodes.map((zipCode, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={zipCode}
-                                onChange={(e) => updateZipCode(index, e.target.value)}
-                                className={`
-                                  flex-1 px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
-                                  focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                                  ${errors.zipCodes ? 'border-red-500' : 'border-gray-300'}
-                                `}
-                                placeholder="e.g., 10001"
-                                maxLength={10}
-                              />
-                              {formData.multipleAreas && formData.zipCodes.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeZipCode(index)}
-                                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Remove zip code"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Add Zip Code Button - only show when multiple areas is checked */}
-                        {formData.multipleAreas && (
+                          {/* Add Zip Code Button */}
                           <button
                             type="button"
-                            onClick={addZipCode}
+                            onClick={() => addZipCode(service.id)}
                             className="mt-2 flex items-center gap-2 text-navy-600 hover:text-navy-700 text-sm font-medium"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                             </svg>
                             Add Another Zip Code
                           </button>
-                        )}
 
-                        {errors.zipCodes && (
-                          <p className="text-red-500 text-xs mt-1">{errors.zipCodes}</p>
-                        )}
+                          {errors.services?.[`${service.id}.zipCodes`] && (
+                            <p className="text-red-500 text-xs mt-1">{errors.services[`${service.id}.zipCodes`]}</p>
+                          )}
 
-                        <p className="text-xs text-gray-500 mt-2">
-                          Enter the zip code(s) where you provide services. Format: 5 digits (e.g., 10001)
-                        </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Enter zip codes with location format: &quot;75001 - Dallas, TX&quot;
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    ))}
 
                     {/* Description */}
                     <div>
@@ -963,25 +1084,30 @@ export default function ServiceProviderSignupPage() {
                 {formStep === 3 && (
                   <div className="space-y-4">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                      Credibility Documents
+                      Credibility Documents <span className="text-red-500">*</span>
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Upload relevant documents to showcase your credibility (certificates, business registration, 
-                      portfolio samples, etc.)
+                      Upload at least one document to verify your credentials (certificates, business registration, 
+                      portfolio samples, etc.) <span className="text-red-500 font-medium">Required for verification</span>
                     </p>
 
                     {/* Documents List */}
                     {formData.documents.map((doc, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
                         <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-medium text-gray-900">Document {index + 1}</h4>
-                          <button
-                            type="button"
-                            onClick={() => removeDocument(index)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Remove
-                          </button>
+                          <h4 className="font-medium text-gray-900">
+                            Document {index + 1}
+                            {index === 0 && <span className="text-red-500 ml-1">*</span>}
+                          </h4>
+                          {formData.documents.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeDocument(index)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1031,7 +1157,7 @@ export default function ServiceProviderSignupPage() {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-xl">📄</span>
-                        <span>Add Document</span>
+                        <span>Add Additional Document (Optional)</span>
                       </div>
                     </button>
 
@@ -1079,25 +1205,30 @@ export default function ServiceProviderSignupPage() {
                         </div>
                       </div>
 
-                      {/* Service Info Summary */}
+                      {/* Services Summary */}
                       <div className="border-t pt-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Service Information</h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-gray-600">Service Type:</div>
-                          <div className="text-gray-900">{formData.serviceType}</div>
-                          <div className="text-gray-600">Experience:</div>
-                          <div className="text-gray-900">{formData.experience}</div>
-                          <div className="text-gray-600">Location:</div>
-                          <div className="text-gray-900">{formData.location}</div>
-                          <div className="text-gray-600">Zip Codes:</div>
-                          <div className="text-gray-900">{formData.zipCodes.filter(z => z.trim()).join(', ')}</div>
-                          <div className="text-gray-600">Price Range:</div>
-                          <div className="text-gray-900">${formData.minPrice} - ${formData.maxPrice}</div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Services Offered</h4>
+                        <div className="space-y-4">
+                          {formData.services.map((service, index) => (
+                            <div key={service.id} className="bg-gray-50 p-4 rounded-lg">
+                              <h5 className="font-medium text-gray-900 mb-2">Service {index + 1}: {service.serviceType}</h5>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="text-gray-600">Category:</div>
+                                <div className="text-gray-900">{service.categoryType}</div>
+                                <div className="text-gray-600">Experience:</div>
+                                <div className="text-gray-900">{service.experience}</div>
+                                <div className="text-gray-600">Zip Codes:</div>
+                                <div className="text-gray-900">{service.zipCodes.filter(z => z.trim()).join(', ')}</div>
+                                <div className="text-gray-600">Price Range:</div>
+                                <div className="text-gray-900">${service.minPrice} - ${service.maxPrice}</div>
+                              </div>
+                            </div>
+                          ))}
                           {formData.description && (
-                            <>
-                              <div className="text-gray-600">Description:</div>
-                              <div className="text-gray-900">{formData.description}</div>
-                            </>
+                            <div className="border-t pt-4">
+                              <div className="text-gray-600 text-sm mb-1">Description:</div>
+                              <div className="text-gray-900 text-sm">{formData.description}</div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1220,13 +1351,6 @@ export default function ServiceProviderSignupPage() {
                 </div>
               </form>
 
-              {/* Login Link */}
-              <p className="text-center text-sm text-gray-600 mt-6">
-                Already have an account?{' '}
-                <a href="/login" className="text-navy-600 font-medium hover:underline">
-                  Login
-                </a>
-              </p>
             </>
           )}
 
@@ -1238,8 +1362,6 @@ export default function ServiceProviderSignupPage() {
               redirectDelay={3000}
             />
           )}
-        </div>
-      </div>
     </div>
   );
 }

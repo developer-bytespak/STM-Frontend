@@ -18,7 +18,7 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
   
   // Create return URL for login/signup (skip if already on auth pages)
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || 
-                     pathname?.startsWith('/customer/signup') || pathname?.startsWith('/provider/signup');
+                     pathname?.startsWith('/provider/signup');
   const returnUrl = !isAuthPage && pathname ? `?returnUrl=${encodeURIComponent(pathname)}` : '';
 
   // Map backend role names to frontend route names
