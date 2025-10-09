@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -61,6 +62,7 @@ export default function ProviderLayout({
         <main>
           {children}
         </main>
+        <Footer />
       </div>
     );
   }
@@ -92,6 +94,7 @@ export default function ProviderLayout({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
+      <Footer />
     </div>
   );
 }

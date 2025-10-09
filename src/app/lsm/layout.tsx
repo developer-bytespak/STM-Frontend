@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 
@@ -71,6 +72,7 @@ export default function LSMLayout({
       <main>
         {children}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import BookingModal from '@/components/booking/BookingModal';
 import { dummyProviders } from '@/data/dummyProviders';
 import { useAuth } from '@/hooks/useAuth';
 import AuthenticatedHeader from '@/components/layout/AuthenticatedHeader';
+import Footer from '@/components/layout/Footer';
 import { useChat } from '@/contexts/ChatContext';
 
 function PublicProviderProfileContent() {
@@ -62,9 +63,9 @@ function PublicProviderProfileContent() {
 
   if (!provider) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <AuthenticatedHeader />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Provider Not Found</h1>
             <Link href="/" className="text-navy-600 hover:text-navy-700">
@@ -72,12 +73,13 @@ function PublicProviderProfileContent() {
             </Link>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Public Header */}
       <AuthenticatedHeader />
       
@@ -159,7 +161,7 @@ function PublicProviderProfileContent() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -283,6 +285,9 @@ function PublicProviderProfileContent() {
         </div>
       </div>
 
+      {/* Footer */}
+      <Footer />
+
       {/* Booking Modal */}
       <BookingModal
         isOpen={showBookingModal}
@@ -340,9 +345,9 @@ function PublicProviderProfileContent() {
 export default function PublicProviderProfile() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <AuthenticatedHeader />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
           <div className="animate-pulse">
             <div className="h-32 bg-gray-200 rounded-lg mb-8"></div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -357,6 +362,7 @@ export default function PublicProviderProfile() {
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     }>
       <PublicProviderProfileContent />

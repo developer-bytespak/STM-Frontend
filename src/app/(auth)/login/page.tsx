@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center p-4 min-h-screen bg-gradient-to-br from-navy-50 to-white">
+    <div className="flex items-center justify-center p-4 bg-gradient-to-br from-navy-50 to-white">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
