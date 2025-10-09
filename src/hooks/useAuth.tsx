@@ -15,7 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, returnUrl?: string) => Promise<void>;
-  register: (data: RegisterData, shouldRedirect?: boolean) => Promise<User>;
+  register: (data: RegisterData, shouldRedirect?: boolean, returnUrl?: string) => Promise<User>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -164,11 +164,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       authCookies.setUserData(userData);
       
-      // If there's a returnUrl, redirect there, otherwise redirect based on role
-      if (returnUrl) {
-        router.push(returnUrl);
-      } else {
+      // Role-based redirect logic
+      if (userData.role === 'admin' || userData.role === 'local_service_manager') {
+        // Admin/LSM: Always go to dashboard (ignore returnUrl for management users)
         redirectBasedOnRole(userData.role);
+      } else {
+        // Customer/Provider: Return to where they were, or homepage as fallback
+        if (returnUrl) {
+          router.push(returnUrl);
+        } else {
+          // No returnUrl - go to homepage (only happens on direct login page access)
+          router.push('/');
+        }
       }
     } catch (error) {
       const apiError = error as ApiError;
@@ -176,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (data: RegisterData, shouldRedirect: boolean = true) => {
+  const register = async (data: RegisterData, shouldRedirect: boolean = false, returnUrl?: string) => {
     try {
       const response = await apiClient.register(data);
       
@@ -195,9 +202,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       authCookies.setUserData(userData);
       
-      // Only redirect if requested (default behavior for login, but not for signup forms)
+      // Only redirect if requested
       if (shouldRedirect) {
-        redirectBasedOnRole(userData.role);
+        // Role-based redirect logic
+        if (userData.role === 'admin' || userData.role === 'local_service_manager') {
+          // Admin/LSM: Always go to dashboard
+          redirectBasedOnRole(userData.role);
+        } else {
+          // Customer/Provider: Return to where they were, or homepage as fallback
+          if (returnUrl) {
+            router.push(returnUrl);
+          } else {
+            // No returnUrl - go to homepage (fallback)
+            router.push('/');
+          }
+        }
       }
       
       return userData;

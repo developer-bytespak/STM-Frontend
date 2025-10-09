@@ -47,11 +47,23 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
         setSelectedService(service);
         setSelectedCategory(category || '');
         setCurrentStep('location');
+      } else {
+        // If no service, make sure location is also cleared
+        setSelectedLocation('');
+        setCurrentStep('service');
       }
       
       setIsInitialized(true);
     }
   }, [isInitialized, searchParams]);
+
+  // Clear location when service is cleared
+  useEffect(() => {
+    if (!selectedService && selectedLocation) {
+      setSelectedLocation('');
+      setCurrentStep('service');
+    }
+  }, [selectedService, selectedLocation]);
 
   // Update URL when search state changes
   const updateURL = (service?: string, category?: string, location?: string) => {
@@ -116,7 +128,7 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
     setCurrentStep('service');
     setSelectedService('');
     setSelectedCategory('');
-    setSelectedLocation('');
+    setSelectedLocation(''); // Clear location when service is cleared
     setProviders([]);
     router.replace('/', { scroll: false });
     onClear();
@@ -162,9 +174,9 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
     <div className="w-full">
       {/* Search Section */}
       <div ref={searchRef} className="relative bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 overflow-hidden">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 lg:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-16">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 leading-tight">
               Find the right <span className="italic">service</span>
               <br />
               professional, right away
@@ -175,7 +187,7 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
           <div className="max-w-3xl mx-auto">
             <div className="space-y-6">
               {/* Service Search */}
-              <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100">
+              <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100">
                 <ServiceSearch
                   onServiceSelect={handleServiceSelect}
                   onClear={handleClearAll}
@@ -185,19 +197,19 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
               </div>
 
               {/* Location Search - Always visible but disabled until granular chosen */}
-              <div className="bg-white rounded-lg shadow-2xl p-6 border border-gray-100 animate-fade-in">
+              <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100 animate-fade-in">
                 <CitySearch
                   onLocationSelect={handleLocationSelect}
                   onClear={handleClearLocation}
                   selectedLocation={selectedLocation}
                   disabled={!hasSelectedGranular}
                 />
-                {!hasSelectedGranular && (
-                  <p className="mt-2 text-xs text-gray-500">Select a specific service above to enable location.</p>
-                )}
               </div>
             </div>
           </div>
+          
+          {/* Extra bottom padding to maintain section height */}
+          <div className="h-16 md:h-20 lg:h-24"></div>
         </div>
       </div>
 

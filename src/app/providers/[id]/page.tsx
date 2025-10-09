@@ -317,7 +317,7 @@ function PublicProviderProfileContent() {
               </Link>
               
               <Link
-                href="/customer/signup"
+                href="/register"
                 className="block w-full bg-white border-2 border-navy-600 text-navy-600 py-3 px-4 rounded-lg font-semibold hover:bg-navy-50 transition-colors text-center"
               >
                 Sign Up as Customer

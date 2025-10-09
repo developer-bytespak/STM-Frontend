@@ -94,8 +94,23 @@ export default function ServiceSearch({
     setShowGranularOptions(false);
     setSelectedIndex(-1);
     setCurrentCategory('');
-    onClear();
+    onClear(); // This will call handleClearAll in HierarchicalSearch
     inputRef.current?.focus();
+  };
+
+  // Handle search button click
+  const handleSearchClick = () => {
+    if (query.length >= 3 && searchResults.length > 0) {
+      // Show the dropdown instead of auto-selecting
+      setShowDropdown(true);
+      setSelectedIndex(-1);
+    } else if (query.length >= 3) {
+      // If no results but query is long enough, show message
+      alert('No services found for your search. Please try a different term.');
+    } else {
+      // If query is too short
+      alert('Please enter at least 3 characters to search.');
+    }
   };
 
   // Handle keyboard navigation
@@ -208,6 +223,7 @@ export default function ServiceSearch({
         {/* Search Button */}
         <button
           type="button"
+          onClick={handleSearchClick}
           className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-4 py-2 rounded-md hover:bg-navy-700 transition-colors"
         >
           Search
@@ -218,7 +234,7 @@ export default function ServiceSearch({
       {showDropdown && searchResults.length > 0 && (
         <div 
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
           style={{ 
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
             scrollbarWidth: 'thin',
@@ -253,6 +269,8 @@ export default function ServiceSearch({
               ))}
             </div>
           ))}
+          {/* Extra padding at bottom to ensure last item is fully visible */}
+          <div className="h-2"></div>
         </div>
       )}
 

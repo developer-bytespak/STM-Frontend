@@ -77,7 +77,7 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
       {redirectTo && (
         <div className="bg-navy-50 rounded-lg p-4 mb-6">
           <p className="text-sm text-navy-700">
-            Redirecting to your dashboard in{' '}
+            Redirecting in{' '}
             <span className="font-bold text-navy-900">{countdown}</span>{' '}
             {countdown === 1 ? 'second' : 'seconds'}...
           </p>
@@ -90,7 +90,7 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({
           onClick={() => window.location.href = redirectTo}
           className="text-navy-600 hover:text-navy-700 text-sm font-medium"
         >
-          Go to Dashboard Now →
+          Continue →
         </button>
       )}
     </div>
