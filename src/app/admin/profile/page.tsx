@@ -5,15 +5,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 
-interface CustomerProfile {
+interface AdminProfile {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  address: string;
+  department: string;
+  employeeId: string;
+  accessLevel: string;
 }
 
-export default function CustomerProfile() {
+export default function AdminProfile() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -21,23 +23,27 @@ export default function CustomerProfile() {
   const [successMessage, setSuccessMessage] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
   
-  const [profileData, setProfileData] = useState<CustomerProfile>({
+  const [profileData, setProfileData] = useState<AdminProfile>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    department: '',
+    employeeId: '',
+    accessLevel: ''
   });
 
-  const [editData, setEditData] = useState<CustomerProfile>({
+  const [editData, setEditData] = useState<AdminProfile>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    department: '',
+    employeeId: '',
+    accessLevel: ''
   });
 
-  const [errors, setErrors] = useState<Partial<CustomerProfile>>({});
+  const [errors, setErrors] = useState<Partial<AdminProfile>>({});
 
   // Load profile data from localStorage
   useEffect(() => {
@@ -49,26 +55,28 @@ export default function CustomerProfile() {
       return;
     }
 
-    // Load customer data from localStorage
-    const storedCustomers = localStorage.getItem('customers');
-    if (storedCustomers && user?.email) {
+    // Load admin data from localStorage
+    const storedAdmins = localStorage.getItem('admins');
+    if (storedAdmins && user?.email) {
       try {
-        const customers = JSON.parse(storedCustomers);
-        const customerData = customers.find((c: any) => c.email === user.email);
+        const admins = JSON.parse(storedAdmins);
+        const adminData = admins.find((a: any) => a.email === user.email);
         
-        if (customerData) {
+        if (adminData) {
           const profile = {
-            firstName: customerData.firstName || '',
-            lastName: customerData.lastName || '',
-            email: customerData.email || '',
-            phone: customerData.phone || '',
-            address: customerData.address || ''
+            firstName: adminData.firstName || '',
+            lastName: adminData.lastName || '',
+            email: adminData.email || '',
+            phone: adminData.phone || '',
+            department: adminData.department || '',
+            employeeId: adminData.employeeId || '',
+            accessLevel: adminData.accessLevel || ''
           };
           setProfileData(profile);
           setEditData(profile);
           setProfileLoaded(true);
         } else {
-          console.warn('No customer data found for:', user.email);
+          console.warn('No admin data found for:', user.email);
         }
       } catch (error) {
         console.error('Failed to load profile data:', error);
@@ -89,7 +97,7 @@ export default function CustomerProfile() {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CustomerProfile> = {};
+    const newErrors: Partial<AdminProfile> = {};
 
     if (!editData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
@@ -105,8 +113,12 @@ export default function CustomerProfile() {
       newErrors.phone = 'Please enter a valid phone number';
     }
 
-    if (!editData.address.trim()) {
-      newErrors.address = 'Address is required';
+    if (!editData.department.trim()) {
+      newErrors.department = 'Department is required';
+    }
+
+    if (!editData.employeeId.trim()) {
+      newErrors.employeeId = 'Employee ID is required';
     }
 
     setErrors(newErrors);
@@ -120,15 +132,15 @@ export default function CustomerProfile() {
 
     try {
       // Update in localStorage
-      const storedCustomers = localStorage.getItem('customers');
-      if (storedCustomers) {
-        const customers = JSON.parse(storedCustomers);
-        const updatedCustomers = customers.map((c: any) => 
-          c.email === profileData.email 
-            ? { ...c, ...editData }
-            : c
+      const storedAdmins = localStorage.getItem('admins');
+      if (storedAdmins) {
+        const admins = JSON.parse(storedAdmins);
+        const updatedAdmins = admins.map((a: any) => 
+          a.email === profileData.email 
+            ? { ...a, ...editData }
+            : a
         );
-        localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+        localStorage.setItem('admins', JSON.stringify(updatedAdmins));
       }
 
       // Update auth user data
@@ -178,7 +190,7 @@ export default function CustomerProfile() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your personal information</p>
+          <p className="text-gray-600 mt-2">Manage your admin account information</p>
         </div>
 
         {/* Success Message */}
@@ -196,8 +208,8 @@ export default function CustomerProfile() {
           {/* Card Header */}
           <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
-              <p className="text-sm text-gray-500 mt-1">Update your personal details</p>
+              <h2 className="text-xl font-semibold text-gray-900">Administrator Information</h2>
+              <p className="text-sm text-gray-500 mt-1">Update your administrative details</p>
             </div>
             {!isEditing && (
               <button
@@ -217,12 +229,12 @@ export default function CustomerProfile() {
             <div className="space-y-6">
               {/* Avatar Section */}
               <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
-                <div className="w-24 h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-3xl">
+                <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white font-bold text-3xl">
                   {profileData.firstName && profileData.lastName 
                     ? `${profileData.firstName[0].toUpperCase()}${profileData.lastName[0].toUpperCase()}`
                     : profileData.firstName
                     ? profileData.firstName[0].toUpperCase()
-                    : 'U'
+                    : 'A'
                   }
                 </div>
                 <div>
@@ -230,6 +242,9 @@ export default function CustomerProfile() {
                     {profileData.firstName} {profileData.lastName}
                   </h3>
                   <p className="text-gray-600">{profileData.email}</p>
+                  {profileData.department && (
+                    <p className="text-red-600 font-medium">{profileData.department} Department</p>
+                  )}
                 </div>
               </div>
 
@@ -313,27 +328,67 @@ export default function CustomerProfile() {
                   )}
                 </div>
 
-                {/* Address */}
-                <div className="md:col-span-2">
+                {/* Employee ID */}
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address <span className="text-red-500">*</span>
+                    Employee ID <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
-                    <textarea
-                      value={editData.address}
-                      onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                      rows={3}
+                    <input
+                      type="text"
+                      value={editData.employeeId}
+                      onChange={(e) => setEditData({ ...editData, employeeId: e.target.value })}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
-                        errors.address ? 'border-red-500' : 'border-gray-300'
+                        errors.employeeId ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="123 Main St, City, State, ZIP"
+                      placeholder="ADM001"
                     />
                   ) : (
-                    <p className="px-4 py-2 text-gray-900 whitespace-pre-line">{profileData.address}</p>
+                    <p className="px-4 py-2 text-gray-900">{profileData.employeeId}</p>
                   )}
-                  {errors.address && (
-                    <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                  {errors.employeeId && (
+                    <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>
                   )}
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Department <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editData.department}
+                      onChange={(e) => setEditData({ ...editData, department: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.department ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Administration">Administration</option>
+                      <option value="Operations">Operations</option>
+                      <option value="IT Support">IT Support</option>
+                      <option value="Customer Service">Customer Service</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Human Resources">Human Resources</option>
+                    </select>
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.department}</p>
+                  )}
+                  {errors.department && (
+                    <p className="text-red-500 text-sm mt-1">{errors.department}</p>
+                  )}
+                </div>
+
+                {/* Access Level (Read-only) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Access Level
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-300">
+                    {profileData.accessLevel || 'Full Admin Access'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Access level is managed by system administrators</p>
                 </div>
               </div>
 
@@ -365,10 +420,10 @@ export default function CustomerProfile() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Account Type</h3>
-              <p className="text-sm text-gray-600 mt-1">Customer Account</p>
+              <p className="text-sm text-gray-600 mt-1">Administrator Account</p>
             </div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-              Active
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+              Admin
             </span>
           </div>
         </div>

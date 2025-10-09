@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
 
   if (currentStep === 'email') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -239,7 +239,7 @@ export default function ForgotPasswordPage() {
 
   if (currentStep === 'otp') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
             <OTPVerification
@@ -257,7 +257,7 @@ export default function ForgotPasswordPage() {
 
   if (currentStep === 'new-password') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -355,7 +355,7 @@ export default function ForgotPasswordPage() {
 
   if (currentStep === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">

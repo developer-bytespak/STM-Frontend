@@ -5,15 +5,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 
-interface CustomerProfile {
+interface LSMProfile {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
   address: string;
+  region: string;
+  department: string;
+  employeeId: string;
 }
 
-export default function CustomerProfile() {
+export default function LSMProfile() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -21,23 +24,29 @@ export default function CustomerProfile() {
   const [successMessage, setSuccessMessage] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
   
-  const [profileData, setProfileData] = useState<CustomerProfile>({
+  const [profileData, setProfileData] = useState<LSMProfile>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    region: '',
+    department: '',
+    employeeId: ''
   });
 
-  const [editData, setEditData] = useState<CustomerProfile>({
+  const [editData, setEditData] = useState<LSMProfile>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    region: '',
+    department: '',
+    employeeId: ''
   });
 
-  const [errors, setErrors] = useState<Partial<CustomerProfile>>({});
+  const [errors, setErrors] = useState<Partial<LSMProfile>>({});
 
   // Load profile data from localStorage
   useEffect(() => {
@@ -49,26 +58,29 @@ export default function CustomerProfile() {
       return;
     }
 
-    // Load customer data from localStorage
-    const storedCustomers = localStorage.getItem('customers');
-    if (storedCustomers && user?.email) {
+    // Load LSM data from localStorage
+    const storedLSMs = localStorage.getItem('lsms');
+    if (storedLSMs && user?.email) {
       try {
-        const customers = JSON.parse(storedCustomers);
-        const customerData = customers.find((c: any) => c.email === user.email);
+        const lsms = JSON.parse(storedLSMs);
+        const lsmData = lsms.find((l: any) => l.email === user.email);
         
-        if (customerData) {
+        if (lsmData) {
           const profile = {
-            firstName: customerData.firstName || '',
-            lastName: customerData.lastName || '',
-            email: customerData.email || '',
-            phone: customerData.phone || '',
-            address: customerData.address || ''
+            firstName: lsmData.firstName || '',
+            lastName: lsmData.lastName || '',
+            email: lsmData.email || '',
+            phone: lsmData.phone || '',
+            address: lsmData.address || '',
+            region: lsmData.region || '',
+            department: lsmData.department || '',
+            employeeId: lsmData.employeeId || ''
           };
           setProfileData(profile);
           setEditData(profile);
           setProfileLoaded(true);
         } else {
-          console.warn('No customer data found for:', user.email);
+          console.warn('No LSM data found for:', user.email);
         }
       } catch (error) {
         console.error('Failed to load profile data:', error);
@@ -89,7 +101,7 @@ export default function CustomerProfile() {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CustomerProfile> = {};
+    const newErrors: Partial<LSMProfile> = {};
 
     if (!editData.firstName.trim()) {
       newErrors.firstName = 'First name is required';
@@ -109,6 +121,18 @@ export default function CustomerProfile() {
       newErrors.address = 'Address is required';
     }
 
+    if (!editData.region.trim()) {
+      newErrors.region = 'Region is required';
+    }
+
+    if (!editData.department.trim()) {
+      newErrors.department = 'Department is required';
+    }
+
+    if (!editData.employeeId.trim()) {
+      newErrors.employeeId = 'Employee ID is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -120,15 +144,15 @@ export default function CustomerProfile() {
 
     try {
       // Update in localStorage
-      const storedCustomers = localStorage.getItem('customers');
-      if (storedCustomers) {
-        const customers = JSON.parse(storedCustomers);
-        const updatedCustomers = customers.map((c: any) => 
-          c.email === profileData.email 
-            ? { ...c, ...editData }
-            : c
+      const storedLSMs = localStorage.getItem('lsms');
+      if (storedLSMs) {
+        const lsms = JSON.parse(storedLSMs);
+        const updatedLSMs = lsms.map((l: any) => 
+          l.email === profileData.email 
+            ? { ...l, ...editData }
+            : l
         );
-        localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+        localStorage.setItem('lsms', JSON.stringify(updatedLSMs));
       }
 
       // Update auth user data
@@ -178,7 +202,7 @@ export default function CustomerProfile() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your personal information</p>
+          <p className="text-gray-600 mt-2">Manage your LSM information</p>
         </div>
 
         {/* Success Message */}
@@ -196,8 +220,8 @@ export default function CustomerProfile() {
           {/* Card Header */}
           <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
-              <p className="text-sm text-gray-500 mt-1">Update your personal details</p>
+              <h2 className="text-xl font-semibold text-gray-900">LSM Information</h2>
+              <p className="text-sm text-gray-500 mt-1">Update your local service management details</p>
             </div>
             {!isEditing && (
               <button
@@ -217,12 +241,12 @@ export default function CustomerProfile() {
             <div className="space-y-6">
               {/* Avatar Section */}
               <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
-                <div className="w-24 h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-3xl">
+                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white font-bold text-3xl">
                   {profileData.firstName && profileData.lastName 
                     ? `${profileData.firstName[0].toUpperCase()}${profileData.lastName[0].toUpperCase()}`
                     : profileData.firstName
                     ? profileData.firstName[0].toUpperCase()
-                    : 'U'
+                    : 'L'
                   }
                 </div>
                 <div>
@@ -230,6 +254,9 @@ export default function CustomerProfile() {
                     {profileData.firstName} {profileData.lastName}
                   </h3>
                   <p className="text-gray-600">{profileData.email}</p>
+                  {profileData.region && (
+                    <p className="text-purple-600 font-medium">{profileData.region} Region</p>
+                  )}
                 </div>
               </div>
 
@@ -313,6 +340,84 @@ export default function CustomerProfile() {
                   )}
                 </div>
 
+                {/* Employee ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Employee ID <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.employeeId}
+                      onChange={(e) => setEditData({ ...editData, employeeId: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.employeeId ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Employee ID"
+                    />
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.employeeId}</p>
+                  )}
+                  {errors.employeeId && (
+                    <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>
+                  )}
+                </div>
+
+                {/* Region */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Region <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editData.region}
+                      onChange={(e) => setEditData({ ...editData, region: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.region ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select Region</option>
+                      <option value="North">North</option>
+                      <option value="South">South</option>
+                      <option value="East">East</option>
+                      <option value="West">West</option>
+                      <option value="Central">Central</option>
+                    </select>
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.region}</p>
+                  )}
+                  {errors.region && (
+                    <p className="text-red-500 text-sm mt-1">{errors.region}</p>
+                  )}
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Department <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editData.department}
+                      onChange={(e) => setEditData({ ...editData, department: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.department ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Customer Service">Customer Service</option>
+                      <option value="Quality Assurance">Quality Assurance</option>
+                      <option value="Field Management">Field Management</option>
+                    </select>
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.department}</p>
+                  )}
+                  {errors.department && (
+                    <p className="text-red-500 text-sm mt-1">{errors.department}</p>
+                  )}
+                </div>
+
                 {/* Address */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -365,7 +470,7 @@ export default function CustomerProfile() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Account Type</h3>
-              <p className="text-sm text-gray-600 mt-1">Customer Account</p>
+              <p className="text-sm text-gray-600 mt-1">Local Service Manager Account</p>
             </div>
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
               Active

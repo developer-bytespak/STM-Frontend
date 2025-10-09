@@ -65,6 +65,7 @@ export default function CustomerDashboard() {
             View payment history and manage billing
           </p>
         </Link>
+        
         <Link
           href="/customer/avalied-jobs"
           className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
