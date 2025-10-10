@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { homepageApi } from '@/api/homepage';
+import type { LocationResult } from '@/types/homepage';
 
 interface CitySearchProps {
   onLocationSelect: (location: string) => void;
@@ -8,16 +10,6 @@ interface CitySearchProps {
   selectedLocation?: string;
   disabled?: boolean;
 }
-
-// Mock city/ZIP data - in a real app, this would come from an API
-const LOCATION_SUGGESTIONS = [
-  '97301 - Salem, OR',
-  '97302 - Salem, OR',
-  '97201 - Portland, OR',
-  '97202 - Portland, OR',
-  '75001 - Dallas, TX',
-  '75002 - Dallas, TX',
-];
 
 export default function CitySearch({ 
   onLocationSelect, 
@@ -28,6 +20,8 @@ export default function CitySearch({
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,15 +36,54 @@ export default function CitySearch({
       setQuery('');
       setShowDropdown(false);
       setSelectedIndex(-1);
+      setLocationResults([]);
     }
   }, [disabled, query]);
 
-  // Filter locations based on query
-  const filteredLocations = !disabled && query.length >= 2 
-    ? LOCATION_SUGGESTIONS.filter(location => 
-        location.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 10) // Limit to 10 results
-    : [];
+  // Debounced location search
+  useEffect(() => {
+    if (!disabled && query.length >= 2) {
+      const timeoutId = setTimeout(async () => {
+        setIsLoading(true);
+        try {
+          const results = await homepageApi.searchLocations(query, 10);
+          
+          // Remove duplicates - prefer formatted addresses over raw ZIP codes
+          const uniqueResults = new Map();
+          
+          results.forEach(location => {
+            const zipCode = location.zipCode;
+            
+            // If we haven't seen this ZIP code yet, add it
+            if (!uniqueResults.has(zipCode)) {
+              uniqueResults.set(zipCode, location);
+            } else {
+              // If we already have this ZIP, prefer the formatted version
+              const existing = uniqueResults.get(zipCode);
+              const currentHasFormat = location.formattedAddress.includes(' - ') && location.formattedAddress.includes(',');
+              const existingHasFormat = existing.formattedAddress.includes(' - ') && existing.formattedAddress.includes(',');
+              
+              // Replace if current is formatted and existing is not
+              if (currentHasFormat && !existingHasFormat) {
+                uniqueResults.set(zipCode, location);
+              }
+            }
+          });
+          
+          setLocationResults(Array.from(uniqueResults.values()));
+        } catch (error) {
+          console.error('Location search error:', error);
+          setLocationResults([]);
+        } finally {
+          setIsLoading(false);
+        }
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setLocationResults([]);
+    }
+  }, [query, disabled]);
 
   // Handle input change
   const handleInputChange = (value: string) => {
@@ -65,10 +98,11 @@ export default function CitySearch({
   };
 
   // Handle location selection
-  const handleLocationSelect = (location: string) => {
+  const handleLocationSelect = (location: LocationResult) => {
     if (disabled) return;
-    onLocationSelect(location);
-    setQuery(location);
+    // Pass formatted address to parent component
+    onLocationSelect(location.formattedAddress);
+    setQuery(location.formattedAddress);
     setShowDropdown(false);
     setSelectedIndex(-1);
   };
@@ -79,6 +113,7 @@ export default function CitySearch({
     setQuery('');
     setShowDropdown(false);
     setSelectedIndex(-1);
+    setLocationResults([]);
     onClear();
     inputRef.current?.focus();
   };
@@ -87,7 +122,7 @@ export default function CitySearch({
   const handleSearchClick = () => {
     if (disabled) return;
     
-    if (query.length >= 2 && filteredLocations.length > 0) {
+    if (query.length >= 2 && locationResults.length > 0) {
       // Show the dropdown instead of auto-selecting
       setShowDropdown(true);
       setSelectedIndex(-1);
@@ -108,7 +143,7 @@ export default function CitySearch({
       case 'ArrowDown':
         e.preventDefault();
         setSelectedIndex(prev => 
-          prev < filteredLocations.length - 1 ? prev + 1 : prev
+          prev < locationResults.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -117,8 +152,8 @@ export default function CitySearch({
         break;
       case 'Enter':
         e.preventDefault();
-        if (selectedIndex >= 0) {
-          handleLocationSelect(filteredLocations[selectedIndex]);
+        if (selectedIndex >= 0 && locationResults[selectedIndex]) {
+          handleLocationSelect(locationResults[selectedIndex]);
         }
         break;
       case 'Escape':
@@ -211,7 +246,7 @@ export default function CitySearch({
       </div>
 
       {/* Location Search Dropdown */}
-      {showDropdown && filteredLocations.length > 0 && (
+      {showDropdown && (
         <div 
           ref={dropdownRef}
           className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
@@ -221,26 +256,39 @@ export default function CitySearch({
             scrollbarColor: '#D1D5DB #F3F4F6'
           }}
         >
-          {filteredLocations.map((location, index) => (
-            <button
-              key={location}
-              type="button"
-              onClick={() => handleLocationSelect(location)}
-              className={`w-full text-left px-6 py-3 hover:bg-gray-100 transition-colors text-gray-900 border-b border-gray-100 last:border-b-0 ${
-                selectedIndex === index ? 'bg-gray-100' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>{location}</span>
-              </div>
-            </button>
-          ))}
-          {/* Extra padding at bottom to ensure last item is fully visible */}
-          <div className="h-2"></div>
+          {isLoading ? (
+            <div className="px-6 py-4 text-center text-gray-500">
+              <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-navy-600 mb-2"></div>
+              <p className="text-sm">Searching locations...</p>
+            </div>
+          ) : locationResults.length > 0 ? (
+            <>
+              {locationResults.map((location, index) => (
+                <button
+                  key={location.zipCode}
+                  type="button"
+                  onClick={() => handleLocationSelect(location)}
+                  className={`w-full text-left px-6 py-3 hover:bg-gray-100 transition-colors text-gray-900 border-b border-gray-100 last:border-b-0 ${
+                    selectedIndex === index ? 'bg-gray-100' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{location.formattedAddress}</span>
+                  </div>
+                </button>
+              ))}
+              {/* Extra padding at bottom to ensure last item is fully visible */}
+              <div className="h-2"></div>
+            </>
+          ) : query.length >= 2 ? (
+            <div className="px-6 py-4 text-center text-gray-500 text-sm">
+              No locations found
+            </div>
+          ) : null}
         </div>
       )}
     </div>
