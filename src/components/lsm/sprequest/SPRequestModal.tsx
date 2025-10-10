@@ -8,7 +8,7 @@ interface SPRequestModalProps {
   request: PendingOnboardingResponse;
   onClose: () => void;
   onApprove: (id: number) => void;
-  onReject: (id: number) => void;
+  onReject: (id: number, reason: string) => void;
   onBackdropClick: (e: React.MouseEvent) => void;
   onRefresh?: () => void;
 }
@@ -25,6 +25,10 @@ export default function SPRequestModal({
     id: number;
     fileName: string;
   } | null>(null);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
 
   // Calculate if all documents are verified
   const allDocsVerified = request.documents.total > 0 && 
@@ -32,6 +36,37 @@ export default function SPRequestModal({
   
   // Use either backend's readyForActivation or our calculation
   const canApprove = request.readyForActivation || allDocsVerified;
+
+  const handleApprove = async () => {
+    setIsProcessing(true);
+    setError('');
+    try {
+      await onApprove(request.id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve provider');
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      setError('Please provide a reason for rejection');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError('');
+    try {
+      await onReject(request.id, rejectionReason);
+      setShowRejectInput(false);
+      setRejectionReason('');
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject provider');
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <>
@@ -176,34 +211,81 @@ export default function SPRequestModal({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-4 pt-6 border-t">
-            <button
-              onClick={() => onReject(request.id)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Reject Provider
-            </button>
-            <button
-              onClick={() => onApprove(request.id)}
-              disabled={!canApprove}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                canApprove
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              title={
-                canApprove 
-                  ? 'All documents verified - ready to approve' 
-                  : `Please verify all documents first (${request.documents.verified}/${request.documents.total} verified)`
-              }
-            >
-              {canApprove 
-                ? '✅ Approve Provider' 
-                : `⏳ Verify Documents (${request.documents.verified}/${request.documents.total})`
-              }
-            </button>
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Action Buttons or Rejection Input */}
+          {!showRejectInput ? (
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <button
+                onClick={() => setShowRejectInput(true)}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ✗ Reject Provider
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={!canApprove || isProcessing}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  canApprove && !isProcessing
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                title={
+                  canApprove 
+                    ? 'All documents verified - ready to approve' 
+                    : `Please verify all documents first (${request.documents.verified}/${request.documents.total} verified)`
+                }
+              >
+                {isProcessing ? 'Processing...' : canApprove 
+                  ? '✅ Approve Provider' 
+                  : `⏳ Verify Documents (${request.documents.verified}/${request.documents.total})`
+                }
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-6 border-t">
+              <div>
+                <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Rejection <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="rejectionReason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Explain why this provider is being rejected..."
+                  disabled={isProcessing}
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowRejectInput(false);
+                    setRejectionReason('');
+                    setError('');
+                  }}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? 'Rejecting...' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

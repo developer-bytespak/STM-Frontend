@@ -106,6 +106,24 @@ export interface JobsInRegionResponse {
   };
 }
 
+export interface PendingServiceRequest {
+  id: number;
+  serviceName: string;
+  category: string;
+  description: string;
+  provider: {
+    id: number;
+    businessName: string;
+    user: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone_number: string;
+    };
+  };
+  created_at: string;
+}
+
 export interface ServiceRequestHistoryItem {
   id: number;
   serviceName: string;
@@ -143,6 +161,258 @@ export interface ServiceRequestHistoryResponse {
     limit: number;
     totalPages: number;
   };
+}
+
+export interface ProviderInRegion {
+  id: number;
+  businessName: string;
+  status: string;
+  rating: number;
+  experience: number;
+  totalJobs: number;
+  rejectionReason: string | null;
+  user: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number: string;
+  };
+  serviceAreas: string[];
+  services: Array<{
+    name: string;
+    category: string;
+  }>;
+  documentCount: number;
+  jobCount: number;
+  created_at: string;
+}
+
+export interface ProvidersInRegionResponse {
+  total: number;
+  status: string;
+  providers: ProviderInRegion[];
+}
+
+export interface DisputeChatMessage {
+  id: number;
+  senderType: string;
+  message: string;
+  messageType: string;
+  createdAt: string;
+}
+
+export interface Dispute {
+  id: number;
+  job: {
+    id: number;
+    service: string;
+    price: number;
+  };
+  customer: {
+    id: number;
+    name: string;
+  };
+  provider: {
+    id: number;
+    businessName: string;
+  };
+  raisedBy: string;
+  status: 'pending' | 'under_review' | 'resolved';
+  chatStatus: {
+    lsmInvited: boolean;
+    lsmJoined: boolean;
+  } | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface DisputeDetail {
+  dispute: {
+    id: number;
+    status: string;
+    raisedBy: string;
+    resolvedBy: number | null;
+    createdAt: string;
+    resolvedAt: string | null;
+  };
+  job: {
+    id: number;
+    service: string;
+    category: string;
+    price: number;
+    status: string;
+    scheduledAt: string | null;
+    completedAt: string | null;
+    answersJson: any;
+  };
+  customer: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  provider: {
+    id: number;
+    businessName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+  };
+  chatStatus: {
+    chatId: number;
+    lsmInvited: boolean;
+    lsmJoined: boolean;
+    lsmJoinedAt: string | null;
+  } | null;
+  chatHistory: DisputeChatMessage[];
+}
+
+export interface DisputesResponse {
+  data: Dispute[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface DisputeFilters {
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ProviderReview {
+  id: number;
+  rating: number;
+  feedback: string;
+  punctualityRating: number | null;
+  responseTime: number | null;
+  customer: {
+    name: string;
+    email: string;
+  };
+  job: {
+    id: number;
+    service: string;
+    category: string;
+    completedAt: string | null;
+    price: number;
+  };
+  createdAt: string;
+}
+
+export interface ProviderReviewsResponse {
+  provider: {
+    id: number;
+    businessName: string;
+    rating: number;
+    totalJobs: number;
+  };
+  data: ProviderReview[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface ProviderReviewStats {
+  provider: {
+    id: number;
+    businessName: string;
+    totalJobs: number;
+  };
+  totalReviews: number;
+  averageRating: number;
+  averagePunctuality: number;
+  averageResponseTime: number;
+  ratingBreakdown: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+  percentages: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}
+
+export interface ReviewFilters {
+  minRating?: number;
+  maxRating?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface ProviderDetailResponse {
+  provider: {
+    id: number;
+    businessName: string;
+    user: {
+      name: string;
+      email: string;
+      phone: string;
+      joinedAt: string;
+      lastLogin: string | null;
+    };
+    status: string;
+    rating: number;
+    experience: number;
+    experienceLevel: string;
+    description: string;
+    location: string;
+    warnings: number;
+    totalJobs: number;
+    earnings: number;
+    approvedAt: string | null;
+    createdAt: string;
+  };
+  statistics: {
+    totalJobs: number;
+    completedJobs: number;
+    cancelledJobs: number;
+    activeJobs: number;
+    averageRating: number;
+    totalReviews: number;
+  };
+  documents: Array<{
+    id: number;
+    fileName: string;
+    filePath: string;
+    status: string;
+    verifiedBy: number | null;
+    verifiedAt: string | null;
+    uploadedAt: string;
+  }>;
+  serviceAreas: string[];
+  services: Array<{
+    name: string;
+    category: string;
+  }>;
+  recentJobs: Array<{
+    id: number;
+    service: string;
+    customer: string;
+    status: string;
+    price: number;
+    createdAt: string;
+    completedAt: string | null;
+  }>;
+  recentFeedback: Array<{
+    id: number;
+    rating: number;
+    feedback: string;
+    customer: string;
+    createdAt: string;
+  }>;
 }
 
 // ==================== LSM API CLASS ====================
@@ -196,6 +466,15 @@ class LsmApi {
 
     const url = `/lsm/service-requests${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await apiClient.request<ServiceRequestHistoryResponse>(url);
+    return response;
+  }
+
+  /**
+   * Get pending service requests awaiting LSM approval
+   * Endpoint: GET /lsm/service-requests/pending
+   */
+  async getPendingServiceRequests(): Promise<PendingServiceRequest[]> {
+    const response = await apiClient.request<PendingServiceRequest[]>('/lsm/service-requests/pending');
     return response;
   }
 
@@ -309,6 +588,164 @@ class LsmApi {
       method: 'POST',
       body: JSON.stringify({ action: 'reject', reason: reason || 'Document rejected by LSM' })
     });
+    return response;
+  }
+
+  /**
+   * Get all providers in LSM's region with optional status filter
+   * Endpoint: GET /lsm/providers?status=pending|active|inactive|banned|rejected
+   */
+  async getProvidersInRegion(status?: string): Promise<ProvidersInRegionResponse> {
+    const url = status ? `/lsm/providers?status=${status}` : '/lsm/providers';
+    const response = await apiClient.request<ProvidersInRegionResponse>(url);
+    return response;
+  }
+
+  /**
+   * Get detailed provider profile
+   * Endpoint: GET /lsm/providers/:id
+   */
+  async getProviderDetails(providerId: number): Promise<ProviderDetailResponse> {
+    const response = await apiClient.request<ProviderDetailResponse>(`/lsm/providers/${providerId}`);
+    return response;
+  }
+
+  /**
+   * Set provider status (active/inactive)
+   * Endpoint: POST /lsm/providers/:id/set-status
+   */
+  async setProviderStatus(
+    providerId: number, 
+    status: 'active' | 'inactive',
+    force?: boolean
+  ): Promise<{
+    id: number;
+    status: string;
+    message: string;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      status: string;
+      message: string;
+    }>(`/lsm/providers/${providerId}/set-status`, {
+      method: 'POST',
+      body: JSON.stringify({ status, force: force || false })
+    });
+    return response;
+  }
+
+  /**
+   * Request admin to ban a provider
+   * Endpoint: POST /lsm/providers/:id/request-ban
+   */
+  async requestBan(
+    providerId: number,
+    reason: string
+  ): Promise<{
+    id: number;
+    message: string;
+    banRequestId: number;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      message: string;
+      banRequestId: number;
+    }>(`/lsm/providers/${providerId}/request-ban`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    return response;
+  }
+
+  /**
+   * Get all disputes in LSM region with filters
+   * Endpoint: GET /lsm/disputes
+   */
+  async getDisputes(filters?: DisputeFilters): Promise<DisputesResponse> {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const url = `/lsm/disputes${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await apiClient.request<DisputesResponse>(url);
+    return response;
+  }
+
+  /**
+   * Get dispute details with chat history
+   * Endpoint: GET /lsm/disputes/:id
+   */
+  async getDisputeDetails(disputeId: number): Promise<DisputeDetail> {
+    const response = await apiClient.request<DisputeDetail>(`/lsm/disputes/${disputeId}`);
+    return response;
+  }
+
+  /**
+   * Join dispute chat
+   * Endpoint: POST /lsm/disputes/:id/join-chat
+   */
+  async joinDisputeChat(disputeId: number): Promise<{
+    message: string;
+    chatId: number;
+  }> {
+    const response = await apiClient.request<{
+      message: string;
+      chatId: number;
+    }>(`/lsm/disputes/${disputeId}/join-chat`, {
+      method: 'POST'
+    });
+    return response;
+  }
+
+  /**
+   * Resolve dispute with resolution notes
+   * Endpoint: POST /lsm/disputes/:id/resolve
+   */
+  async resolveDispute(
+    disputeId: number,
+    resolutionNotes: string
+  ): Promise<{
+    id: number;
+    status: string;
+    message: string;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      status: string;
+      message: string;
+    }>(`/lsm/disputes/${disputeId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolutionNotes })
+    });
+    return response;
+  }
+
+  /**
+   * Get all reviews for a specific provider
+   * Endpoint: GET /lsm/providers/:id/reviews
+   */
+  async getProviderReviews(
+    providerId: number,
+    filters?: ReviewFilters
+  ): Promise<ProviderReviewsResponse> {
+    const params = new URLSearchParams();
+    if (filters?.minRating) params.append('minRating', filters.minRating.toString());
+    if (filters?.maxRating) params.append('maxRating', filters.maxRating.toString());
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const url = `/lsm/providers/${providerId}/reviews${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await apiClient.request<ProviderReviewsResponse>(url);
+    return response;
+  }
+
+  /**
+   * Get review statistics for a provider
+   * Endpoint: GET /lsm/providers/:id/reviews/stats
+   */
+  async getProviderReviewStats(providerId: number): Promise<ProviderReviewStats> {
+    const response = await apiClient.request<ProviderReviewStats>(`/lsm/providers/${providerId}/reviews/stats`);
     return response;
   }
 
