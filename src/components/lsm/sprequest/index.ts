@@ -3,3 +3,4 @@ export { default as SPRequestStats } from './SPRequestStats';
 export { default as SPRequestModal } from './SPRequestModal';
 export { default as SPRequestList } from './SPRequestList';
 export { default as DocumentViewerModal } from './DocumentViewerModal';
+export { default as ProviderStatusCard } from './ProviderStatusCard';

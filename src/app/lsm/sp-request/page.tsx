@@ -1,61 +1,82 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { lsmApi, PendingOnboardingResponse } from '@/api/lsm';
-import { SPRequestStats, SPRequestList, SPRequestModal } from '@/components/lsm/sprequest';
+import { lsmApi, PendingOnboardingResponse, ProviderInRegion } from '@/api/lsm';
+import { SPRequestList, SPRequestModal } from '@/components/lsm/sprequest';
+import ProviderStatusCard from '@/components/lsm/sprequest/ProviderStatusCard';
 
 export default function SPRequestPage() {
   const [requests, setRequests] = useState<PendingOnboardingResponse[]>([]);
+  const [rejectedProviders, setRejectedProviders] = useState<ProviderInRegion[]>([]);
+  const [approvedProviders, setApprovedProviders] = useState<ProviderInRegion[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PendingOnboardingResponse | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   useEffect(() => {
-    const fetchPendingRequests = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await lsmApi.getPendingOnboarding();
-        setRequests(data);
-      } catch (err: any) {
-        console.error('Error fetching pending requests:', err);
-        setError(err.message || 'Failed to load pending requests');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPendingRequests();
+    fetchAllData();
   }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch pending onboarding requests
+      const pendingData = await lsmApi.getPendingOnboarding();
+      setRequests(pendingData);
+      
+      // Fetch providers by status (only approved and rejected for onboarding workflow)
+      const [approvedData, rejectedData] = await Promise.all([
+        lsmApi.getProvidersInRegion('active'),
+        lsmApi.getProvidersInRegion('rejected'),
+      ]);
+      
+      setApprovedProviders(approvedData.providers);
+      setRejectedProviders(rejectedData.providers);
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApprove = async (id: number) => {
     try {
       // ✅ CORRECT: Using provider onboarding approval endpoint
       const result = await lsmApi.approveProviderOnboarding(id);
       alert(`Provider #${id} has been approved! ${result.message}`);
-      // Refresh the list
-      const data = await lsmApi.getPendingOnboarding();
-      setRequests(data);
+      
+      // Refresh all data to reflect changes
+      await fetchAllData();
+      
+      // Switch to approved tab to show the newly approved provider
+      setActiveTab('approved');
     } catch (error) {
       console.error('Error approving provider:', error);
-      alert('Failed to approve provider');
+      throw error; // Let the modal handle the error
     }
     setShowModal(false);
     setSelectedRequest(null);
   };
 
-  const handleReject = async (id: number, reason?: string) => {
+  const handleReject = async (id: number, reason: string) => {
     try {
-      // ✅ CORRECT: Using provider onboarding rejection endpoint
-      const result = await lsmApi.rejectProviderOnboarding(id, reason || 'No reason provided');
+      // ✅ CORRECT: Using provider onboarding rejection endpoint with reason
+      const result = await lsmApi.rejectProviderOnboarding(id, reason);
       alert(`Provider #${id} has been rejected. ${result.message}`);
-      // Refresh the list
-      const data = await lsmApi.getPendingOnboarding();
-      setRequests(data);
+      
+      // Refresh all data to reflect changes
+      await fetchAllData();
+      
+      // Switch to rejected tab to show the newly rejected provider
+      setActiveTab('rejected');
     } catch (error) {
       console.error('Error rejecting provider:', error);
-      alert('Failed to reject provider');
+      throw error; // Let the modal handle the error
     }
     setShowModal(false);
     setSelectedRequest(null);
@@ -95,11 +116,6 @@ export default function SPRequestPage() {
     }
   };
 
-  // Since API only returns pending requests, we'll show them all
-  const pendingRequests = requests;
-  const approvedRequests: PendingOnboardingResponse[] = [];
-  const rejectedRequests: PendingOnboardingResponse[] = [];
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -134,39 +150,117 @@ export default function SPRequestPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Service Provider Onboarding Requests
+            Service Provider Management
           </h1>
           <p className="text-gray-600">
-            Review and manage pending service provider applications
+            Review and manage service provider applications and statuses
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <SPRequestStats 
-          pendingCount={pendingRequests.length}
-          approvedCount={approvedRequests.length}
-          rejectedCount={rejectedRequests.length}
-        />
+        {/* Tabs Navigation */}
+        <div className="max-w-6xl mx-auto mb-6">
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-2">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`flex-1 min-w-[150px] px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  activeTab === 'pending'
+                    ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-transparent'
+                }`}
+              >
+                Pending Review
+                <span className="ml-2 px-2 py-0.5 bg-white rounded-full text-xs">
+                  {requests.length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('approved')}
+                className={`flex-1 min-w-[150px] px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  activeTab === 'approved'
+                    ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-transparent'
+                }`}
+              >
+                Approved
+                <span className="ml-2 px-2 py-0.5 bg-white rounded-full text-xs">
+                  {approvedProviders.length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('rejected')}
+                className={`flex-1 min-w-[150px] px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                  activeTab === 'rejected'
+                    ? 'bg-red-100 text-red-700 border-2 border-red-300'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-transparent'
+                }`}
+              >
+                Rejected
+                <span className="ml-2 px-2 py-0.5 bg-white rounded-full text-xs">
+                  {rejectedProviders.length}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-        {/* Requests Section */}
+        {/* Content based on active tab */}
         <div className="max-w-6xl mx-auto">
-          <SPRequestList 
-            requests={pendingRequests}
-            onRequestClick={openModal}
-          />
-
-          {/* Recently Processed */}
-          {(approvedRequests.length > 0 || rejectedRequests.length > 0) && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                Recently Processed
+          {activeTab === 'pending' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Pending Review ({requests.length})
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Since we only have pending requests from API, this section will be empty */}
-                <div className="text-center py-8 text-gray-500">
-                  <p>No recently processed requests to display.</p>
+              {requests.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                  <p className="text-gray-500">No pending requests</p>
                 </div>
-              </div>
+              ) : (
+                <SPRequestList 
+                  requests={requests}
+                  onRequestClick={openModal}
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'approved' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Active Providers ({approvedProviders.length})
+              </h2>
+              {approvedProviders.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                  <p className="text-gray-500">No active providers</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {approvedProviders.map((provider) => (
+                    <ProviderStatusCard key={provider.id} provider={provider} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'rejected' && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Rejected Providers ({rejectedProviders.length})
+              </h2>
+              {rejectedProviders.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-8 text-center">
+                  <p className="text-gray-500">No rejected providers</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {rejectedProviders.map((provider) => (
+                    <ProviderStatusCard key={provider.id} provider={provider} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
