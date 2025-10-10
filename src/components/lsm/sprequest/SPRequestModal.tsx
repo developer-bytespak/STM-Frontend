@@ -168,7 +168,7 @@ export default function SPRequestModal({
                     <strong>Status:</strong> {request.documents.verified}/{request.documents.total} documents verified
                   </p>
                   <p className="text-sm text-yellow-700 mt-2">
-                    Please click <strong>"View"</strong> on each document above, review it, then click <strong>"✅ Verify"</strong> to approve the document. 
+                    Please click <strong>&quot;View&quot;</strong> on each document above, review it, then click <strong>&quot;✅ Verify&quot;</strong> to approve the document. 
                     Once all documents are verified, you can approve the provider.
                   </p>
                 </div>
