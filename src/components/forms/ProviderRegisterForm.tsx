@@ -452,6 +452,13 @@ export default function ServiceProviderSignupPage() {
       // For now, we'll use the first service as primary data for backend compatibility
       const primaryService = sanitizedData.services[0];
       const allZipCodes = sanitizedData.services.flatMap(service => service.zipCodes);
+
+      // Extract geographic region from first zip code
+      // Zip codes are in format: "75001 - Dallas, TX" or "75001- Dallas, TX"
+      const primaryZipCode = allZipCodes[0] || '';
+      const extractedRegion = primaryZipCode.includes('-') 
+        ? primaryZipCode.split('-')[1].trim()  // Extract "Dallas, TX" part after dash
+        : primaryZipCode.trim();  // Fallback to just the zip code if no dash found
       
       const registerData: RegisterRequest = {
         // Required fields
@@ -461,14 +468,14 @@ export default function ServiceProviderSignupPage() {
         lastName: sanitizedData.lastName,
         phoneNumber: formatPhoneToE164(sanitizedData.phone), // Convert to E.164 format
         role: 'PROVIDER',
-        region: primaryService.serviceType, // For LSM matching
+        region: extractedRegion || 'Not specified', // ✅ FIXED - now sends "Dallas, TX"
         
         // Optional provider fields
         businessName: sanitizedData.businessName || undefined,
         serviceType: primaryService.serviceType || undefined,
         experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
-        location: primaryService.serviceType || undefined, // Use serviceType as location
+        location: extractedRegion || 'Not specified', // ✅ FIXED - now sends "Dallas, TX"
         zipCodes: allZipCodes.length > 0 ? allZipCodes : undefined,
         minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
         maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
