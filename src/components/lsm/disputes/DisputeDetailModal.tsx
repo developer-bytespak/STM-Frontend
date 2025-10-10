@@ -206,7 +206,7 @@ export default function DisputeDetailModal({
               </svg>
               Chat History
               {dispute.chatStatus && !dispute.chatStatus.lsmJoined && (
-                <span className="text-xs text-yellow-600 font-normal">(You haven't joined the chat yet)</span>
+                <span className="text-xs text-yellow-600 font-normal">(You haven&apos;t joined the chat yet)</span>
               )}
             </h3>
             
