@@ -200,7 +200,30 @@ class LsmApi {
   }
 
   /**
-   * Approve a service request (sends to admin)
+   * Approve provider onboarding (NEW PROVIDER REGISTRATION)
+   * Endpoint: POST /lsm/providers/:id/approve-onboarding
+   */
+  async approveProviderOnboarding(providerId: number): Promise<{id: number, status: string, message: string}> {
+    const response = await apiClient.request<{id: number, status: string, message: string}>(`/lsm/providers/${providerId}/approve-onboarding`, {
+      method: 'POST'
+    });
+    return response;
+  }
+
+  /**
+   * Reject provider onboarding (NEW PROVIDER REGISTRATION)
+   * Endpoint: POST /lsm/providers/:id/reject-onboarding
+   */
+  async rejectProviderOnboarding(providerId: number, reason: string): Promise<{id: number, status: string, reason: string, message: string}> {
+    const response = await apiClient.request<{id: number, status: string, reason: string, message: string}>(`/lsm/providers/${providerId}/reject-onboarding`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    return response;
+  }
+
+  /**
+   * Approve a service request (EXISTING PROVIDER ADDING NEW SERVICE)
    * Endpoint: POST /lsm/service-requests/:id/approve
    */
   async approveServiceRequest(requestId: number): Promise<{id: number, status: string, message: string}> {
@@ -211,13 +234,80 @@ class LsmApi {
   }
 
   /**
-   * Reject a service request
+   * Reject a service request (EXISTING PROVIDER ADDING NEW SERVICE)
    * Endpoint: POST /lsm/service-requests/:id/reject
    */
   async rejectServiceRequest(requestId: number, reason: string): Promise<{id: number, status: string, reason: string, message: string}> {
     const response = await apiClient.request<{id: number, status: string, reason: string, message: string}>(`/lsm/service-requests/${requestId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason })
+    });
+    return response;
+  }
+
+  /**
+   * Get/view a provider document
+   * Endpoint: GET /lsm/providers/:providerId/documents/:documentId
+   */
+  async getProviderDocument(providerId: number, documentId: number): Promise<{
+    id: number;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    description: string;
+    status: string;
+    fileData: string;  // Base64 data URL
+    createdAt: string;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      description: string;
+      status: string;
+      fileData: string;
+      createdAt: string;
+    }>(`/lsm/providers/${providerId}/documents/${documentId}`);
+    return response;
+  }
+
+  /**
+   * Verify a provider document
+   * Endpoint: POST /lsm/providers/:providerId/documents/:documentId
+   */
+  async verifyDocument(providerId: number, documentId: number): Promise<{
+    id: number;
+    status: string;
+    message: string;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      status: string;
+      message: string;
+    }>(`/lsm/providers/${providerId}/documents/${documentId}`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'verify' })
+    });
+    return response;
+  }
+
+  /**
+   * Reject a provider document
+   * Endpoint: POST /lsm/providers/:providerId/documents/:documentId
+   */
+  async rejectDocument(providerId: number, documentId: number, reason?: string): Promise<{
+    id: number;
+    status: string;
+    message: string;
+  }> {
+    const response = await apiClient.request<{
+      id: number;
+      status: string;
+      message: string;
+    }>(`/lsm/providers/${providerId}/documents/${documentId}`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'reject', reason: reason || 'Document rejected by LSM' })
     });
     return response;
   }

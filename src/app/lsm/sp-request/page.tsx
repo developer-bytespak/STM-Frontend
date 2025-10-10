@@ -31,14 +31,15 @@ export default function SPRequestPage() {
 
   const handleApprove = async (id: number) => {
     try {
-      const result = await lsmApi.approveServiceRequest(id);
-      alert(`Service request #${id} has been approved! ${result.message}`);
+      // ✅ CORRECT: Using provider onboarding approval endpoint
+      const result = await lsmApi.approveProviderOnboarding(id);
+      alert(`Provider #${id} has been approved! ${result.message}`);
       // Refresh the list
       const data = await lsmApi.getPendingOnboarding();
       setRequests(data);
     } catch (error) {
-      console.error('Error approving request:', error);
-      alert('Failed to approve request');
+      console.error('Error approving provider:', error);
+      alert('Failed to approve provider');
     }
     setShowModal(false);
     setSelectedRequest(null);
@@ -46,14 +47,15 @@ export default function SPRequestPage() {
 
   const handleReject = async (id: number, reason?: string) => {
     try {
-      const result = await lsmApi.rejectServiceRequest(id, reason || 'No reason provided');
-      alert(`Service request #${id} has been rejected. ${result.message}`);
+      // ✅ CORRECT: Using provider onboarding rejection endpoint
+      const result = await lsmApi.rejectProviderOnboarding(id, reason || 'No reason provided');
+      alert(`Provider #${id} has been rejected. ${result.message}`);
       // Refresh the list
       const data = await lsmApi.getPendingOnboarding();
       setRequests(data);
     } catch (error) {
-      console.error('Error rejecting request:', error);
-      alert('Failed to reject request');
+      console.error('Error rejecting provider:', error);
+      alert('Failed to reject provider');
     }
     setShowModal(false);
     setSelectedRequest(null);
@@ -72,6 +74,24 @@ export default function SPRequestPage() {
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       closeModal();
+    }
+  };
+
+  const handleRefreshRequest = async () => {
+    try {
+      // Re-fetch the pending requests to get updated document status
+      const data = await lsmApi.getPendingOnboarding();
+      setRequests(data);
+      
+      // Update the selected request with fresh data
+      if (selectedRequest) {
+        const updatedRequest = data.find(r => r.id === selectedRequest.id);
+        if (updatedRequest) {
+          setSelectedRequest(updatedRequest);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing request:', error);
     }
   };
 
@@ -159,6 +179,7 @@ export default function SPRequestPage() {
             onApprove={handleApprove}
             onReject={handleReject}
             onBackdropClick={handleBackdropClick}
+            onRefresh={handleRefreshRequest}
           />
         )}
       </div>
