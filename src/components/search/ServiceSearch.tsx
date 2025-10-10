@@ -213,7 +213,7 @@ export default function ServiceSearch({
       {/* Service Search Input */}
       <div className="relative">
         <svg 
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" 
+          className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -233,7 +233,7 @@ export default function ServiceSearch({
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full pl-12 pr-20 py-4 text-lg text-gray-900 placeholder-gray-500 focus:outline-none bg-transparent border-b-2 border-gray-300 focus:border-navy-600 transition-colors"
+          className="w-full pl-10 sm:pl-12 pr-20 sm:pr-24 py-3 sm:py-4 text-base sm:text-lg text-gray-900 placeholder-gray-500 focus:outline-none bg-transparent border-b-2 border-gray-300 focus:border-navy-600 transition-colors"
         />
         
         {/* Clear Button */}
@@ -241,10 +241,10 @@ export default function ServiceSearch({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-28 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+            className="absolute right-20 sm:right-28 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10 p-1"
             aria-label="Clear search"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </button>
@@ -254,7 +254,7 @@ export default function ServiceSearch({
         <button
           type="button"
           onClick={handleSearchClick}
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-4 py-2 rounded-md hover:bg-navy-700 transition-colors"
+          className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-md hover:bg-navy-700 transition-colors"
         >
           Search
         </button>
@@ -264,7 +264,7 @@ export default function ServiceSearch({
       {showDropdown && (
         <div 
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[250px] sm:max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
           style={{ 
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
             scrollbarWidth: 'thin',
@@ -272,7 +272,7 @@ export default function ServiceSearch({
           }}
         >
           {isLoading ? (
-            <div className="px-6 py-4 text-center text-gray-500">
+            <div className="px-4 sm:px-6 py-4 text-center text-gray-500">
               <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-navy-600 mb-2"></div>
               <p className="text-sm">Searching...</p>
             </div>
@@ -283,15 +283,15 @@ export default function ServiceSearch({
                   key={`${result.type}-${result.id}-${index}`}
                   type="button"
                   onClick={() => handleServiceSelect(result)}
-                  className={`w-full text-left px-6 py-3 hover:bg-gray-100 transition-colors text-gray-900 border-b border-gray-100 last:border-b-0 ${
+                  className={`w-full text-left px-4 sm:px-6 py-3 hover:bg-gray-100 transition-colors text-gray-900 border-b border-gray-100 last:border-b-0 ${
                     selectedIndex === index ? 'bg-gray-100' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <span>
+                    <span className="text-sm sm:text-base truncate">
                       {result.type === 'service' && result.name
                         ? (serviceCounts.get(result.name)! > 1 
                             ? `${result.name} (${result.category})` 
@@ -305,7 +305,7 @@ export default function ServiceSearch({
               <div className="h-2"></div>
             </>
           ) : query.length >= 3 ? (
-            <div className="px-6 py-4 text-center text-gray-500 text-sm">
+            <div className="px-4 sm:px-6 py-4 text-center text-gray-500 text-sm">
               No services found
             </div>
           ) : null}
@@ -314,8 +314,8 @@ export default function ServiceSearch({
 
       {/* Granular Service Options - Below Search Bar */}
       {showGranularOptions && currentCategory && granularServices.length > 0 && (
-        <div className="mt-4 p-4 bg-white rounded-lg shadow-lg border border-gray-200">
-          <div className="text-sm text-gray-600 mb-3">
+        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
             Choose a specific service under <span className="font-semibold">{currentCategory}</span>:
           </div>
           <div className="flex flex-wrap gap-2">
@@ -324,7 +324,7 @@ export default function ServiceSearch({
                 key={service.id}
                 type="button"
                 onClick={() => handleGranularSelect(service)}
-                className={`px-4 py-2 rounded-full border-2 transition-all hover:shadow-md ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border-2 transition-all hover:shadow-md ${
                   selectedIndex === index 
                     ? 'border-navy-600 bg-navy-600 text-white' 
                     : 'border-gray-300 text-gray-700 hover:border-navy-500 hover:text-navy-600'

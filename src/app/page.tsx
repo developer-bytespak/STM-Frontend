@@ -39,24 +39,22 @@ export default function Home() {
 
       {/* Hierarchical Search */}
       <Suspense fallback={
-        <div className="relative bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 overflow-hidden">
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-16">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 leading-tight">
+        <div className="relative bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 overflow-visible min-h-[600px] sm:min-h-[700px] md:min-h-[800px] flex items-center lg:items-start lg:pt-24">
+          <div className="relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
+            <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight px-2">
                 Find the right <span className="italic">service</span>
-                <br />
+                <br className="hidden xs:block" />
+                <span className="xs:hidden"> </span>
                 professional, right away
               </h1>
             </div>
             <div className="max-w-3xl mx-auto">
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100 h-40 animate-pulse"></div>
-                <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-100 h-40 animate-pulse"></div>
+              <div className="space-y-4 sm:space-y-6">
+                <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 border border-gray-100 h-32 sm:h-36 md:h-40 animate-pulse"></div>
+                <div className="bg-white rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 border border-gray-100 h-32 sm:h-36 md:h-40 animate-pulse"></div>
               </div>
             </div>
-            
-            {/* Extra bottom padding to maintain section height */}
-            <div className="h-16 md:h-20 lg:h-24"></div>
           </div>
         </div>
       }>
