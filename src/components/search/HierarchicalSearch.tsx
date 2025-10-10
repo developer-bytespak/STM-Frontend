@@ -5,8 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import ServiceSearch from './ServiceSearch';
 import CitySearch from './CitySearch';
 import ResultsDisplay from './ResultsDisplay';
-import { dummyProviders, filterProvidersByService, filterProvidersByZip } from '@/data/dummyProviders';
-import { Provider } from '@/types/provider';
+import { homepageApi } from '@/api/homepage';
+import type { HomepageProvider } from '@/types/homepage';
 
 type SearchStep = 'service' | 'location' | 'results';
 
@@ -22,9 +22,10 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
   const [selectedService, setSelectedService] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providers, setProviders] = useState<HomepageProvider[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const hasSelectedGranular = selectedService.length > 0;
   
   const searchRef = useRef<HTMLDivElement>(null);
@@ -96,27 +97,23 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
   // Search for providers
   const searchProviders = async (service: string, location: string) => {
     setIsLoading(true);
+    setError(null);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter providers by service
-      let filteredProviders = filterProvidersByService(dummyProviders, service);
-      
-      // Extract ZIP code from location string (e.g., "97302 - Salem, OR" -> "97302")
+      // Extract ZIP code from location string (e.g., "97302" or "97302 - Salem, OR" -> "97302")
       const zipMatch = location.match(/^\d+/);
-      if (zipMatch) {
-        const zipCode = zipMatch[0];
-        filteredProviders = filterProvidersByZip(filteredProviders, zipCode);
-      }
+      const zipCode = zipMatch ? zipMatch[0] : location;
       
-      // Sort providers by rating (highest first)
-      filteredProviders.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      // Call API
+      const result = await homepageApi.searchProviders({
+        service,
+        zipcode: zipCode,
+      });
       
-      setProviders(filteredProviders);
+      setProviders(result.providers);
     } catch (error) {
       console.error('Error searching providers:', error);
+      setError(error instanceof Error ? error.message : 'Failed to search providers');
       setProviders([]);
     } finally {
       setIsLoading(false);
@@ -130,6 +127,7 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
     setSelectedCategory('');
     setSelectedLocation(''); // Clear location when service is cleared
     setProviders([]);
+    setError(null);
     router.replace('/', { scroll: false });
     onClear();
   };
@@ -221,6 +219,24 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mb-4"></div>
                 <p className="text-gray-600">Searching for providers...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+              <div className="text-center">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                  <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">Error</h3>
+                  <p className="text-red-700 mb-4">{error}</p>
+                  <button
+                    onClick={handleClearAll}
+                    className="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Start New Search
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

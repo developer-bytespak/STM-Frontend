@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { searchServices, getGranularServices, ServiceSearchResult } from '@/data/services';
+import { homepageApi } from '@/api/homepage';
+import type { ServiceSearchResult, CategoryService } from '@/types/homepage';
 
 interface ServiceSearchProps {
   onServiceSelect: (service: string, category?: string) => void;
@@ -21,6 +22,9 @@ export default function ServiceSearch({
   const [showGranularOptions, setShowGranularOptions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [currentCategory, setCurrentCategory] = useState('');
+  const [searchResults, setSearchResults] = useState<ServiceSearchResult[]>([]);
+  const [granularServices, setGranularServices] = useState<CategoryService[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -29,13 +33,33 @@ export default function ServiceSearch({
     setQuery(selectedService || '');
   }, [selectedService]);
 
-  const searchResults = searchServices(query);
+  // Debounced service search
+  useEffect(() => {
+    if (query.length >= 3) {
+      const timeoutId = setTimeout(async () => {
+        setIsLoading(true);
+        try {
+          const results = await homepageApi.searchServices(query);
+          setSearchResults(results);
+        } catch (error) {
+          console.error('Service search error:', error);
+          setSearchResults([]);
+        } finally {
+          setIsLoading(false);
+        }
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+    }
+  }, [query]);
 
   // Check for duplicate service names to show category
   const serviceCounts = new Map<string, number>();
   searchResults.forEach(result => {
-    if (result.isGranular && result.granularService) {
-      serviceCounts.set(result.granularService, (serviceCounts.get(result.granularService) || 0) + 1);
+    if (result.type === 'service' && result.name) {
+      serviceCounts.set(result.name, (serviceCounts.get(result.name) || 0) + 1);
     }
   });
 
@@ -52,26 +76,36 @@ export default function ServiceSearch({
   };
 
   // Handle service selection
-  const handleServiceSelect = (result: ServiceSearchResult) => {
-    if (result.isGranular) {
-      // Direct granular service selection
-      onServiceSelect(result.granularService!, result.category);
-      setQuery(result.granularService!);
+  const handleServiceSelect = async (result: ServiceSearchResult) => {
+    if (result.type === 'service') {
+      // Direct service selection
+      onServiceSelect(result.name!, result.category);
+      setQuery(result.name!);
       setShowDropdown(false);
       setShowGranularOptions(false);
       setCurrentCategory('');
     } else {
-      // Category selection - check if it has granular services
-      const granularServices = getGranularServices(result.category);
+      // Category selection - fetch granular services from API
       setQuery(result.category);
       setShowDropdown(false);
       setCurrentCategory(result.category);
       
-      if (granularServices.length > 0) {
-        // Show granular options as buttons
-        setShowGranularOptions(true);
-      } else {
-        // Category is itself a service - proceed directly
+      try {
+        const categoryData = await homepageApi.getCategoryServices(result.category);
+        
+        if (categoryData.services.length > 1) {
+          // Multiple services - show granular options
+          setGranularServices(categoryData.services);
+          setShowGranularOptions(true);
+        } else if (categoryData.services.length === 1) {
+          // Single service (standalone) - proceed directly
+          onServiceSelect(categoryData.services[0].name, result.category);
+          setShowGranularOptions(false);
+          setCurrentCategory('');
+        }
+      } catch (error) {
+        console.error('Error fetching category services:', error);
+        // Fallback: treat category as service
         onServiceSelect(result.category, result.category);
         setShowGranularOptions(false);
         setCurrentCategory('');
@@ -80,11 +114,12 @@ export default function ServiceSearch({
   };
 
   // Handle granular service selection
-  const handleGranularSelect = (granularService: string) => {
-    onServiceSelect(granularService, currentCategory);
-    setQuery(granularService);
+  const handleGranularSelect = (service: CategoryService) => {
+    onServiceSelect(service.name, currentCategory);
+    setQuery(service.name);
     setShowGranularOptions(false);
     setCurrentCategory('');
+    setGranularServices([]);
   };
 
   // Handle clear
@@ -94,6 +129,8 @@ export default function ServiceSearch({
     setShowGranularOptions(false);
     setSelectedIndex(-1);
     setCurrentCategory('');
+    setSearchResults([]);
+    setGranularServices([]);
     onClear(); // This will call handleClearAll in HierarchicalSearch
     inputRef.current?.focus();
   };
@@ -118,7 +155,7 @@ export default function ServiceSearch({
     if (!showDropdown && !showGranularOptions) return;
 
     const options = showGranularOptions 
-      ? getGranularServices(selectedCategory || '')
+      ? granularServices
       : searchResults;
 
     switch (e.key) {
@@ -136,9 +173,9 @@ export default function ServiceSearch({
         e.preventDefault();
         if (selectedIndex >= 0) {
           if (showGranularOptions) {
-            handleGranularSelect(options[selectedIndex] as string);
+            handleGranularSelect(granularServices[selectedIndex]);
           } else {
-            handleServiceSelect(options[selectedIndex] as ServiceSearchResult);
+            handleServiceSelect(searchResults[selectedIndex]);
           }
         }
         break;
@@ -169,14 +206,7 @@ export default function ServiceSearch({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Group search results by category
-  const groupedResults = searchResults.reduce((acc, result) => {
-    if (!acc[result.category]) {
-      acc[result.category] = [];
-    }
-    acc[result.category].push(result);
-    return acc;
-  }, {} as Record<string, ServiceSearchResult[]>);
+  // No need to group results anymore - backend already provides the right structure
 
   return (
     <div className="relative">
@@ -230,8 +260,8 @@ export default function ServiceSearch({
         </button>
       </div>
 
-      {/* Service Search Dropdown - Categories and Granular Services */}
-      {showDropdown && searchResults.length > 0 && (
+      {/* Service Search Dropdown - Categories and Services */}
+      {showDropdown && (
         <div 
           ref={dropdownRef}
           className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
@@ -241,16 +271,20 @@ export default function ServiceSearch({
             scrollbarColor: '#D1D5DB #F3F4F6'
           }}
         >
-          {Object.entries(groupedResults).map(([category, results]) => (
-            <div key={category}>
-              {/* Category Header/Button */}
-              {results.map((result, index) => (
+          {isLoading ? (
+            <div className="px-6 py-4 text-center text-gray-500">
+              <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-navy-600 mb-2"></div>
+              <p className="text-sm">Searching...</p>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <>
+              {searchResults.map((result, index) => (
                 <button
-                  key={`${result.category}-${result.granularService || 'category'}-${index}`}
+                  key={`${result.type}-${result.id}-${index}`}
                   type="button"
                   onClick={() => handleServiceSelect(result)}
                   className={`w-full text-left px-6 py-3 hover:bg-gray-100 transition-colors text-gray-900 border-b border-gray-100 last:border-b-0 ${
-                    selectedIndex === searchResults.indexOf(result) ? 'bg-gray-100' : ''
+                    selectedIndex === index ? 'bg-gray-100' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -258,32 +292,36 @@ export default function ServiceSearch({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <span>
-                      {result.isGranular && result.granularService 
-                        ? (serviceCounts.get(result.granularService)! > 1 
-                            ? `${result.granularService} (${result.category})` 
-                            : result.granularService)
+                      {result.type === 'service' && result.name
+                        ? (serviceCounts.get(result.name)! > 1 
+                            ? `${result.name} (${result.category})` 
+                            : result.name)
                         : result.category}
                     </span>
                   </div>
                 </button>
               ))}
+              {/* Extra padding at bottom to ensure last item is fully visible */}
+              <div className="h-2"></div>
+            </>
+          ) : query.length >= 3 ? (
+            <div className="px-6 py-4 text-center text-gray-500 text-sm">
+              No services found
             </div>
-          ))}
-          {/* Extra padding at bottom to ensure last item is fully visible */}
-          <div className="h-2"></div>
+          ) : null}
         </div>
       )}
 
       {/* Granular Service Options - Below Search Bar */}
-      {showGranularOptions && currentCategory && getGranularServices(currentCategory).length > 0 && (
+      {showGranularOptions && currentCategory && granularServices.length > 0 && (
         <div className="mt-4 p-4 bg-white rounded-lg shadow-lg border border-gray-200">
           <div className="text-sm text-gray-600 mb-3">
             Choose a specific service under <span className="font-semibold">{currentCategory}</span>:
           </div>
           <div className="flex flex-wrap gap-2">
-            {getGranularServices(currentCategory).map((service, index) => (
+            {granularServices.map((service, index) => (
               <button
-                key={service}
+                key={service.id}
                 type="button"
                 onClick={() => handleGranularSelect(service)}
                 className={`px-4 py-2 rounded-full border-2 transition-all hover:shadow-md ${
@@ -292,7 +330,7 @@ export default function ServiceSearch({
                     : 'border-gray-300 text-gray-700 hover:border-navy-500 hover:text-navy-600'
                 }`}
               >
-                {service}
+                {service.name}
               </button>
             ))}
           </div>

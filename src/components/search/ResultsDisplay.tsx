@@ -2,34 +2,51 @@
 
 import React from 'react';
 import ProviderCard from '@/components/cards/ProviderCard';
-
-interface Provider {
-  id: string;
-  businessName?: string;
-  businessType?: string;
-  firstName: string;
-  lastName: string;
-  rating?: number;
-  reviewCount?: number;
-  description?: string;
-  experience?: string;
-  address?: {
-    zipCode: string;
-    city: string;
-    state: string;
-  };
-  hourlyRate?: number;
-}
+import type { HomepageProvider } from '@/types/homepage';
 
 interface ResultsDisplayProps {
   service: string;
   category?: string;
   location: string;
-  providers: Provider[];
+  providers: HomepageProvider[];
   image?: string;
   onClear: () => void;
   onGetEstimate: () => void;
   onCallNow: () => void;
+}
+
+// Transform HomepageProvider to ProviderCard format
+function transformProviderForCard(provider: HomepageProvider) {
+  // Extract city and state from location string (e.g., "Dallas, TX" -> {city: "Dallas", state: "TX"})
+  const locationParts = provider.location.split(',').map(s => s.trim());
+  const city = locationParts[0] || '';
+  const state = locationParts[1] || '';
+  
+  // Split ownerName into first and last name
+  const nameParts = provider.ownerName.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+  
+  // Get the first service area as ZIP code
+  const zipCode = provider.serviceAreas[0] || '';
+  
+  return {
+    id: provider.id.toString(),
+    businessName: provider.businessName,
+    businessType: provider.services[0]?.category || 'Service Provider',
+    firstName,
+    lastName,
+    rating: provider.rating,
+    reviewCount: provider.totalJobs, // Using totalJobs as reviewCount for now
+    description: provider.description,
+    experience: `${provider.experience} years`, // Convert number to string with "years"
+    address: {
+      zipCode,
+      city,
+      state,
+    },
+    hourlyRate: provider.priceRange.min, // Using min price as hourly rate
+  };
 }
 
 export default function ResultsDisplay({
@@ -49,6 +66,11 @@ export default function ResultsDisplay({
     if (location) params.set('location', location);
     return params.toString();
   }, [service, category, location]);
+
+  // Transform providers for ProviderCard
+  const transformedProviders = React.useMemo(() => {
+    return providers.map(transformProviderForCard);
+  }, [providers]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
@@ -97,7 +119,7 @@ export default function ResultsDisplay({
           </div>
 
           <div className="flex flex-col gap-4 mb-6">
-            {providers.map((provider, index) => (
+            {transformedProviders.map((provider, index) => (
               <ProviderCard
                 key={provider.id}
                 provider={provider}
