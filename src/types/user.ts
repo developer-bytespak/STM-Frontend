@@ -49,6 +49,7 @@ export interface LSM extends User {
   role: 'lsm';
   managedProviders: string[];
   region: string;
+  area: string;
   performance?: LSMPerformance;
 }
 

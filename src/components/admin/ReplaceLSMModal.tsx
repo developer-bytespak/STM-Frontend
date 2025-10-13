@@ -15,6 +15,7 @@ interface ReplaceLSMModalProps {
     id: number;
     name: string;
     region: string;
+    area?: string;
   } | null;
   onSuccess?: () => void;
 }
@@ -35,6 +36,7 @@ export default function ReplaceLSMModal({
     newLsmPassword: '',
     oldLsmAction: 'deactivate' as 'delete' | 'deactivate' | 'reassign',
     newRegionForOldLsm: '',
+    newAreaForOldLsm: '',
   });
   const [error, setError] = useState('');
 
@@ -59,6 +61,7 @@ export default function ReplaceLSMModal({
         newLsmPassword: '',
         oldLsmAction: 'deactivate',
         newRegionForOldLsm: '',
+        newAreaForOldLsm: '',
       });
       setError('');
 
@@ -113,9 +116,15 @@ export default function ReplaceLSMModal({
       return;
     }
 
-    if (formData.oldLsmAction === 'reassign' && !formData.newRegionForOldLsm.trim()) {
-      setError('New region for old LSM is required when reassigning.');
-      return;
+    if (formData.oldLsmAction === 'reassign') {
+      if (!formData.newRegionForOldLsm.trim()) {
+        setError('New region for old LSM is required when reassigning.');
+        return;
+      }
+      if (!formData.newAreaForOldLsm.trim()) {
+        setError('New area for old LSM is required when reassigning.');
+        return;
+      }
     }
 
     replaceMutation.mutate(formData);
@@ -131,6 +140,7 @@ export default function ReplaceLSMModal({
         newLsmPassword: '',
         oldLsmAction: 'deactivate',
         newRegionForOldLsm: '',
+        newAreaForOldLsm: '',
       });
       setError('');
       onClose();
@@ -150,10 +160,10 @@ export default function ReplaceLSMModal({
               <div>
                 <p className="text-sm font-semibold text-blue-800">Replacing LSM: {lsm.name}</p>
                 <p className="text-sm text-blue-700 mt-1">
-                  Region: {lsm.region} • ID: {lsm.id}
+                  Region: {lsm.region} • Area: {lsm.area || 'N/A'} • ID: {lsm.id}
                 </p>
                 <p className="text-xs text-blue-600 mt-2">
-                  This will create a new LSM for the region and reassign all providers automatically.
+                  This will create a new LSM for the region+area and reassign all providers automatically.
                 </p>
               </div>
             </div>
@@ -286,7 +296,8 @@ export default function ReplaceLSMModal({
                 setFormData({ 
                   ...formData, 
                   oldLsmAction: e.target.value as 'delete' | 'deactivate' | 'reassign',
-                  newRegionForOldLsm: e.target.value === 'reassign' ? formData.newRegionForOldLsm : ''
+                  newRegionForOldLsm: e.target.value === 'reassign' ? formData.newRegionForOldLsm : '',
+                  newAreaForOldLsm: e.target.value === 'reassign' ? formData.newAreaForOldLsm : ''
                 });
                 if (error) setError('');
               }}
@@ -305,23 +316,43 @@ export default function ReplaceLSMModal({
           </div>
 
           {formData.oldLsmAction === 'reassign' && (
-            <div>
-              <label htmlFor="newRegionForOldLsm" className="block text-sm font-medium text-gray-700 mb-2">
-                New Region for Old LSM <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="newRegionForOldLsm"
-                name="newRegionForOldLsm"
-                type="text"
-                value={formData.newRegionForOldLsm}
-                onChange={(e) => {
-                  setFormData({ ...formData, newRegionForOldLsm: e.target.value });
-                  if (error) setError('');
-                }}
-                placeholder="Enter new region"
-                disabled={replaceMutation.isPending}
-              />
-            </div>
+            <>
+              <div>
+                <label htmlFor="newRegionForOldLsm" className="block text-sm font-medium text-gray-700 mb-2">
+                  New Region for Old LSM <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="newRegionForOldLsm"
+                  name="newRegionForOldLsm"
+                  type="text"
+                  value={formData.newRegionForOldLsm}
+                  onChange={(e) => {
+                    setFormData({ ...formData, newRegionForOldLsm: e.target.value });
+                    if (error) setError('');
+                  }}
+                  placeholder="Enter new region"
+                  disabled={replaceMutation.isPending}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="newAreaForOldLsm" className="block text-sm font-medium text-gray-700 mb-2">
+                  New Area for Old LSM <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="newAreaForOldLsm"
+                  name="newAreaForOldLsm"
+                  type="text"
+                  value={formData.newAreaForOldLsm}
+                  onChange={(e) => {
+                    setFormData({ ...formData, newAreaForOldLsm: e.target.value });
+                    if (error) setError('');
+                  }}
+                  placeholder="Enter new area"
+                  disabled={replaceMutation.isPending}
+                />
+              </div>
+            </>
           )}
         </div>
 

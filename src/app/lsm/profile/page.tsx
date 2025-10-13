@@ -12,6 +12,7 @@ interface LSMProfile {
   phone: string;
   address: string;
   region: string;
+  area: string;
   department: string;
   employeeId: string;
 }
@@ -31,6 +32,7 @@ export default function LSMProfile() {
     phone: '',
     address: '',
     region: '',
+    area: '',
     department: '',
     employeeId: ''
   });
@@ -42,6 +44,7 @@ export default function LSMProfile() {
     phone: '',
     address: '',
     region: '',
+    area: '',
     department: '',
     employeeId: ''
   });
@@ -73,6 +76,7 @@ export default function LSMProfile() {
             phone: lsmData.phone || '',
             address: lsmData.address || '',
             region: lsmData.region || '',
+            area: lsmData.area || '',
             department: lsmData.department || '',
             employeeId: lsmData.employeeId || ''
           };
@@ -123,6 +127,10 @@ export default function LSMProfile() {
 
     if (!editData.region.trim()) {
       newErrors.region = 'Region is required';
+    }
+
+    if (!editData.area.trim()) {
+      newErrors.area = 'Area is required';
     }
 
     if (!editData.department.trim()) {
@@ -254,8 +262,14 @@ export default function LSMProfile() {
                     {profileData.firstName} {profileData.lastName}
                   </h3>
                   <p className="text-gray-600">{profileData.email}</p>
-                  {profileData.region && (
-                    <p className="text-purple-600 font-medium">{profileData.region} Region</p>
+                  {(profileData.region || profileData.area) && (
+                    <p className="text-purple-600 font-medium">
+                      {profileData.region && profileData.area 
+                        ? `${profileData.region} - ${profileData.area}`
+                        : profileData.region 
+                        ? `${profileData.region} Region`
+                        : profileData.area}
+                    </p>
                   )}
                 </div>
               </div>
@@ -369,25 +383,43 @@ export default function LSMProfile() {
                     Region <span className="text-red-500">*</span>
                   </label>
                   {isEditing ? (
-                    <select
+                    <input
+                      type="text"
                       value={editData.region}
                       onChange={(e) => setEditData({ ...editData, region: e.target.value })}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                         errors.region ? 'border-red-500' : 'border-gray-300'
                       }`}
-                    >
-                      <option value="">Select Region</option>
-                      <option value="North">North</option>
-                      <option value="South">South</option>
-                      <option value="East">East</option>
-                      <option value="West">West</option>
-                      <option value="Central">Central</option>
-                    </select>
+                      placeholder="Enter region"
+                    />
                   ) : (
                     <p className="px-4 py-2 text-gray-900">{profileData.region}</p>
                   )}
                   {errors.region && (
                     <p className="text-red-500 text-sm mt-1">{errors.region}</p>
+                  )}
+                </div>
+
+                {/* Area */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Area <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.area}
+                      onChange={(e) => setEditData({ ...editData, area: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.area ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter area"
+                    />
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.area}</p>
+                  )}
+                  {errors.area && (
+                    <p className="text-red-500 text-sm mt-1">{errors.area}</p>
                   )}
                 </div>
 

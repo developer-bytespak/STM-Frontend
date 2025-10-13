@@ -22,6 +22,7 @@ export default function CreateLSMModal({ isOpen, onClose, onSuccess }: CreateLSM
     lastName: '',
     phoneNumber: '',
     region: '',
+    area: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,6 +42,7 @@ export default function CreateLSMModal({ isOpen, onClose, onSuccess }: CreateLSM
         lastName: '',
         phoneNumber: '',
         region: '',
+        area: '',
       });
       setErrors({});
       
@@ -149,6 +151,10 @@ export default function CreateLSMModal({ isOpen, onClose, onSuccess }: CreateLSM
       newErrors.region = 'Region is required';
     }
 
+    if (!formData.area.trim()) {
+      newErrors.area = 'Area is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -172,6 +178,7 @@ export default function CreateLSMModal({ isOpen, onClose, onSuccess }: CreateLSM
         lastName: '',
         phoneNumber: '',
         region: '',
+        area: '',
       });
       setErrors({});
       onClose();
@@ -306,14 +313,33 @@ export default function CreateLSMModal({ isOpen, onClose, onSuccess }: CreateLSM
             type="text"
             value={formData.region}
             onChange={handleChange}
-            placeholder="e.g., New York, Los Angeles"
+            placeholder="e.g., Texas, California"
             disabled={createLSMMutation.isPending}
           />
           {errors.region && (
             <p className="mt-1 text-sm text-red-600">{errors.region}</p>
           )}
+        </div>
+
+        {/* Area */}
+        <div>
+          <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-2">
+            Area <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="area"
+            name="area"
+            type="text"
+            value={formData.area}
+            onChange={handleChange}
+            placeholder="e.g., North Dallas, Houston Downtown"
+            disabled={createLSMMutation.isPending}
+          />
+          {errors.area && (
+            <p className="mt-1 text-sm text-red-600">{errors.area}</p>
+          )}
           <p className="mt-1 text-xs text-gray-500">
-            Each region can have only one LSM
+            Each area in a region can have only one LSM
           </p>
         </div>
 

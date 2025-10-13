@@ -7,14 +7,18 @@ import { session } from './session';
 
 // Create API client instance with session management
 export const apiClient = new ApiClient(
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' 
+    ? 'https://stm-backend-qcaf.onrender.com' 
+    : 'http://localhost:8000'),
   () => session.getAccessToken(),
   async () => {
     const refreshToken = session.getRefreshToken();
     if (!refreshToken) return false;
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/refresh`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' 
+        ? 'https://stm-backend-qcaf.onrender.com' 
+        : 'http://localhost:8000')}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

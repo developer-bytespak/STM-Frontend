@@ -1,7 +1,9 @@
 // Environment variables configuration
 export const env = {
   // API Configuration
-  API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  API_URL: process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' 
+    ? 'https://stm-backend-qcaf.onrender.com' 
+    : 'http://localhost:8000'),
   API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000'),
   
   // App Configuration
