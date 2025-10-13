@@ -9,6 +9,7 @@ import { apiClient } from './index';
 
 export interface LsmDashboardData {
   region: string;
+  area: string;
   summary: {
     totalProviders: number;
     totalJobs: number;

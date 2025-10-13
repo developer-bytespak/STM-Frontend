@@ -31,6 +31,7 @@ interface ServiceProviderFormData {
   phone: string;
   businessName: string;
   description: string;
+  area: string;
   services: ServiceData[];
   password: string;
   confirmPassword: string;
@@ -68,6 +69,7 @@ export default function ServiceProviderSignupPage() {
     phone: '',
     businessName: '',
     description: '',
+    area: '',
     services: [{
       id: '1',
       categoryType: '',
@@ -476,6 +478,7 @@ export default function ServiceProviderSignupPage() {
         experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
         location: extractedRegion || 'Not specified', // ✅ FIXED - now sends "Dallas, TX"
+        area: sanitizedData.area || undefined, // Optional area for granular LSM matching
         zipCodes: allZipCodes.length > 0 ? allZipCodes : undefined,
         minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
         maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
@@ -724,6 +727,25 @@ export default function ServiceProviderSignupPage() {
                         {errors.businessName && (
                           <p className="text-red-500 text-xs mt-1">{errors.businessName}</p>
                         )}
+                      </div>
+
+                      {/* Service Area Field */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-1">
+                          Service Area <span className="text-gray-500">(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="area"
+                          value={formData.area}
+                          onChange={(e) => handleInputChange('area', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500
+                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900"
+                          placeholder="e.g., North Dallas, Houston Downtown"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Specify your primary service area for better LSM matching
+                        </p>
                       </div>
 
                       {/* Password Field */}

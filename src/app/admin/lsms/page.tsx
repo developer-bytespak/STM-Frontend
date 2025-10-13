@@ -18,6 +18,7 @@ const mockLSMs = [
     email: 'lisa@lsm.com',
     phoneNumber: '+1234567891',
     region: 'New York',
+    area: 'Manhattan',
     status: 'active',
     providerCount: 45,
     closedDealsCount: 234,
@@ -31,6 +32,7 @@ const mockLSMs = [
     email: 'bob@lsm.com',
     phoneNumber: '+1234567892',
     region: 'Los Angeles',
+    area: 'Downtown LA',
     status: 'active',
     providerCount: 38,
     closedDealsCount: 189,
@@ -44,6 +46,7 @@ const mockLSMs = [
     email: 'sara@lsm.com',
     phoneNumber: '+1234567893',
     region: 'Chicago',
+    area: 'North Side',
     status: 'active',
     providerCount: 32,
     closedDealsCount: 156,
@@ -57,6 +60,7 @@ const mockLSMs = [
     email: 'mike@lsm.com',
     phoneNumber: '+1234567894',
     region: 'Houston',
+    area: 'Downtown',
     status: 'active',
     providerCount: 28,
     closedDealsCount: 134,
@@ -160,6 +164,15 @@ export default function LSMManagementPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span className="text-sm font-medium text-gray-900">{lsm.region}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'area',
+      label: 'Area',
+      render: (lsm) => (
+        <div className="text-sm">
+          <span className="text-gray-900 font-medium">{lsm.area || 'N/A'}</span>
         </div>
       ),
     },
@@ -296,8 +309,8 @@ export default function LSMManagementPage() {
           data={lsms || []}
           columns={columns}
           isLoading={isLoading}
-          searchPlaceholder="Search by name, email, or region..."
-          searchKeys={['name', 'email', 'region']}
+          searchPlaceholder="Search by name, email, region, or area..."
+          searchKeys={['name', 'email', 'region', 'area']}
           filters={filters}
           actions={actions}
           emptyMessage="No LSMs found"

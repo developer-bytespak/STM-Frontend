@@ -17,6 +17,7 @@ interface UpdateLSMModalProps {
     email: string;
     phoneNumber: string;
     region: string;
+    area?: string;
     status?: string;
   } | null;
   onSuccess?: () => void;
@@ -36,6 +37,7 @@ export default function UpdateLSMModal({
     email: '',
     phoneNumber: '',
     region: '',
+    area: '',
     status: 'active',
   });
   const [error, setError] = useState('');
@@ -54,6 +56,7 @@ export default function UpdateLSMModal({
         email: lsm.email || '',
         phoneNumber: lsm.phoneNumber || '',
         region: lsm.region || '',
+        area: lsm.area || '',
         status: lsm.status || 'active',
       });
     }
@@ -123,6 +126,11 @@ export default function UpdateLSMModal({
 
     if (!formData.region.trim()) {
       setError('Region is required.');
+      return;
+    }
+
+    if (!formData.area.trim()) {
+      setError('Area is required.');
       return;
     }
 
@@ -245,6 +253,25 @@ export default function UpdateLSMModal({
               if (error) setError('');
             }}
             placeholder="Enter region"
+            disabled={updateMutation.isPending}
+          />
+        </div>
+
+        {/* Area Input */}
+        <div>
+          <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-2">
+            Area <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="area"
+            name="area"
+            type="text"
+            value={formData.area}
+            onChange={(e) => {
+              setFormData({ ...formData, area: e.target.value });
+              if (error) setError('');
+            }}
+            placeholder="Enter area"
             disabled={updateMutation.isPending}
           />
         </div>

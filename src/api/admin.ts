@@ -149,6 +149,7 @@ class AdminApi {
     lastName: string;
     phoneNumber: string;
     region: string;
+    area: string;
   }): Promise<ApiResponse> {
     return apiClient.request('/admin/lsm/create', {
       method: 'POST',
@@ -320,6 +321,7 @@ class AdminApi {
       email?: string;
       phoneNumber?: string;
       region?: string;
+      area?: string;
       status?: string;
       password?: string;
     }
@@ -345,6 +347,7 @@ class AdminApi {
       newLsmPhoneNumber: string;
       oldLsmAction: 'delete' | 'deactivate' | 'reassign';
       newRegionForOldLsm?: string;
+      newAreaForOldLsm?: string;
     }
   ): Promise<ApiResponse> {
     return apiClient.request(`/admin/lsms/${oldLsmId}/replace`, {
