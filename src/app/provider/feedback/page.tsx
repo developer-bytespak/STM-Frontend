@@ -24,9 +24,10 @@ export default function ProviderFeedback() {
         setError(null);
         const data = await providerApi.getReviewStats();
         setStats(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching review stats:', err);
-        setError(err.message || 'Failed to load review statistics');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load review statistics';
+        setError(errorMessage);
       } finally {
         setIsLoadingStats(false);
       }
@@ -42,7 +43,12 @@ export default function ProviderFeedback() {
         setIsLoadingReviews(true);
         setError(null);
         
-        const params: any = {
+        const params: {
+          page: number;
+          limit: number;
+          minRating?: number;
+          maxRating?: number;
+        } = {
           page: currentPage,
           limit: 10,
         };
@@ -75,9 +81,10 @@ export default function ProviderFeedback() {
         } else {
           setReviews(data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching reviews:', err);
-        setError(err.message || 'Failed to load reviews');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load reviews';
+        setError(errorMessage);
         // Set empty reviews on error
         setReviews({
           data: [],
@@ -118,7 +125,7 @@ export default function ProviderFeedback() {
       // TODO: Show review detail in a modal or navigate to detail page
       console.log('Review details:', reviewDetail);
       alert(`Review Details:\nRating: ${reviewDetail.rating}\nFeedback: ${reviewDetail.feedback}\nJob Price: $${reviewDetail.job.price}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching review details:', err);
       alert('Failed to load review details');
     }

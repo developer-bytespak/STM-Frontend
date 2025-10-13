@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RequestServiceDto } from '@/api/provider';
+import { SERVICES, searchServices, getGranularServices } from '@/data/services';
 
 interface ServiceRequestFormProps {
   onSubmit: (data: RequestServiceDto) => Promise<void>;
@@ -18,20 +19,11 @@ export default function ServiceRequestForm({ onSubmit, loading }: ServiceRequest
 
   const [questions, setQuestions] = useState<string[]>(['']);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serviceSuggestions, setServiceSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const categories = [
-    'Plumbing',
-    'Electrical',
-    'HVAC',
-    'Cleaning',
-    'Painting',
-    'Carpentry',
-    'Landscaping',
-    'Appliance Repair',
-    'Roofing',
-    'Flooring',
-    'Other'
-  ];
+  // Get all categories from services.ts
+  const categories = Object.keys(SERVICES);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,28 +68,103 @@ export default function ServiceRequestForm({ onSubmit, loading }: ServiceRequest
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
+  // Handle service name input with autocomplete
+  const handleServiceNameChange = (value: string) => {
+    setFormData({ ...formData, serviceName: value });
+    setErrors({ ...errors, serviceName: '' });
+    
+    if (value.length >= 2) {
+      const results = searchServices(value);
+      const suggestions = results.map(result => 
+        result.isGranular ? result.granularService! : result.category
+      );
+      setServiceSuggestions(suggestions.slice(0, 10)); // Limit to 10 suggestions
+      setShowSuggestions(true);
+    } else {
+      setServiceSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle service suggestion selection
+  const handleServiceSelect = (service: string) => {
+    setFormData({ ...formData, serviceName: service });
+    setServiceSuggestions([]);
+    setShowSuggestions(false);
+    
+    // Auto-select category if it's a granular service
+    const category = Object.keys(SERVICES).find(cat => 
+      SERVICES[cat].includes(service)
+    );
+    if (category) {
+      setFormData(prev => ({ ...prev, category }));
+    }
+  };
+
+  // Handle category change - update service suggestions
+  const handleCategoryChange = (category: string) => {
+    setFormData({ ...formData, category });
+    setErrors({ ...errors, category: '' });
+    
+    // If service name is empty, show granular services for this category
+    if (!formData.serviceName && category) {
+      const granularServices = getGranularServices(category);
+      setServiceSuggestions(granularServices);
+      setShowSuggestions(true);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Service Name */}
-      <div>
+      <div className="relative">
         <label className="block text-sm font-semibold text-gray-700 mb-2">
           Service Name <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={formData.serviceName}
-          onChange={(e) => {
-            setFormData({ ...formData, serviceName: e.target.value });
-            setErrors({ ...errors, serviceName: '' });
+          onChange={(e) => handleServiceNameChange(e.target.value)}
+          onFocus={() => {
+            if (serviceSuggestions.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
+          onBlur={() => {
+            // Delay hiding suggestions to allow clicking on them
+            setTimeout(() => setShowSuggestions(false), 200);
           }}
           placeholder="e.g., Pool Maintenance, Window Washing, Pest Control"
           className={`w-full px-4 py-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             errors.serviceName ? 'border-red-500' : 'border-gray-300'
           }`}
         />
+        
+        {/* Service Suggestions Dropdown */}
+        {showSuggestions && serviceSuggestions.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {serviceSuggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleServiceSelect(suggestion)}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 focus:outline-none focus:bg-gray-50"
+              >
+                <div className="font-medium text-gray-900">{suggestion}</div>
+                <div className="text-sm text-gray-500">
+                  {SERVICES[suggestion] ? 'Category' : 'Service'}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        
         {errors.serviceName && (
           <p className="text-sm text-red-500 mt-1">{errors.serviceName}</p>
         )}
+        <p className="text-xs text-gray-500 mt-1">
+          Start typing to see available services and categories
+        </p>
       </div>
 
       {/* Category */}
@@ -107,10 +174,7 @@ export default function ServiceRequestForm({ onSubmit, loading }: ServiceRequest
         </label>
         <select
           value={formData.category}
-          onChange={(e) => {
-            setFormData({ ...formData, category: e.target.value });
-            setErrors({ ...errors, category: '' });
-          }}
+          onChange={(e) => handleCategoryChange(e.target.value)}
           className={`w-full px-4 py-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             errors.category ? 'border-red-500' : 'border-gray-300'
           }`}
