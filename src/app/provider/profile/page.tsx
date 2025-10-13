@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 import { SERVICES, getGranularServices } from '@/data/services';
+import { providerApi, ProfileData, UpdateProfileDto } from '@/api/provider';
 
 interface ServiceData {
   id: string;
@@ -38,8 +39,11 @@ export default function ProviderProfile() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [apiProfileData, setApiProfileData] = useState<ProfileData | null>(null);
   
   const [profileData, setProfileData] = useState<ProviderProfile>({
     firstName: '',
@@ -213,7 +217,7 @@ export default function ProviderProfile() {
     }
   };
 
-  // Load profile data from localStorage
+  // Load profile data from API
   useEffect(() => {
     // Wait for auth to finish loading
     if (isLoading) return;
@@ -223,46 +227,92 @@ export default function ProviderProfile() {
       return;
     }
 
-    // Load provider data from localStorage
-    const storedProviders = localStorage.getItem('providers');
-    if (storedProviders && user?.email) {
+    const loadProfileData = async () => {
       try {
-        const providers = JSON.parse(storedProviders);
-        const providerData = providers.find((p: any) => p.email === user.email);
+        setIsLoadingProfile(true);
+        setErrorMessage('');
         
-        if (providerData) {
-          const profile = {
-            firstName: providerData.firstName || '',
-            lastName: providerData.lastName || '',
-            email: providerData.email || '',
-            phone: providerData.phone || '',
-            businessName: providerData.businessName || '',
-            description: providerData.description || '',
-            services: providerData.services || [{
-              id: '1',
-              categoryType: '',
-              serviceType: '',
-              experience: '',
-              zipCodes: [''],
-              minPrice: '',
-              maxPrice: '',
-            }],
-            documents: providerData.documents || [{
-              file: null,
-              description: '',
-              type: ''
-            }]
-          };
-          setProfileData(profile);
-          setEditData(profile);
-          setProfileLoaded(true);
-        } else {
-          console.warn('No provider data found for:', user.email);
+        // Try to load from API first
+        const apiData = await providerApi.getProfile();
+        setApiProfileData(apiData);
+        
+        // Convert API data to local format
+        const profile = {
+          firstName: apiData.user.name.split(' ')[0] || '',
+          lastName: apiData.user.name.split(' ').slice(1).join(' ') || '',
+          email: apiData.user.email || '',
+          phone: apiData.user.phone || '',
+          businessName: apiData.business.businessName || '',
+          description: apiData.business.description || '',
+          services: apiData.services.map((service, index) => ({
+            id: service.id.toString(),
+            categoryType: service.category || '',
+            serviceType: service.name || '',
+            experience: apiData.business.experience?.toString() || '',
+            zipCodes: apiData.serviceAreas.map(area => area.zipcode) || [''],
+            minPrice: apiData.business.minPrice?.toString() || '',
+            maxPrice: apiData.business.maxPrice?.toString() || '',
+          })),
+          documents: apiData.documents.list.map(doc => ({
+            file: null,
+            description: doc.fileName,
+            type: doc.status
+          }))
+        };
+        
+        setProfileData(profile);
+        setEditData(profile);
+        setProfileLoaded(true);
+        
+      } catch (error: any) {
+        console.error('Failed to load profile from API:', error);
+        setErrorMessage('Failed to load profile data. Using local data.');
+        
+        // Fallback to localStorage if API fails
+        const storedProviders = localStorage.getItem('providers');
+        if (storedProviders && user?.email) {
+          try {
+            const providers = JSON.parse(storedProviders);
+            const providerData = providers.find((p: any) => p.email === user.email);
+            
+            if (providerData) {
+              const profile = {
+                firstName: providerData.firstName || '',
+                lastName: providerData.lastName || '',
+                email: providerData.email || '',
+                phone: providerData.phone || '',
+                businessName: providerData.businessName || '',
+                description: providerData.description || '',
+                services: providerData.services || [{
+                  id: '1',
+                  categoryType: '',
+                  serviceType: '',
+                  experience: '',
+                  zipCodes: [''],
+                  minPrice: '',
+                  maxPrice: '',
+                }],
+                documents: providerData.documents || [{
+                  file: null,
+                  description: '',
+                  type: ''
+                }]
+              };
+              setProfileData(profile);
+              setEditData(profile);
+              setProfileLoaded(true);
+            }
+          } catch (localError) {
+            console.error('Failed to load profile from localStorage:', localError);
+            setErrorMessage('Failed to load profile data.');
+          }
         }
-      } catch (error) {
-        console.error('Failed to load profile data:', error);
+      } finally {
+        setIsLoadingProfile(false);
       }
-    }
+    };
+
+    loadProfileData();
   }, [isAuthenticated, user, router, isLoading]);
 
   const handleEdit = () => {
@@ -306,47 +356,76 @@ export default function ProviderProfile() {
     if (!validateForm()) return;
 
     setIsSaving(true);
+    setErrorMessage('');
 
     try {
-      // Update in localStorage
-      const storedProviders = localStorage.getItem('providers');
-      if (storedProviders) {
-        const providers = JSON.parse(storedProviders);
-        const updatedProviders = providers.map((p: any) => 
-          p.email === profileData.email 
-            ? { ...p, ...editData }
-            : p
-        );
-        localStorage.setItem('providers', JSON.stringify(updatedProviders));
-      }
+      // Prepare API update data
+      const updateData: UpdateProfileDto = {
+        businessName: editData.businessName,
+        description: editData.description,
+        location: apiProfileData?.business.location || '',
+        minPrice: editData.services[0]?.minPrice ? parseFloat(editData.services[0].minPrice) : undefined,
+        maxPrice: editData.services[0]?.maxPrice ? parseFloat(editData.services[0].maxPrice) : undefined,
+        experience: editData.services[0]?.experience ? parseInt(editData.services[0].experience) : undefined,
+        serviceAreas: editData.services[0]?.zipCodes.filter(zip => zip.trim()) || []
+      };
 
-      // Update auth user data
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const userData = JSON.parse(authUser);
-        const updatedUser = {
-          ...userData,
-          name: `${editData.firstName} ${editData.lastName}`
-        };
-        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+      // Try to update via API first
+      try {
+        await providerApi.updateProfile(updateData);
+        
+        // Reload profile data from API
+        const updatedProfile = await providerApi.getProfile();
+        setApiProfileData(updatedProfile);
+        
+        setSuccessMessage('Profile updated successfully!');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(''), 3000);
+        
+      } catch (apiError: any) {
+        console.error('API update failed, falling back to localStorage:', apiError);
+        
+        // Fallback to localStorage update
+        const storedProviders = localStorage.getItem('providers');
+        if (storedProviders) {
+          const providers = JSON.parse(storedProviders);
+          const updatedProviders = providers.map((p: any) => 
+            p.email === profileData.email 
+              ? { ...p, ...editData }
+              : p
+          );
+          localStorage.setItem('providers', JSON.stringify(updatedProviders));
+        }
+
+        // Update auth user data
+        const authUser = localStorage.getItem('auth_user');
+        if (authUser) {
+          const userData = JSON.parse(authUser);
+          const updatedUser = {
+            ...userData,
+            name: `${editData.firstName} ${editData.lastName}`
+          };
+          localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        }
+
+        setSuccessMessage('Profile updated locally (API unavailable)');
+        setTimeout(() => setSuccessMessage(''), 3000);
       }
 
       setProfileData(editData);
       setIsEditing(false);
-      setSuccessMessage('Profile updated successfully!');
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Failed to save profile:', error);
-      setErrors({ firstName: 'Failed to save profile. Please try again.' });
+      setErrorMessage('Failed to save profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isLoadingProfile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -377,6 +456,16 @@ export default function ProviderProfile() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <span className="text-green-800 font-medium">{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span className="text-red-800 font-medium">{errorMessage}</span>
           </div>
         )}
 
