@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 import { SERVICES, getGranularServices } from '@/data/services';
-import { providerApi, ProfileData, UpdateProfileDto } from '@/api/provider';
+import { providerApi, ProfileData, UpdateProfileDto  } from '@/api/provider';
 
 interface ServiceData {
   id: string;
@@ -44,6 +44,8 @@ export default function ProviderProfile() {
   const [errorMessage, setErrorMessage] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [apiProfileData, setApiProfileData] = useState<ProfileData | null>(null);
+  const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<'active' | 'inactive'>('active');
   
   const [profileData, setProfileData] = useState<ProviderProfile>({
     firstName: '',
@@ -103,6 +105,38 @@ export default function ProviderProfile() {
     '6-10 years',
     'More than 10 years'
   ];
+
+  // Set initial status from API data
+  useEffect(() => {
+    if (apiProfileData?.status?.current) {
+      setCurrentStatus(apiProfileData.status.current as 'active' | 'inactive');
+    }
+  }, [apiProfileData]);
+
+  // Handle availability toggle
+  const handleAvailabilityToggle = async () => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    
+    setIsTogglingAvailability(true);
+    setErrorMessage('');
+    
+    try {
+      const response = await providerApi.setAvailability(newStatus);
+      setCurrentStatus(newStatus);
+      setSuccessMessage(response.message);
+      
+      // Reload profile to get updated data
+      const updatedProfile = await providerApi.getProfile();
+      setApiProfileData(updatedProfile);
+      
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error: any) {
+      console.error('Failed to update availability:', error);
+      setErrorMessage(error.message || 'Failed to update availability. Please try again.');
+    } finally {
+      setIsTogglingAvailability(false);
+    }
+  };
 
   // Helper functions for managing multiple services
   const addService = () => {
@@ -477,17 +511,36 @@ export default function ProviderProfile() {
               <h2 className="text-xl font-semibold text-gray-900">Service Provider Information</h2>
               <p className="text-sm text-gray-500 mt-1">Update your business and personal details</p>
             </div>
-            {!isEditing && (
+            <div className="flex items-center gap-3">
+              {/* Availability Toggle Button */}
               <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
+                onClick={handleAvailabilityToggle}
+                disabled={isTogglingAvailability || isEditing}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                  currentStatus === 'active'
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Profile
+                <div className={`w-2 h-2 rounded-full ${
+                  currentStatus === 'active' ? 'bg-green-600' : 'bg-gray-600'
+                }`}></div>
+                {isTogglingAvailability ? 'Updating...' : currentStatus === 'active' ? 'Available' : 'Unavailable'}
               </button>
-            )}
+              
+              {/* Edit Profile Button */}
+              {!isEditing && (
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Profile
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Card Body */}
@@ -626,20 +679,6 @@ export default function ProviderProfile() {
                 {/* Services Section */}
                 {isEditing && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-medium text-gray-900">Services Offered</h4>
-                      <button
-                        type="button"
-                        onClick={addService}
-                        className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors text-sm font-medium"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Add Service
-                      </button>
-                    </div>
-
                     <div className="space-y-4">
                       {editData.services.map((service, serviceIndex) => (
                         <div key={service.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -869,8 +908,12 @@ export default function ProviderProfile() {
               <h3 className="text-sm font-medium text-gray-900">Account Type</h3>
               <p className="text-sm text-gray-600 mt-1">Service Provider Account</p>
             </div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-              Active
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+              currentStatus === 'active' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {currentStatus === 'active' ? 'Active' : 'Inactive'}
             </span>
           </div>
         </div>
