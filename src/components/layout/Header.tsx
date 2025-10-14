@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { NotificationBell } from '@/components/notifications';
 
 interface HeaderProps {
   userRole?: 'customer' | 'service_provider' | 'admin' | 'local_service_manager';
@@ -83,8 +84,12 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
             </Link>
             
             {userRole && userName ? (
-              // Authenticated User Menu
-              <div className="relative" ref={profileRef}>
+              <>
+                {/* Notification Bell - Only for authenticated users */}
+                <NotificationBell userRole={userRole} />
+                
+                {/* Authenticated User Menu */}
+                <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -141,7 +146,8 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </>
             ) : (
               // Unauthenticated Auth Buttons
               <>
