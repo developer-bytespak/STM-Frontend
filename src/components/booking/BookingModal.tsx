@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useChat, BookingFormData } from '@/contexts/ChatContext';
+import { customerApi } from '@/api/customer';
+import { useAuth } from '@/hooks/useAuth';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -9,6 +11,8 @@ interface BookingModalProps {
   providerId: string;
   providerName: string;
   serviceType: string;
+  serviceId?: number;  // Backend service ID
+  providerServiceAreas?: string[];  // Provider's zip codes
   mode?: 'customer-booking' | 'sp-quote';
   initialData?: BookingFormData;
   customerName?: string;
@@ -20,12 +24,15 @@ export default function BookingModal({
   providerId, 
   providerName, 
   serviceType,
+  serviceId,
+  providerServiceAreas,
   mode = 'customer-booking',
   initialData,
   customerName
 }: BookingModalProps) {
   const { createConversation } = useChat();
-  const [formData, setFormData] = useState<BookingFormData>(() => {
+  const { user } = useAuth();
+  const [formData, setFormData] = useState<BookingFormData & { address?: string; zipcode?: string }>(() => {
     if (mode === 'sp-quote' && initialData) {
       return initialData;
     }
@@ -36,15 +43,18 @@ export default function BookingModal({
       budget: '',
       preferredDate: '',
       urgency: '3-7 days',
-      additionalDetails: ''
+      additionalDetails: '',
+      address: (user as any)?.address || '',
+      zipcode: (user as any)?.zipcode || ''
     };
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate form
@@ -55,6 +65,14 @@ export default function BookingModal({
     if (!formData.budget.trim()) {
       newErrors.budget = 'Please provide your budget';
     }
+    if (mode === 'customer-booking') {
+      if (!formData.address?.trim()) {
+        newErrors.address = 'Please provide your address';
+      }
+      if (!formData.zipcode?.trim()) {
+        newErrors.zipcode = 'Please provide your zipcode';
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -62,22 +80,62 @@ export default function BookingModal({
     }
 
     if (mode === 'customer-booking') {
-      // Create conversation with form data
-      createConversation(providerId, providerName, formData);
+      setIsSubmitting(true);
+      setErrors({});
       
-      // Close modal
-      onClose();
-      
-      // Reset form
-      setFormData({
-        serviceType: serviceType,
-        description: '',
-        dimensions: '',
-        budget: '',
-        preferredDate: '',
-        urgency: '3-7 days',
-        additionalDetails: ''
-      });
+      try {
+        // ==================== CREATE JOB IN BACKEND ====================
+        
+        // Validate required fields
+        if (!serviceId) {
+          throw new Error('Service ID is required. Please select a service first.');
+        }
+        
+        const jobResponse = await customerApi.createJob({
+          serviceId: serviceId,  // Numeric service ID (required)
+          providerId: providerId,  // Provider ID as string (backend validates numeric string)
+          price: parseFloat(formData.budget) || undefined,  // Budget as number (top-level for backend)
+          location: formData.address || '',  // From form input
+          zipcode: formData.zipcode || '',   // From form input
+          answers: {                   // Wrapped answers object (required)
+            description: formData.description,
+            urgency: formData.urgency,
+            dimensions: formData.dimensions,
+            additionalDetails: formData.additionalDetails,
+            budget: formData.budget,  // Keep in answers for reference
+          },
+          preferredDate: formData.preferredDate || undefined,
+          requiresInPersonVisit: false,
+        });
+
+        const jobId = jobResponse.id;
+
+        // ==================== CREATE CHAT WITH JOB ID ====================
+        createConversation(providerId, providerName, formData, jobId);
+        
+        // Close modal
+        onClose();
+        
+        // Reset form
+        setFormData({
+          serviceType: serviceType,
+          description: '',
+          dimensions: '',
+          budget: '',
+          preferredDate: '',
+          urgency: '3-7 days',
+          additionalDetails: '',
+          address: '',
+          zipcode: ''
+        });
+      } catch (error: any) {
+        console.error('Failed to create job:', error);
+        setErrors({ 
+          description: error.message || 'Failed to create job request. Please try again.' 
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     } else if (mode === 'sp-quote') {
       // Handle SP quote submission
       alert(`Sending quote to ${customerName}:\n\nService: ${formData.serviceType}\nBudget: $${formData.budget}\n\nIn production, this will:\n- Send quote to customer\n- Update request status to 'quoted'\n- Notify customer via email/SMS`);
@@ -233,6 +291,73 @@ export default function BookingModal({
             </div>
           </div>
 
+          {/* Address (Customer Booking Only) */}
+          {mode === 'customer-booking' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Service Address
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.address || ''}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="123 Main St, Dallas, TX"
+                className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                  errors.address ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.address && (
+                <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+              )}
+            </div>
+          )}
+
+          {/* Zipcode (Customer Booking Only) */}
+          {mode === 'customer-booking' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Service Area / Zipcode
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              {providerServiceAreas && providerServiceAreas.length > 0 ? (
+                <select
+                  value={formData.zipcode || ''}
+                  onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
+                  className={`w-full px-4 py-3 border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                    errors.zipcode ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select service area</option>
+                  {providerServiceAreas.map((area, index) => (
+                    <option key={index} value={area}>
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={formData.zipcode || ''}
+                  onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
+                  placeholder="75001 - Dallas, TX"
+                  className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                    errors.zipcode ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+              )}
+              {errors.zipcode && (
+                <p className="text-sm text-red-500 mt-1">{errors.zipcode}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                {providerServiceAreas && providerServiceAreas.length > 0 
+                  ? 'Select from provider\'s service areas'
+                  : 'Format: 75001 - Dallas, TX (must match provider\'s service area)'
+                }
+              </p>
+            </div>
+          )}
+
           {/* Preferred Date */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -294,9 +419,15 @@ export default function BookingModal({
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg"
+            disabled={isSubmitting}
+            className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {mode === 'sp-quote' ? 'Send Quote to Customer' : 'Submit Request & Start Chat'}
+            {isSubmitting 
+              ? 'Creating Job Request...' 
+              : mode === 'sp-quote' 
+              ? 'Send Quote to Customer' 
+              : 'Submit Request & Start Chat'
+            }
           </button>
 
           <p className="text-sm text-gray-600 text-center">

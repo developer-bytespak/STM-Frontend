@@ -10,36 +10,62 @@ import { MyRequestsCard } from '@/components/provider';
 function ProviderDashboardContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const [approvalStatus, setApprovalStatus] = useState<string>('pending');
+  const [approvalStatus, setApprovalStatus] = useState<string>('checking');
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check approval status from URL params or localStorage
-    const status = searchParams.get('status') || localStorage.getItem('approval_status') || 'approved';
-    setApprovalStatus(status);
-  }, [searchParams]);
-
-  useEffect(() => {
     const fetchDashboard = async () => {
-      if (approvalStatus !== 'approved') return;
-      
       try {
         setLoading(true);
+        
+        // Fetch dashboard data - backend will tell us the real approval status
         const data = await providerApi.getDashboard();
         setDashboardData(data);
         setError(null);
+        
+        // If we successfully got dashboard data, provider is approved
+        setApprovalStatus('approved');
+        // Update localStorage to match backend
+        localStorage.setItem('approval_status', 'approved');
+        
       } catch (err: any) {
         console.error('Failed to fetch dashboard:', err);
-        setError(err.message || 'Failed to load dashboard data');
+        
+        // Check if error is due to pending status
+        if (err.message?.includes('pending') || err.message?.includes('not approved') || err.status === 403) {
+          setApprovalStatus('pending');
+          localStorage.setItem('approval_status', 'pending');
+        } else {
+          // If dashboard exists in response despite error, provider might be approved
+          // but there's a data issue - still show approved dashboard
+          const urlStatus = searchParams.get('status');
+          if (urlStatus === 'approved') {
+            setApprovalStatus('approved');
+          } else {
+            setApprovalStatus('pending');
+          }
+          setError(err.message || 'Failed to load dashboard data');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboard();
-  }, [approvalStatus]);
+  }, [searchParams]);
+
+  if (loading && approvalStatus === 'checking') {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-navy-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking approval status...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (approvalStatus === 'pending') {
     return (

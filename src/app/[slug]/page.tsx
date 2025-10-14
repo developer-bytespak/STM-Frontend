@@ -476,6 +476,8 @@ function ProviderPageContent() {
           providerId={provider.id.toString()}
           providerName={provider.businessName || provider.ownerName}
           serviceType={searchedServiceObj?.name || activeServices[0]?.name || 'General Service'}
+          serviceId={searchedServiceObj?.id || activeServices[0]?.id || undefined}
+          providerServiceAreas={provider.serviceAreas || []}
         />
       )}
 
