@@ -35,6 +35,7 @@ export interface ChatConversation {
   providerName: string;
   customerId: string;
   customerName: string;
+  jobId?: number;  // Link to backend job
   lsmId?: string;
   lsmName?: string;
   messages: Message[];
@@ -46,7 +47,7 @@ export interface ChatConversation {
 interface ChatContextType {
   conversations: ChatConversation[];
   activeConversation: ChatConversation | null;
-  createConversation: (providerId: string, providerName: string, formData: BookingFormData) => void;
+  createConversation: (providerId: string, providerName: string, formData: BookingFormData, jobId?: number) => void;
   openConversation: (conversationId: string) => void;
   closeConversation: () => void;
   minimizeConversation: () => void; // Original minimize (to preview button)
@@ -89,7 +90,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [conversations]);
 
-  const createConversation = (providerId: string, providerName: string, formData: BookingFormData) => {
+  const createConversation = (providerId: string, providerName: string, formData: BookingFormData, jobId?: number) => {
     const conversationId = `conv-${Date.now()}`;
     const customerId = 'customer-1'; // This would come from auth context
     const customerName = 'John Doe'; // This would come from auth context
@@ -112,6 +113,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       providerName,
       customerId,
       customerName,
+      jobId,  // Link to backend job
       messages: [initialMessage],
       isOpen: true,
       isMinimized: false,

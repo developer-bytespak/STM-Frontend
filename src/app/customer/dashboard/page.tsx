@@ -1,11 +1,56 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { customerApi, CustomerDashboard as DashboardData } from '@/api/customer';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await customerApi.getDashboard();
+        console.log('Dashboard data received:', data); // Debug log
+        setDashboard(data);
+      } catch (err: any) {
+        console.error('Error fetching dashboard:', err);
+        setError(err.message || 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md mx-auto">
+          <p className="font-semibold">Error Loading Dashboard</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -17,6 +62,53 @@ export default function CustomerDashboard() {
         <p className="text-blue-100">
           Manage your bookings, find service providers, and track your service history.
         </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-600 text-sm font-medium">Active Jobs</span>
+            <span className="text-2xl">🔵</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.activeJobs || 0}</p>
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+            View all →
+          </Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-600 text-sm font-medium">Completed</span>
+            <span className="text-2xl">✅</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.completedJobs || 0}</p>
+          <Link href="/customer/avalied-jobs" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+            View history →
+          </Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-600 text-sm font-medium">Total Spent</span>
+            <span className="text-2xl">💰</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">${dashboard?.stats?.totalSpent || 0}</p>
+          <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+            View payments →
+          </Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-600 text-sm font-medium">Pending Feedback</span>
+            <span className="text-2xl">⭐</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.pendingFeedback || 0}</p>
+          <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+            Leave feedback →
+          </Link>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -82,23 +174,68 @@ export default function CustomerDashboard() {
         </Link>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Jobs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          </div>
-          <p className="text-gray-600 mb-4">No recent activity</p>
-          <Link
-            href="/"
-            className="text-navy-600 hover:text-navy-700 font-medium"
-          >
-            Find a service provider to get started →
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Recent Jobs</h2>
+          <Link href="/customer/bookings" className="text-navy-600 hover:text-navy-700 text-sm font-medium">
+            View All →
           </Link>
         </div>
+        
+        {!dashboard?.recentJobs || dashboard.recentJobs.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="text-gray-600 mb-4">No recent jobs</p>
+            <Link
+              href="/"
+              className="text-navy-600 hover:text-navy-700 font-medium"
+            >
+              Find a service provider to get started →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {dashboard.recentJobs.slice(0, 5).map((job) => (
+              <Link
+                key={job.id}
+                href={`/customer/bookings/${job.id}`}
+                className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{job.serviceName}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{job.provider.businessName}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {job.scheduledAt 
+                        ? `Scheduled: ${new Date(job.scheduledAt).toLocaleDateString()}` 
+                        : `Created: ${new Date(job.createdAt).toLocaleDateString()}`
+                      }
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      job.status === 'completed' 
+                        ? 'bg-green-100 text-green-800'
+                        : job.status === 'in_progress'
+                        ? 'bg-blue-100 text-blue-800'
+                        : job.status === 'cancelled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {job.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                    <p className="text-sm font-semibold text-gray-900 mt-2">${job.price}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
