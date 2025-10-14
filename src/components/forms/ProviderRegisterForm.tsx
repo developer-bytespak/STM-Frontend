@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneToE164 } from '@/lib/validation';
 import { registerServiceProvider, uploadDocument, ApiError, handleApiError } from '@/lib/apiService';
@@ -59,6 +60,40 @@ type SignupStep = 'form' | 'success';
 export default function ServiceProviderSignupPage() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/';
+  const planId = searchParams.get('planId');
+  
+  // Get plan information from plan ID
+  let selectedPlan = null;
+  if (planId) {
+    // Define service provider plans locally to avoid require() issues
+    const serviceProviderPlans = [
+      {
+        planId: 'provider-basic',
+        name: 'Basic',
+        price: '$0'
+      },
+      {
+        planId: 'provider-professional',
+        name: 'Professional',
+        price: '$99'
+      },
+      {
+        planId: 'provider-enterprise',
+        name: 'Enterprise',
+        price: 'Custom'
+      }
+    ];
+    
+    const plan = serviceProviderPlans.find(p => p.planId === planId);
+    if (plan) {
+      selectedPlan = {
+        planId: plan.planId,
+        planName: plan.name,
+        price: plan.price,
+        userType: 'provider'
+      };
+    }
+  }
   
   const [currentStep, setCurrentStep] = useState<SignupStep>('form');
   const [formStep, setFormStep] = useState<number>(1); // 1: Personal, 2: Service, 3: Documents, 4: Review
@@ -562,6 +597,28 @@ export default function ServiceProviderSignupPage() {
                 <p className="text-gray-600 text-sm">
                   Complete your application to start offering professional services.
                 </p>
+                
+                {/* Selected Plan Display */}
+                {selectedPlan && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <span className="text-green-600">📋</span>
+                      <span className="text-sm font-medium text-green-900">Selected Plan</span>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-lg font-semibold text-green-900">{selectedPlan.planName}</h3>
+                      <p className="text-sm text-green-700">{selectedPlan.price}</p>
+                    </div>
+                    <div className="mt-2 text-center">
+                      <Link 
+                        href="/pricing" 
+                        className="text-xs text-green-600 hover:text-green-500 underline"
+                      >
+                        Change Plan
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Progress Indicator */}

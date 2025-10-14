@@ -37,6 +37,40 @@ interface FormErrors {
 export default function RegisterForm() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
+  const planId = searchParams.get('planId');
+  
+  // Get plan information from plan ID
+  let selectedPlan = null;
+  if (planId) {
+    // Define customer plans locally to avoid require() issues
+    const customerPlans = [
+      {
+        planId: 'customer-free',
+        name: 'Free',
+        price: '$0'
+      },
+      {
+        planId: 'customer-premium',
+        name: 'Premium',
+        price: '$49'
+      },
+      {
+        planId: 'customer-corporate',
+        name: 'Corporate',
+        price: 'Custom'
+      }
+    ];
+    
+    const plan = customerPlans.find(p => p.planId === planId);
+    if (plan) {
+      selectedPlan = {
+        planId: plan.planId,
+        planName: plan.name,
+        price: plan.price,
+        userType: 'customer'
+      };
+    }
+  }
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -194,6 +228,28 @@ export default function RegisterForm() {
             <p className="text-gray-600 text-sm">
               Join us today! Create your customer account to get started.
             </p>
+            
+            {/* Selected Plan Display */}
+            {selectedPlan && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <span className="text-blue-600">📋</span>
+                  <span className="text-sm font-medium text-blue-900">Selected Plan</span>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-blue-900">{selectedPlan.planName}</h3>
+                  <p className="text-sm text-blue-700">{selectedPlan.price}</p>
+                </div>
+                <div className="mt-2 text-center">
+                  <Link 
+                    href="/pricing" 
+                    className="text-xs text-blue-600 hover:text-blue-500 underline"
+                  >
+                    Change Plan
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

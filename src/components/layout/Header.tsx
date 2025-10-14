@@ -74,6 +74,14 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
 
           {/* Right Side - User Menu or Auth Buttons */}
           <div className="flex items-center space-x-2">
+            {/* Pricing Link - Always visible */}
+            <Link
+              href="/pricing"
+              className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2 hidden sm:inline-block"
+            >
+              Pricing
+            </Link>
+            
             {userRole && userName ? (
               // Authenticated User Menu
               <div className="relative" ref={profileRef}>
@@ -223,6 +231,13 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
         {mobileMenuOpen && !userRole && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="space-y-2">
+              <Link
+                href="/pricing"
+                className="block w-full text-center text-gray-600 hover:text-navy-600 px-4 py-3 font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                View Pricing Plans
+              </Link>
               <Link
                 href={`/register${returnUrl}`}
                 className="block w-full text-center bg-navy-600 text-white px-4 py-3 rounded-lg hover:bg-navy-700 transition-colors font-medium"
