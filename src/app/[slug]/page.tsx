@@ -31,12 +31,18 @@ function ProviderPageContent() {
   const searchedCategory = searchParams.get('category');
   const searchedLocation = searchParams.get('location');
 
+  // Build the full current URL with search params for returnUrl
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : `/${slug}`;
+  const searchParamsString = searchParams.toString();
+  const fullReturnUrl = searchParamsString ? `${currentPath}?${searchParamsString}` : currentPath;
+
   // Debug logging
   console.log('Provider Page Debug:', {
     searchedService,
     searchedCategory,
     searchedLocation,
-    slug
+    slug,
+    fullReturnUrl
   });
 
   // Extract provider ID from slug for conversation check
@@ -499,7 +505,7 @@ function ProviderPageContent() {
 
             <div className="space-y-3">
               <Link
-                href={`/login?returnUrl=${encodeURIComponent(window.location.pathname)}`}
+                href={`/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`}
                 className="block w-full bg-navy-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors text-center"
               >
                 Log In
