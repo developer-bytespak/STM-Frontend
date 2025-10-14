@@ -92,40 +92,40 @@ export default function SPRequestModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Business Information</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">Business Information</h4>
                 <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Business Name:</span> {request.businessName}</p>
-                  <p><span className="font-medium">Contact Person:</span> {request.user.name}</p>
-                  <p><span className="font-medium">Email:</span> {request.user.email}</p>
-                  <p><span className="font-medium">Phone:</span> {request.user.phone}</p>
-                  <p><span className="font-medium">Location:</span> {request.location}</p>
-                  <p><span className="font-medium">Experience:</span> {request.experience} years ({request.experienceLevel})</p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Business Name:</span> <span className="font-medium">{request.businessName}</span></p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Contact Person:</span> <span className="font-medium">{request.user.name}</span></p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Email:</span> <span className="font-medium">{request.user.email}</span></p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Phone:</span> <span className="font-medium">{request.user.phone}</span></p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Location:</span> <span className="font-medium">{request.location}</span></p>
+                  <p className="text-gray-900"><span className="font-semibold text-gray-700">Experience:</span> <span className="font-medium">{request.experience} years ({request.experienceLevel})</span></p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Document Status</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">Document Status</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Total Documents:</span>
-                    <span className="font-medium">{request.documents.total}</span>
+                    <span className="text-gray-700">Total Documents:</span>
+                    <span className="font-semibold text-gray-900">{request.documents.total}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Verified:</span>
-                    <span className="text-green-600 font-medium">{request.documents.verified}</span>
+                    <span className="text-gray-700">Verified:</span>
+                    <span className="text-green-700 font-semibold">{request.documents.verified}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Pending:</span>
-                    <span className="text-yellow-600 font-medium">{request.documents.pending}</span>
+                    <span className="text-gray-700">Pending:</span>
+                    <span className="text-yellow-700 font-semibold">{request.documents.pending}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Rejected:</span>
-                    <span className="text-red-600 font-medium">{request.documents.rejected}</span>
-              </div>
+                    <span className="text-gray-700">Rejected:</span>
+                    <span className="text-red-700 font-semibold">{request.documents.rejected}</span>
+                  </div>
               <div className="mt-2 p-2 rounded bg-gray-50">
-                <span className={`font-medium ${canApprove ? 'text-green-600' : 'text-yellow-600'}`}>
+                <span className={`font-semibold ${canApprove ? 'text-green-700' : 'text-yellow-700'}`}>
                   {canApprove ? '✅ Ready for Activation' : '⏳ Pending Document Verification'}
                 </span>
               </div>
@@ -137,27 +137,27 @@ export default function SPRequestModal({
           {/* Documents List */}
           {request.documents.list && request.documents.list.length > 0 && (
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-700 mb-3">Uploaded Documents</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">Uploaded Documents</h4>
               <div className="space-y-2">
                 {request.documents.list.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex-1">
-                      <p className="font-medium text-gray-800">{doc.fileName}</p>
-                      <p className="text-xs text-gray-500">Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                      <p className="font-semibold text-gray-900">{doc.fileName}</p>
+                      <p className="text-xs text-gray-600">Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         doc.status === 'verified' 
-                          ? 'bg-green-100 text-green-700' 
+                          ? 'bg-green-100 text-green-800' 
                           : doc.status === 'rejected'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {doc.status === 'verified' ? '✅ Verified' : doc.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
                       </span>
                       <button
                         onClick={() => setViewingDocument({ id: doc.id, fileName: doc.fileName })}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors font-medium"
                       >
                         View
                       </button>
@@ -171,20 +171,20 @@ export default function SPRequestModal({
           {/* Services and Areas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">Requested Services</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">Requested Services</h4>
               <div className="flex flex-wrap gap-2">
                 {request.requestedServices.map((service, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                     {service}
                   </span>
                 ))}
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-700 mb-2">Service Areas</h4>
+              <h4 className="font-semibold text-gray-900 mb-3">Service Areas</h4>
               <div className="flex flex-wrap gap-2">
                 {request.serviceAreas.map((zipcode, index) => (
-                  <span key={index} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                  <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                     {zipcode}
                   </span>
                 ))}

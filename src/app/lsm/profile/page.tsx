@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { validatePhone, formatPhoneNumber } from '@/lib/validation';
+import { validatePhone } from '@/lib/validation';
+import { apiClient } from '@/api';
 
 interface LSMProfile {
   firstName: string;
@@ -51,45 +52,59 @@ export default function LSMProfile() {
 
   const [errors, setErrors] = useState<Partial<LSMProfile>>({});
 
-  // Load profile data from localStorage
+  // Load profile data from API
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (isLoading) return;
+    const fetchProfile = async () => {
+      // Wait for auth to finish loading
+      if (isLoading) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
 
-    // Load LSM data from localStorage
-    const storedLSMs = localStorage.getItem('lsms');
-    if (storedLSMs && user?.email) {
       try {
-        const lsms = JSON.parse(storedLSMs);
-        const lsmData = lsms.find((l: any) => l.email === user.email);
+        // Fetch profile from backend API
+        const response = await apiClient.getProfile() as any;
         
-        if (lsmData) {
+        if (response) {
           const profile = {
-            firstName: lsmData.firstName || '',
-            lastName: lsmData.lastName || '',
-            email: lsmData.email || '',
-            phone: lsmData.phone || '',
-            address: lsmData.address || '',
-            region: lsmData.region || '',
-            area: lsmData.area || '',
-            department: lsmData.department || '',
-            employeeId: lsmData.employeeId || ''
+            firstName: response.firstName || response.first_name || '',
+            lastName: response.lastName || response.last_name || '',
+            email: response.email || '',
+            phone: response.phoneNumber || response.phone_number || response.phone || '',
+            address: response.address || '',
+            region: response.region || '',
+            area: response.area || '',
+            department: response.department || '',
+            employeeId: response.employeeId || response.employee_id || ''
           };
           setProfileData(profile);
           setEditData(profile);
           setProfileLoaded(true);
-        } else {
-          console.warn('No LSM data found for:', user.email);
         }
       } catch (error) {
         console.error('Failed to load profile data:', error);
+        // Fallback to user data from auth
+        if (user) {
+          const profile = {
+            firstName: (user as any).firstName || user.name?.split(' ')[0] || '',
+            lastName: (user as any).lastName || user.name?.split(' ')[1] || '',
+            email: user.email,
+            phone: (user as any).phone || '',
+            address: '',
+            region: '',
+            area: '',
+            department: '',
+            employeeId: ''
+          };
+          setProfileData(profile);
+          setEditData(profile);
+        }
       }
-    }
+    };
+
+    fetchProfile();
   }, [isAuthenticated, user, router, isLoading]);
 
   const handleEdit = () => {
@@ -151,29 +166,14 @@ export default function LSMProfile() {
     setIsSaving(true);
 
     try {
-      // Update in localStorage
-      const storedLSMs = localStorage.getItem('lsms');
-      if (storedLSMs) {
-        const lsms = JSON.parse(storedLSMs);
-        const updatedLSMs = lsms.map((l: any) => 
-          l.email === profileData.email 
-            ? { ...l, ...editData }
-            : l
-        );
-        localStorage.setItem('lsms', JSON.stringify(updatedLSMs));
-      }
+      // Update profile via backend API
+      await apiClient.updateProfile({
+        firstName: editData.firstName,
+        lastName: editData.lastName,
+        phoneNumber: editData.phone,
+      });
 
-      // Update auth user data
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const userData = JSON.parse(authUser);
-        const updatedUser = {
-          ...userData,
-          name: `${editData.firstName} ${editData.lastName}`
-        };
-        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-      }
-
+      // Update local state
       setProfileData(editData);
       setIsEditing(false);
       setSuccessMessage('Profile updated successfully!');

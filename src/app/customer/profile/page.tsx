@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { validatePhone, formatPhoneNumber } from '@/lib/validation';
+import { validatePhone } from '@/lib/validation';
+import { apiClient } from '@/api';
 
 interface CustomerProfile {
   firstName: string;
@@ -39,41 +40,51 @@ export default function CustomerProfile() {
 
   const [errors, setErrors] = useState<Partial<CustomerProfile>>({});
 
-  // Load profile data from localStorage
+  // Load profile data from API
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (isLoading) return;
+    const fetchProfile = async () => {
+      // Wait for auth to finish loading
+      if (isLoading) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
 
-    // Load customer data from localStorage
-    const storedCustomers = localStorage.getItem('customers');
-    if (storedCustomers && user?.email) {
       try {
-        const customers = JSON.parse(storedCustomers);
-        const customerData = customers.find((c: any) => c.email === user.email);
+        // Fetch profile from backend API
+        const response = await apiClient.getProfile() as any;
         
-        if (customerData) {
+        if (response) {
           const profile = {
-            firstName: customerData.firstName || '',
-            lastName: customerData.lastName || '',
-            email: customerData.email || '',
-            phone: customerData.phone || '',
-            address: customerData.address || ''
+            firstName: response.firstName || response.first_name || '',
+            lastName: response.lastName || response.last_name || '',
+            email: response.email || '',
+            phone: response.phoneNumber || response.phone_number || response.phone || '',
+            address: response.address || ''
           };
           setProfileData(profile);
           setEditData(profile);
           setProfileLoaded(true);
-        } else {
-          console.warn('No customer data found for:', user.email);
         }
       } catch (error) {
         console.error('Failed to load profile data:', error);
+        // Fallback to user data from auth
+        if (user) {
+          const profile = {
+            firstName: (user as any).firstName || user.name?.split(' ')[0] || '',
+            lastName: (user as any).lastName || user.name?.split(' ')[1] || '',
+            email: user.email,
+            phone: (user as any).phone || '',
+            address: ''
+          };
+          setProfileData(profile);
+          setEditData(profile);
+        }
       }
-    }
+    };
+
+    fetchProfile();
   }, [isAuthenticated, user, router, isLoading]);
 
   const handleEdit = () => {
@@ -119,29 +130,14 @@ export default function CustomerProfile() {
     setIsSaving(true);
 
     try {
-      // Update in localStorage
-      const storedCustomers = localStorage.getItem('customers');
-      if (storedCustomers) {
-        const customers = JSON.parse(storedCustomers);
-        const updatedCustomers = customers.map((c: any) => 
-          c.email === profileData.email 
-            ? { ...c, ...editData }
-            : c
-        );
-        localStorage.setItem('customers', JSON.stringify(updatedCustomers));
-      }
+      // Update profile via backend API
+      await apiClient.updateProfile({
+        firstName: editData.firstName,
+        lastName: editData.lastName,
+        phoneNumber: editData.phone,
+      });
 
-      // Update auth user data
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const userData = JSON.parse(authUser);
-        const updatedUser = {
-          ...userData,
-          name: `${editData.firstName} ${editData.lastName}`
-        };
-        localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-      }
-
+      // Update local state
       setProfileData(editData);
       setIsEditing(false);
       setSuccessMessage('Profile updated successfully!');

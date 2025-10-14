@@ -490,12 +490,56 @@ export default function ServiceProviderSignupPage() {
       const primaryService = sanitizedData.services[0];
       const allZipCodes = sanitizedData.services.flatMap(service => service.zipCodes);
 
-      // Extract geographic region from first zip code
+      // Extract state/region from first zip code and clean zip codes
       // Zip codes are in format: "75001 - Dallas, TX" or "75001- Dallas, TX"
       const primaryZipCode = allZipCodes[0] || '';
-      const extractedRegion = primaryZipCode.includes('-') 
-        ? primaryZipCode.split('-')[1].trim()  // Extract "Dallas, TX" part after dash
-        : primaryZipCode.trim();  // Fallback to just the zip code if no dash found
+      let extractedRegion = 'Not specified';
+      let extractedLocation = 'Not specified';
+      
+      if (primaryZipCode.includes('-')) {
+        // Extract "Dallas, TX" part after dash
+        const locationPart = primaryZipCode.split('-')[1].trim();
+        extractedLocation = locationPart; // "Dallas, TX"
+        
+        // Extract state (part after comma)
+        if (locationPart.includes(',')) {
+          const statePart = locationPart.split(',')[1].trim(); // "TX"
+          
+          // Map state abbreviations to full names
+          const stateMap: Record<string, string> = {
+            'TX': 'Texas',
+            'CA': 'California',
+            'NY': 'New York',
+            'FL': 'Florida',
+            'IL': 'Illinois',
+            'PA': 'Pennsylvania',
+            'OH': 'Ohio',
+            'GA': 'Georgia',
+            'NC': 'North Carolina',
+            'MI': 'Michigan',
+            'OR': 'Oregon',
+            'WA': 'Washington',
+            // Add more state mappings as needed
+          };
+          
+          extractedRegion = stateMap[statePart.toUpperCase()] || statePart;
+        } else {
+          // No comma, use the whole location part as region
+          extractedRegion = locationPart;
+        }
+      } else {
+        // No dash, use zip code as fallback
+        extractedRegion = primaryZipCode.trim() || 'Not specified';
+        extractedLocation = primaryZipCode.trim() || 'Not specified';
+      }
+
+      // Clean zip codes - extract just the numbers, remove location part
+      const cleanedZipCodes = allZipCodes.map(zipCode => {
+        if (zipCode.includes('-')) {
+          return zipCode.split('-')[0].trim(); // "75001" from "75001 - Dallas, TX"
+        }
+        return zipCode.trim();
+      });
       
       const registerData: RegisterRequest = {
         // Required fields
@@ -505,16 +549,15 @@ export default function ServiceProviderSignupPage() {
         lastName: sanitizedData.lastName,
         phoneNumber: formatPhoneToE164(sanitizedData.phone), // Convert to E.164 format
         role: 'PROVIDER',
-        region: extractedRegion || 'Not specified', // ✅ FIXED - now sends "Dallas, TX"
+        region: extractedRegion, // ✅ FIXED - now sends "Texas" (state name for LSM matching)
         
         // Optional provider fields
         businessName: sanitizedData.businessName || undefined,
         serviceType: primaryService.serviceType || undefined,
         experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
-        location: extractedRegion || 'Not specified', // ✅ FIXED - now sends "Dallas, TX"
-        area: sanitizedData.area || undefined, // Optional area for granular LSM matching
-        zipCodes: allZipCodes.length > 0 ? allZipCodes : undefined,
+        location: extractedLocation, // ✅ Sends "Dallas, TX" (full location)
+        zipCodes: cleanedZipCodes.length > 0 ? cleanedZipCodes : undefined, // ✅ Sends ["75001", "75002"] without location
         minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
         maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
         acceptedTerms: formData.acceptedTerms || undefined,
