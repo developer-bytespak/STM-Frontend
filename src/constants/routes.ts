@@ -7,6 +7,7 @@ export const ROUTES = {
   HELP: '/help',
   PRIVACY: '/privacy',
   TERMS: '/terms',
+  PRICING: '/pricing',
   
   // Authentication routes
   LOGIN: '/login',

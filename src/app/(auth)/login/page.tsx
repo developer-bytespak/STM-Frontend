@@ -57,6 +57,10 @@ export default function LoginPage() {
         <div className="mt-6 text-center text-sm text-gray-600">
           Don&apos;t have an account?{' '}
           <div className="flex justify-center gap-4 mt-2">
+            <Link href="/pricing" className="text-navy-600 font-medium hover:underline">
+              View Pricing Plans
+            </Link>
+            <span className="text-gray-400">|</span>
             <Link href="/register" className="text-navy-600 font-medium hover:underline">
               Sign up as Customer
             </Link>
