@@ -240,65 +240,13 @@ export interface ActiveJob {
   created_at: string;
 }
 
-export interface JobRequestDetail {
-  id: number;
-  service: string;
-  category: string;
-  status: string;
-  price: number;
-  originalAnswers: any;
-  editedAnswers: any;
-  spAccepted: boolean;
-  pendingApproval: boolean;
-  location: string;
-  scheduledAt: string | null;
-  completedAt: string | null;
-  paidAt: string | null;
-  responseDeadline: string | null;
-  createdAt: string;
-}
 
-export interface JobRequestResponse {
-  job: JobRequestDetail;
-  customer: {
-    name: string;
-    phone: string;
-    address: string;
-  };
-  payment: {
-    amount: number;
-    method: string;
-    status: string;
-    markedAt: string | null;
-    notes: string | null;
-  } | null;
-  chatId: number | null;
-  actions: {
-    canMarkComplete: boolean;
-    canMarkPayment: boolean;
-  };
-}
 
-export interface RespondJobDto {
-  action: 'accept' | 'reject' | 'negotiate';
-  reason?: string;
-  negotiation?: {
-    editedAnswers?: any;
-    editedPrice?: number;
-    editedSchedule?: string;
-    notes?: string;
-  };
-}
 
-export interface RespondJobResponse {
-  jobId: number;
-  status: string;
-  spAccepted?: boolean;
-  pendingApproval?: boolean;
-  action: string;
-  message: string;
-  reason?: string;
-}
+
+
+
+
 
 
 export interface UserInfo {
@@ -502,16 +450,7 @@ class ProviderApi {
     return response;
   }
 
-  /**
-   * Get job details by ID
-   * Endpoint: GET /providers/jobs/:id
-   */
-  async getJobDetails(jobId: number): Promise<JobDetailsResponse> {
-    const response = await apiClient.request<JobDetailsResponse>(`/provider/jobs/${jobId}`, {
-      method: 'GET'
-    });
-    return response;
-  }
+  
 
   /**
    * Get all active jobs for current provider
@@ -524,33 +463,7 @@ class ProviderApi {
     return response;
   }
 
-  /**
-   * Get job request details by ID
-   * Endpoint: GET /provider/jobs/:id
-   */
-  async getJobRequestDetails(jobId: number): Promise<JobRequestResponse> {
-    const response = await apiClient.request<JobRequestResponse>(`/provider/jobs/${jobId}`, {
-      method: 'GET'
-    });
-    return response;
-  }
-
-  /**
-   * Respond to job request (accept, reject, negotiate)
-   * Endpoint: POST /provider/jobs/:id/respond
-   */
-  async respondToJob(jobId: number, dto: RespondJobDto): Promise<RespondJobResponse> {
-    const response = await apiClient.request<RespondJobResponse>(`/provider/jobs/${jobId}/respond`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(dto)
-    });
-    return response;
-  }
-
-
+  
   /**
    * Get provider profile
    * Endpoint: GET /providers/profile
@@ -584,6 +497,54 @@ class ProviderApi {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ status })
+    });
+    return response;
+  }
+
+  /**
+   * Get all pending job requests for current provider
+   * Endpoint: GET /provider/pending-jobs
+   */
+  async getPendingJobs(): Promise<any[]> {
+    const response = await apiClient.request<any[]>('/provider/pending-jobs', {
+      method: 'GET'
+    });
+    return response;
+  }
+
+  /**
+   * Get specific job details by ID
+   * Endpoint: GET /provider/jobs/:id
+   */
+  async getJobDetails(jobId: number): Promise<JobDetailsResponse> {
+    const response = await apiClient.request<JobDetailsResponse>(`/provider/jobs/${jobId}`, {
+      method: 'GET'
+    });
+    return response;
+  }
+
+  /**
+   * Respond to a job request (accept, reject, negotiate)
+   * Endpoint: POST /provider/jobs/:id/respond
+   */
+  async respondToJob(jobId: number, action: 'accept' | 'reject' | 'negotiate', data?: {
+    reason?: string;
+    negotiation?: {
+      editedPrice?: number;
+      editedSchedule?: string;
+      editedAnswers?: any;
+      notes: string;
+    };
+  }): Promise<any> {
+    const response = await apiClient.request(`/provider/jobs/${jobId}/respond`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action,
+        ...data
+      })
     });
     return response;
   }

@@ -45,15 +45,27 @@ export default function MyRequestsCard({ className = '' }: MyRequestsCardProps) 
   };
 
   const getApprovalStatus = (request: ServiceRequest) => {
+    // Both approved = fully approved
     if (request.lsm_approved === true && request.admin_approved === true) {
       return { status: 'approved', text: 'Approved' };
     }
-    if (request.lsm_approved === false || request.admin_approved === false) {
+    
+    // Check if there's a rejection reason (explicitly rejected)
+    if (request.lsm_rejection_reason || request.admin_rejection_reason) {
       return { status: 'rejected', text: 'Rejected' };
     }
-    if (request.lsm_approved === true && request.admin_approved === null) {
+    
+    // LSM approved, waiting for admin = admin review
+    if (request.lsm_approved === true && (request.admin_approved === null || request.admin_approved === false)) {
       return { status: 'pending', text: 'Admin Review' };
     }
+    
+    // Initial state or LSM review = pending
+    if (request.lsm_approved === null || request.lsm_approved === false) {
+      return { status: 'pending', text: 'LSM Review' };
+    }
+    
+    // Default to pending
     return { status: 'pending', text: 'LSM Review' };
   };
 
