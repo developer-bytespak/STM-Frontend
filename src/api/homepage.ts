@@ -11,7 +11,9 @@ import type {
   ProviderSearchResult,
   ProviderSearchParams,
   HomepageProvider,
+  ProviderDetail,
 } from '@/types/homepage';
+import { generateProviderSlug } from '@/lib/slug';
 
 // ==================== BACKEND RESPONSE TYPES ====================
 // These match the exact backend API responses
@@ -85,6 +87,7 @@ function transformProvider(backend: BackendProviderSearchResult['providers'][0])
   return {
     id: backend.id,
     businessName: backend.businessName,
+    slug: generateProviderSlug(backend.businessName, backend.id),
     ownerName: backend.ownerName,
     rating: backend.rating,
     totalJobs: backend.totalJobs,
@@ -223,6 +226,62 @@ class HomepageApi {
       throw new Error('Failed to search providers');
     } catch (error) {
       console.error('Error searching providers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed provider information by slug
+   * @param slug - Provider slug (e.g., "joes-plumbing-11")
+   * @returns Detailed provider information
+   */
+  async getProviderBySlug(slug: string): Promise<ProviderDetail> {
+    try {
+      // TODO: Replace with actual backend endpoint when ready
+      // For now, this will be implemented when backend is ready
+      const response = await apiClient.request<BackendResponse<any>>(
+        `/providers/${encodeURIComponent(slug)}`
+      );
+
+      // Unwrap backend response
+      if (response.success && response.data) {
+        // Transform backend data to ProviderDetail format
+        const provider = response.data;
+        
+        return {
+          id: provider.id,
+          businessName: provider.businessName,
+          slug: generateProviderSlug(provider.businessName, provider.id),
+          ownerName: provider.ownerName,
+          rating: provider.rating,
+          totalJobs: provider.totalJobs,
+          experience: provider.experience,
+          description: provider.description,
+          location: provider.location,
+          phoneNumber: provider.phoneNumber,
+          email: provider.email,
+          priceRange: {
+            min: provider.minPrice,
+            max: provider.maxPrice,
+          },
+          services: provider.services || [],
+          serviceAreas: provider.serviceAreas || [],
+          address: provider.address,
+          workingHours: provider.workingHours,
+          certifications: provider.certifications,
+          isAvailable: provider.isAvailable ?? true,
+          reviews: provider.reviews,
+        };
+      }
+
+      // Handle error response
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      throw new Error('Failed to fetch provider details');
+    } catch (error) {
+      console.error('Error fetching provider by slug:', error);
       throw error;
     }
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { OTPVerification } from '@/components/auth/OTPVerification';
 import { validateEmail, sanitizeInput } from '@/lib/validation';
 import { generateOTP, storeOTPSession, clearOTPSession } from '@/lib/otp';
@@ -224,12 +225,12 @@ export default function ForgotPasswordPage() {
 
             {/* Back to Login */}
             <div className="mt-6 text-center">
-              <a
+              <Link
                 href="/login"
                 className="text-navy-600 hover:text-navy-800 font-medium text-sm"
               >
                 ← Back to Login
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -370,12 +371,12 @@ export default function ForgotPasswordPage() {
               Your password has been successfully updated. You can now login with your new password.
             </p>
 
-            <a
+            <Link
               href="/login"
               className="w-full bg-navy-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors inline-block"
             >
               Go to Login
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { OTPVerification } from '@/components/auth/OTPVerification';
 import { validateEmail, sanitizeInput } from '@/lib/validation';
 import { generateOTP, storeOTPSession, clearOTPSession } from '@/lib/otp';
@@ -309,9 +310,9 @@ export default function AdminLoginPage() {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <p className="text-center text-sm text-gray-600">
                   Not an admin?{' '}
-                  <a href="/login" className="text-navy-600 font-medium hover:underline">
+                  <Link href="/login" className="text-navy-600 font-medium hover:underline">
                     Regular Login
-                  </a>
+                  </Link>
                 </p>
               </div>
             </>
