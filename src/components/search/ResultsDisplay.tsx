@@ -16,7 +16,7 @@ interface ResultsDisplayProps {
 }
 
 // Transform HomepageProvider to ProviderCard format
-function transformProviderForCard(provider: HomepageProvider) {
+function transformProviderForCard(provider: HomepageProvider, searchedService?: string) {
   // Extract city and state from location string (e.g., "Dallas, TX" -> {city: "Dallas", state: "TX"})
   const locationParts = provider.location.split(',').map(s => s.trim());
   const city = locationParts[0] || '';
@@ -30,10 +30,20 @@ function transformProviderForCard(provider: HomepageProvider) {
   // Get the first service area as ZIP code
   const zipCode = provider.serviceAreas[0] || '';
   
+  // Find the service that matches what user searched for
+  const searchedServiceObj = provider.services.find(s => s.name === searchedService);
+  
+  // Use searched service name if found, otherwise fall back to first service's category
+  // If no services available, use 'Service Provider' as fallback
+  const displayService = searchedServiceObj?.name || 
+    provider.services[0]?.category || 
+    'Service Provider';
+  
   return {
     id: provider.id.toString(),
+    slug: provider.slug,  // Pass slug from HomepageProvider
     businessName: provider.businessName,
-    businessType: provider.services[0]?.category || 'Service Provider',
+    businessType: displayService, // Show searched service name instead of category
     firstName,
     lastName,
     rating: provider.rating,
@@ -69,8 +79,8 @@ export default function ResultsDisplay({
 
   // Transform providers for ProviderCard
   const transformedProviders = React.useMemo(() => {
-    return providers.map(transformProviderForCard);
-  }, [providers]);
+    return providers.map(provider => transformProviderForCard(provider, service));
+  }, [providers, service]);
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-28">

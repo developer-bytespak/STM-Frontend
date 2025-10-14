@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { providerApi, ServiceRequest } from '@/api/provider';
 
 export default function MyRequestsPage() {
@@ -162,12 +163,12 @@ export default function MyRequestsPage() {
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No Service Requests Yet</h3>
           <p className="text-gray-600 mb-6">You haven&apos;t submitted any service requests yet.</p>
-          <a
+          <Link
             href="/provider/service-request"
             className="bg-navy-600 text-white px-6 py-3 rounded-lg hover:bg-navy-700 transition-colors"
           >
             Request New Service
-          </a>
+          </Link>
         </div>
       )}
     </div>

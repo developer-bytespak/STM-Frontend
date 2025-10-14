@@ -70,12 +70,12 @@ function ProviderDashboardContent() {
             </div>
 
             <div className="space-y-3">
-              <a
+              <Link
                 href="/login"
                 className="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-center"
               >
                 Logout
-              </a>
+              </Link>
             </div>
           </div>
         </div>

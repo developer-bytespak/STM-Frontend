@@ -1341,13 +1341,13 @@ export default function ServiceProviderSignupPage() {
                         />
                         <span className="text-sm text-gray-700">
                           I accept the{' '}
-                          <a href="/terms" className="text-navy-600 hover:underline">
+                          <Link href="/terms" className="text-navy-600 hover:underline">
                             Terms & Conditions
-                          </a>{' '}
+                          </Link>{' '}
                           and{' '}
-                          <a href="/privacy" className="text-navy-600 hover:underline">
+                          <Link href="/privacy" className="text-navy-600 hover:underline">
                             Privacy Policy
-                          </a>
+                          </Link>
                         </span>
                       </label>
                       {errors.acceptedTerms && (

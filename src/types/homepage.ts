@@ -36,6 +36,7 @@ export interface LocationResult {
 export interface HomepageProvider {
   id: number;
   businessName: string;
+  slug: string;  // SEO-friendly URL slug (e.g., "joes-plumbing-11")
   ownerName: string;
   rating: number;
   totalJobs: number;
@@ -55,6 +56,7 @@ export interface ProviderService {
   id: number;
   name: string;
   category: string;
+  isActive?: boolean;  // Whether service is currently active/offered
 }
 
 export interface ProviderSearchResult {
@@ -78,5 +80,48 @@ export interface ProviderFilters {
   minRating?: number;
   maxPrice?: number;
   minExperience?: number;
+}
+
+// ==================== PROVIDER DETAIL ====================
+
+/**
+ * Detailed provider information for provider detail page
+ * Includes all information from HomepageProvider plus additional fields
+ */
+export interface ProviderDetail extends HomepageProvider {
+  email?: string;
+  address?: {
+    street?: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  workingHours?: {
+    monday?: WorkingDay;
+    tuesday?: WorkingDay;
+    wednesday?: WorkingDay;
+    thursday?: WorkingDay;
+    friday?: WorkingDay;
+    saturday?: WorkingDay;
+    sunday?: WorkingDay;
+  };
+  certifications?: string[];
+  isAvailable?: boolean;
+  reviews?: ProviderReview[];
+}
+
+export interface WorkingDay {
+  isWorking: boolean;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface ProviderReview {
+  id: number;
+  customerName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  jobType?: string;
 }
 
