@@ -59,9 +59,12 @@ export default function TotalJobsCard({ job, onViewDetails }: TotalJobsCardProps
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
             {job.status.replace('_', ' ').toUpperCase()}
           </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(job.paymentStatus)}`}>
-            {job.paymentStatus.toUpperCase()}
-          </span>
+          {/* Only show payment status for completed jobs */}
+          {job.status === 'completed' && (
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(job.paymentStatus)}`}>
+              Payment: {job.paymentStatus.toUpperCase()}
+            </span>
+          )}
         </div>
       </div>
 

@@ -576,14 +576,24 @@ class ProviderApi {
     method: string;
     notes?: string;
   }): Promise<UpdateJobStatusResponse> {
+    // Map frontend action to backend enum values
+    const backendAction = action === 'MARK_COMPLETE' ? 'mark_complete' : 'mark_payment';
+    
+    const requestBody: any = {
+      action: backendAction
+    };
+
+    // Include payment details if action is MARK_PAYMENT
+    if (action === 'MARK_PAYMENT' && paymentDetails) {
+      requestBody.paymentDetails = paymentDetails;
+    }
+
     const response = await apiClient.request<UpdateJobStatusResponse>(`/provider/jobs/${jobId}/update-status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        action: 'MARK_COMPLETE'
-      })
+      body: JSON.stringify(requestBody)
     });
     return response;
   }
