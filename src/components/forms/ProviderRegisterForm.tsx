@@ -8,6 +8,7 @@ import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sa
 import { registerServiceProvider, uploadDocument, ApiError, handleApiError } from '@/lib/apiService';
 import { RegisterRequest } from '@/config/api';
 import { SERVICES, getGranularServices } from '@/data/services';
+import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 
 interface DocumentData {
   file: File | null;
@@ -15,12 +16,18 @@ interface DocumentData {
   type: string;
 }
 
+interface ZipCodeData {
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
 interface ServiceData {
   id: string;
   categoryType: string;
   serviceType: string;
   experience: string;
-  zipCodes: string[];
+  zipCodes: ZipCodeData[];
   minPrice: string;
   maxPrice: string;
 }
@@ -46,6 +53,7 @@ interface FormErrors {
   email?: string;
   phone?: string;
   businessName?: string;
+  area?: string;
   description?: string;
   services?: { [key: string]: string };
   password?: string;
@@ -110,7 +118,7 @@ export default function ServiceProviderSignupPage() {
       categoryType: '',
       serviceType: '',
       experience: '',
-      zipCodes: [''],
+      zipCodes: [{ zipCode: '', city: '', state: '' }],
       minPrice: '',
       maxPrice: '',
     }],
@@ -146,7 +154,7 @@ export default function ServiceProviderSignupPage() {
       categoryType: '',
       serviceType: '',
       experience: '',
-      zipCodes: [''],
+      zipCodes: [{ zipCode: '', city: '', state: '' }],
       minPrice: '',
       maxPrice: '',
     };
@@ -165,7 +173,7 @@ export default function ServiceProviderSignupPage() {
     }
   };
 
-  const updateService = (serviceId: string, field: keyof ServiceData, value: any) => {
+  const updateService = (serviceId: string, field: keyof ServiceData, value: string | ZipCodeData[] | boolean) => {
     setFormData(prev => ({
       ...prev,
       services: prev.services.map(service => 
@@ -175,7 +183,7 @@ export default function ServiceProviderSignupPage() {
   };
 
   const addZipCode = (serviceId: string) => {
-    updateService(serviceId, 'zipCodes', [...formData.services.find(s => s.id === serviceId)?.zipCodes || [], '']);
+    updateService(serviceId, 'zipCodes', [...formData.services.find(s => s.id === serviceId)?.zipCodes || [], { zipCode: '', city: '', state: '' }]);
   };
 
   const removeZipCode = (serviceId: string, index: number) => {
@@ -190,7 +198,52 @@ export default function ServiceProviderSignupPage() {
     const service = formData.services.find(s => s.id === serviceId);
     if (service) {
       const newZipCodes = [...service.zipCodes];
-      newZipCodes[index] = value;
+      const onlyDigits = value.replace(/\D/g, '').slice(0, 5);
+      newZipCodes[index] = { ...newZipCodes[index], zipCode: onlyDigits };
+      updateService(serviceId, 'zipCodes', newZipCodes);
+      
+      // Auto-fill city/state for this specific ZIP code
+      if (onlyDigits.length === 5) {
+        lookupZipCodePlace(onlyDigits)
+          .then((place) => {
+            if (place) {
+              // Use functional state update to avoid stale closure
+              setFormData(prev => ({
+                ...prev,
+                services: prev.services.map(s => 
+                  s.id === serviceId 
+                    ? {
+                        ...s,
+                        zipCodes: s.zipCodes.map((zip, i) => 
+                          i === index 
+                            ? { zipCode: onlyDigits, city: place.city, state: place.state }
+                            : zip
+                        )
+                      }
+                    : s
+                )
+              }));
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  };
+
+  const updateZipCity = (serviceId: string, index: number, city: string) => {
+    const service = formData.services.find(s => s.id === serviceId);
+    if (service) {
+      const newZipCodes = [...service.zipCodes];
+      newZipCodes[index] = { ...newZipCodes[index], city };
+      updateService(serviceId, 'zipCodes', newZipCodes);
+    }
+  };
+
+  const updateZipState = (serviceId: string, index: number, state: string) => {
+    const service = formData.services.find(s => s.id === serviceId);
+    if (service) {
+      const newZipCodes = [...service.zipCodes];
+      newZipCodes[index] = { ...newZipCodes[index], state };
       updateService(serviceId, 'zipCodes', newZipCodes);
     }
   };
@@ -303,6 +356,13 @@ export default function ServiceProviderSignupPage() {
       newErrors.businessName = 'Business name must be at least 2 characters';
     }
 
+    // Validate street address (area)
+    if (!formData.area.trim()) {
+      newErrors.area = 'Street address is required';
+    } else if (formData.area.trim().length < 5) {
+      newErrors.area = 'Street address must be at least 5 characters';
+    }
+
     // Validate password
     const passwordValidation = validatePassword(formData.password);
     if (!passwordValidation.valid) {
@@ -341,7 +401,7 @@ export default function ServiceProviderSignupPage() {
         serviceErrors[`${serviceKey}.experience`] = 'Please select your experience level';
       }
       
-      const validZipCodes = service.zipCodes.filter(zip => zip.trim().length > 0);
+      const validZipCodes = service.zipCodes.filter(zip => zip.zipCode.trim().length > 0);
       if (validZipCodes.length === 0) {
         serviceErrors[`${serviceKey}.zipCodes`] = 'At least one zip code is required';
       }
@@ -479,7 +539,13 @@ export default function ServiceProviderSignupPage() {
           categoryType: sanitizeInput(service.categoryType),
           serviceType: sanitizeInput(service.serviceType),
           experience: sanitizeInput(service.experience),
-          zipCodes: service.zipCodes.filter(zip => zip.trim() !== '').map(zip => sanitizeInput(zip.trim())),
+          zipCodes: service.zipCodes
+            .filter(zipData => zipData.zipCode.trim() !== '')
+            .map(zipData => ({
+              zipCode: sanitizeInput(zipData.zipCode.trim()),
+              city: sanitizeInput(zipData.city.trim()),
+              state: sanitizeInput(zipData.state.trim())
+            })),
           minPrice: sanitizeInput(service.minPrice),
           maxPrice: sanitizeInput(service.maxPrice),
         }))
@@ -488,58 +554,18 @@ export default function ServiceProviderSignupPage() {
       // Prepare registration data for backend API
       // For now, we'll use the first service as primary data for backend compatibility
       const primaryService = sanitizedData.services[0];
-      const allZipCodes = sanitizedData.services.flatMap(service => service.zipCodes);
+      const allZipCodes = sanitizedData.services.flatMap(service => service.zipCodes.map(zipData => zipData.zipCode));
 
-      // Extract state/region from first zip code and clean zip codes
-      // Zip codes are in format: "75001 - Dallas, TX" or "75001- Dallas, TX"
-      const primaryZipCode = allZipCodes[0] || '';
-      let extractedRegion = 'Not specified';
-      let extractedLocation = 'Not specified';
-      
-      if (primaryZipCode.includes('-')) {
-        // Extract "Dallas, TX" part after dash
-        const locationPart = primaryZipCode.split('-')[1].trim();
-        extractedLocation = locationPart; // "Dallas, TX"
-        
-        // Extract state (part after comma)
-        if (locationPart.includes(',')) {
-          const statePart = locationPart.split(',')[1].trim(); // "TX"
-          
-          // Map state abbreviations to full names
-          const stateMap: Record<string, string> = {
-            'TX': 'Texas',
-            'CA': 'California',
-            'NY': 'New York',
-            'FL': 'Florida',
-            'IL': 'Illinois',
-            'PA': 'Pennsylvania',
-            'OH': 'Ohio',
-            'GA': 'Georgia',
-            'NC': 'North Carolina',
-            'MI': 'Michigan',
-            'OR': 'Oregon',
-            'WA': 'Washington',
-            // Add more state mappings as needed
-          };
-          
-          extractedRegion = stateMap[statePart.toUpperCase()] || statePart;
-        } else {
-          // No comma, use the whole location part as region
-          extractedRegion = locationPart;
-        }
-      } else {
-        // No dash, use zip code as fallback
-        extractedRegion = primaryZipCode.trim() || 'Not specified';
-        extractedLocation = primaryZipCode.trim() || 'Not specified';
+      // Cleaned list (5-digit only)
+      const cleanedZipCodes = allZipCodes.map(z => z.replace(/\D/g, '').slice(0, 5)).filter(Boolean);
+
+      // Get city/state from primary service's first ZIP code
+      let resolvedCity = '';
+      let resolvedState = '';
+      if (primaryService.zipCodes.length > 0) {
+        resolvedCity = primaryService.zipCodes[0].city;
+        resolvedState = primaryService.zipCodes[0].state;
       }
-
-      // Clean zip codes - extract just the numbers, remove location part
-      const cleanedZipCodes = allZipCodes.map(zipCode => {
-        if (zipCode.includes('-')) {
-          return zipCode.split('-')[0].trim(); // "75001" from "75001 - Dallas, TX"
-        }
-        return zipCode.trim();
-      });
       
       const registerData: RegisterRequest = {
         // Required fields
@@ -549,14 +575,14 @@ export default function ServiceProviderSignupPage() {
         lastName: sanitizedData.lastName,
         phoneNumber: formatPhoneToE164(sanitizedData.phone), // Convert to E.164 format
         role: 'PROVIDER',
-        region: extractedRegion, // ✅ FIXED - now sends "Texas" (state name for LSM matching)
+        region: resolvedState || 'Not specified',
+        location: resolvedCity ? `${resolvedCity}, ${resolvedState}` : undefined,
         
         // Optional provider fields
         businessName: sanitizedData.businessName || undefined,
         serviceType: primaryService.serviceType || undefined,
         experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
-        location: extractedLocation, // ✅ Sends "Dallas, TX" (full location)
         zipCodes: cleanedZipCodes.length > 0 ? cleanedZipCodes : undefined, // ✅ Sends ["75001", "75002"] without location
         minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
         maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
@@ -829,22 +855,28 @@ export default function ServiceProviderSignupPage() {
                         )}
                       </div>
 
-                      {/* Service Area Field */}
+                      {/* Street Address Field */}
                       <div className="md:col-span-2">
                         <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-1">
-                          Service Area <span className="text-gray-500">(Optional)</span>
+                          Street Address <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           id="area"
                           value={formData.area}
                           onChange={(e) => handleInputChange('area', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500
-                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900"
-                          placeholder="e.g., North Dallas, Houston Downtown"
+                          className={`
+                            w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                            ${errors.area ? 'border-red-500' : 'border-gray-300'}
+                          `}
+                          placeholder="e.g., 123 Main St, Dallas, TX"
                         />
+                        {errors.area && (
+                          <p className="text-red-500 text-xs mt-1">{errors.area}</p>
+                        )}
                         <p className="text-xs text-gray-500 mt-1">
-                          Specify your primary service area for better LSM matching
+                          Specify your Street Address/Mailing Address
                         </p>
                       </div>
 
@@ -1130,34 +1162,87 @@ export default function ServiceProviderSignupPage() {
                             Service Zip Code(s) <span className="text-red-500">*</span>
                           </label>
                           
-                          {/* Zip Code Inputs */}
-                          <div className="space-y-2 max-w-2xl">
-                            {service.zipCodes.map((zipCode, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={zipCode}
-                                  onChange={(e) => updateZipCode(service.id, index, e.target.value)}
-                                  className={`
-                                    flex-1 px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
-                                    focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                                    ${errors.services?.[`${service.id}.zipCodes`] ? 'border-red-500' : 'border-gray-300'}
-                                  `}
-                                  placeholder="75001 - Dallas, TX"
-                                  maxLength={50}
-                                />
-                                {service.zipCodes.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeZipCode(service.id, index)}
-                                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Remove zip code"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                  </button>
-                                )}
+                          {/* Zip Code Inputs with Individual City/State */}
+                          <div className="space-y-4 max-w-4xl">
+                          {service.zipCodes.map((zipData, index) => (
+                              <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                {/* ZIP Code Row */}
+                                <div className="mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-1">
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        ZIP Code {index + 1} <span className="text-red-500">*</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={zipData.zipCode}
+                                        onChange={(e) => updateZipCode(service.id, index, e.target.value)}
+                                        className={`
+                                          w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                                          focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                          ${errors.services?.[`${service.id}.zipCodes`] ? 'border-red-500' : 'border-gray-300'}
+                                        `}
+                                        placeholder="12345"
+                                        maxLength={5}
+                                      />
+                                    </div>
+                                    {service.zipCodes.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeZipCode(service.id, index)}
+                                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 mt-6"
+                                        title="Remove zip code"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* City and State Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {/* City */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      City <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={zipData.city}
+                                      onChange={(e) => updateZipCity(service.id, index, e.target.value)}
+                                      className={`
+                                        w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                        ${errors.services?.[`${service.id}.zipCodes.${index}.city`] ? 'border-red-500' : 'border-gray-300'}
+                                      `}
+                                      placeholder="City"
+                                    />
+                                  </div>
+
+                                  {/* State */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      State (2-letter) <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={zipData.state}
+                                      onChange={(e) => {
+                                        const two = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+                                        updateZipState(service.id, index, two);
+                                      }}
+                                      className={`
+                                        w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                        ${errors.services?.[`${service.id}.zipCodes.${index}.state`] ? 'border-red-500' : 'border-gray-300'}
+                                      `}
+                                      placeholder="TX"
+                                      maxLength={2}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1179,7 +1264,7 @@ export default function ServiceProviderSignupPage() {
                           )}
 
                           <p className="text-xs text-gray-500 mt-2">
-                            Enter zip codes with location format: &quot;75001 - Dallas, TX&quot;
+                            Enter 5-digit ZIP codes (city/state will auto-fill for each ZIP)
                           </p>
                         </div>
                       </div>
@@ -1347,7 +1432,7 @@ export default function ServiceProviderSignupPage() {
                                 <div className="text-gray-600">Experience:</div>
                                 <div className="text-gray-900">{service.experience}</div>
                                 <div className="text-gray-600">Zip Codes:</div>
-                                <div className="text-gray-900">{service.zipCodes.filter(z => z.trim()).join(', ')}</div>
+                                <div className="text-gray-900">{service.zipCodes.filter(z => z.zipCode.trim()).map(z => z.zipCode).join(', ')}</div>
                                 <div className="text-gray-600">Price Range:</div>
                                 <div className="text-gray-900">${service.minPrice} - ${service.maxPrice}</div>
                               </div>

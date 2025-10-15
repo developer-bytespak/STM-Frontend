@@ -101,13 +101,10 @@ export const validateZipCode = (zipCode: string): ValidationResult => {
     return { valid: false, error: 'ZIP code is required' };
   }
 
-  // Remove all non-digit and non-hyphen characters
-  const cleanZipCode = zipCode.replace(/[^\d-]/g, '');
-  
-  // Check if it's a valid US ZIP code (5 digits or 5+4 format)
-  const zipRegex = /^\d{5}(-\d{4})?$/;
-  if (!zipRegex.test(cleanZipCode)) {
-    return { valid: false, error: 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)' };
+  const clean = zipCode.replace(/\D/g, '').slice(0, 5);
+  const zipRegex = /^\d{5}$/;
+  if (!zipRegex.test(clean)) {
+    return { valid: false, error: 'ZIP must be exactly 5 digits' };
   }
 
   return { valid: true };

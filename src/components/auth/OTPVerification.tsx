@@ -22,6 +22,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   onVerificationSuccess,
   onBack,
 }) => {
+  const [otpValue, setOtpValue] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState('');
 
@@ -45,6 +46,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   }, [startTimer]);
 
   const handleOTPComplete = async (otp: string) => {
+    setOtpValue(otp);
     setVerificationError('');
 
     // Validate format
@@ -66,6 +68,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       } else {
         // OTP is incorrect
         setVerificationError(result.error || 'Invalid OTP');
+        setOtpValue('');
       }
       
       setVerifying(false);
@@ -77,6 +80,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
 
     setVerificationError('');
     setError('');
+    setOtpValue('');
 
     const success = await resendOTP();
     
@@ -176,7 +180,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
                 }
               `}
             >
-              {sendingOTP ? 'Sending...' : "Didn&apos;t receive code? Resend"}
+              {sendingOTP ? 'Sending...' : "Didn't receive code? Resend"}
             </button>
             {resendAttempts > 0 && (
               <p className="text-xs text-gray-500 mt-1">

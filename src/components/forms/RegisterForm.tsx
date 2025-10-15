@@ -6,13 +6,15 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { validateEmail, validatePassword, validatePhone, validateZipCode, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
+import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 
 interface FormData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  region: string;
+  city: string;
+  state: string;
   address: string;
   zipCode: string;
   password: string;
@@ -25,7 +27,8 @@ interface FormErrors {
   lastName?: string;
   email?: string;
   phone?: string;
-  region?: string;
+  city?: string;
+  state?: string;
   address?: string;
   zipCode?: string;
   password?: string;
@@ -77,7 +80,8 @@ export default function RegisterForm() {
     lastName: '',
     email: '',
     phone: '',
-    region: '',
+    city: '',
+    state: '',
     address: '',
     zipCode: '',
     password: '',
@@ -90,6 +94,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register } = useAuth();
+  const [placeOptions, setPlaceOptions] = useState<{ city: string; state: string }[]>([]);
 
   const passwordStrength = getPasswordStrength(formData.password);
 
@@ -135,9 +140,12 @@ export default function RegisterForm() {
     newErrors.phone = phoneValidation.error;
   }
 
-  // Validate region
-  if (!formData.region.trim()) {
-    newErrors.region = 'Region is required';
+  // Validate city/state (required after ZIP resolution)
+  if (!formData.city.trim()) {
+    newErrors.city = 'City is required';
+  }
+  if (!formData.state.trim()) {
+    newErrors.state = 'State is required';
   }
 
   // Validate address
@@ -191,7 +199,7 @@ export default function RegisterForm() {
         lastName: sanitizeInput(formData.lastName.trim()),
         phoneNumber: formatPhoneNumber(sanitizeInput(formData.phone)),
         role: 'CUSTOMER',
-        region: sanitizeInput(formData.region.trim()),
+        region: sanitizeInput(formData.state.trim()),
         address: sanitizeInput(formData.address.trim()),
         zipcode: sanitizeInput(formData.zipCode.trim()),
       }, true, returnUrl || undefined); // Redirect after registration with returnUrl
@@ -354,30 +362,6 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-1">
-            Region <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="region"
-            name="region"
-            value={formData.region}
-            onChange={handleChange}
-            className={`
-              w-full px-4 py-2 border rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-green-500
-              ${errors.region ? 'border-red-500' : 'border-gray-300'}
-            `}
-            placeholder="Dallas, TX"
-            disabled={isLoading}
-          />
-          {errors.region && (
-            <p className="text-red-500 text-xs mt-1">{errors.region}</p>
-          )}
-        </div>
-
-
-        <div>
           <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
             Address <span className="text-red-500">*</span>
           </label>
@@ -409,19 +393,104 @@ export default function RegisterForm() {
             id="zipCode"
             name="zipCode"
             value={formData.zipCode}
-            onChange={handleChange}
+            onChange={(e) => {
+              const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 5);
+              handleChange({ target: { name: 'zipCode', value: onlyDigits } } as any);
+              // When 5 digits entered, fetch city/state
+              if (onlyDigits.length === 5) {
+                lookupZipCodePlace(onlyDigits)
+                  .then((place) => {
+                    if (place) {
+                      setFormData(prev => ({ ...prev, city: place.city || prev.city, state: place.state || prev.state }));
+                      setPlaceOptions([]);
+                    }
+                  })
+                  .catch(() => {})
+              } else {
+                setPlaceOptions([]);
+              }
+            }}
             className={`
               w-full px-4 py-2 border rounded-lg
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.zipCode ? 'border-red-500' : 'border-gray-300'}
             `}
-            placeholder="Enter your ZIP code (e.g., 12345)"
+            placeholder="Enter 5-digit ZIP (e.g., 12345)"
             disabled={isLoading}
           />
           {errors.zipCode && (
             <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>
           )}
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              className={`
+                w-full px-4 py-2 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-green-500
+                ${errors.city ? 'border-red-500' : 'border-gray-300'}
+              `}
+              placeholder="City"
+              disabled={isLoading}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+              State (2-letter) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="state"
+              name="state"
+              value={formData.state}
+              onChange={(e) => {
+                const two = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+                handleChange({ target: { name: 'state', value: two } } as any);
+              }}
+              className={`
+                w-full px-4 py-2 border rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-green-500
+                ${errors.state ? 'border-red-500' : 'border-gray-300'}
+              `}
+              placeholder="TX"
+              disabled={isLoading}
+            />
+            {errors.state && (
+              <p className="text-red-500 text-xs mt-1">{errors.state}</p>
+            )}
+          </div>
+        </div>
+
+        {placeOptions.length > 1 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select City/State</label>
+            <select
+              value={`${formData.city}|${formData.state}`}
+              onChange={(e) => {
+                const [c, s] = e.target.value.split('|');
+                setFormData(prev => ({ ...prev, city: c, state: s }));
+              }}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 border-gray-300"
+            >
+              <option value="">Choose...</option>
+              {placeOptions.map((p, idx) => (
+                <option key={idx} value={`${p.city}|${p.state}`}>{`${p.city}, ${p.state}`}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
