@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { validateEmail, validatePassword, validatePhone, validateZipCode, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
+import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 
 interface FormData {
   firstName: string;
@@ -397,16 +398,11 @@ export default function RegisterForm() {
               handleChange({ target: { name: 'zipCode', value: onlyDigits } } as any);
               // When 5 digits entered, fetch city/state
               if (onlyDigits.length === 5) {
-                fetch(`http://localhost:8000/utils/zip/${onlyDigits}`)
-                  .then(r => r.ok ? r.json() : null)
-                  .then((data) => {
-                    if (!data) return;
-                    const places = data.places || [];
-                    if (places.length === 1) {
-                      setFormData(prev => ({ ...prev, city: places[0].city || prev.city, state: places[0].state || prev.state }));
+                lookupZipCodePlace(onlyDigits)
+                  .then((place) => {
+                    if (place) {
+                      setFormData(prev => ({ ...prev, city: place.city || prev.city, state: place.state || prev.state }));
                       setPlaceOptions([]);
-                    } else if (places.length > 1) {
-                      setPlaceOptions(places);
                     }
                   })
                   .catch(() => {})

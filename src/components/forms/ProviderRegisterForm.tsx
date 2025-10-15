@@ -8,6 +8,7 @@ import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sa
 import { registerServiceProvider, uploadDocument, ApiError, handleApiError } from '@/lib/apiService';
 import { RegisterRequest } from '@/config/api';
 import { SERVICES, getGranularServices } from '@/data/services';
+import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 
 interface DocumentData {
   file: File | null;
@@ -203,12 +204,9 @@ export default function ServiceProviderSignupPage() {
       
       // Auto-fill city/state for this specific ZIP code
       if (onlyDigits.length === 5) {
-        fetch(`http://localhost:8000/utils/zip/${onlyDigits}`)
-          .then(r => r.ok ? r.json() : null)
-          .then((data) => {
-            if (!data) return;
-            const places = data.places || [];
-            if (places.length > 0) {
+        lookupZipCodePlace(onlyDigits)
+          .then((place) => {
+            if (place) {
               // Use functional state update to avoid stale closure
               setFormData(prev => ({
                 ...prev,
@@ -218,7 +216,7 @@ export default function ServiceProviderSignupPage() {
                         ...s,
                         zipCodes: s.zipCodes.map((zip, i) => 
                           i === index 
-                            ? { zipCode: onlyDigits, city: places[0].city, state: places[0].state }
+                            ? { zipCode: onlyDigits, city: place.city, state: place.state }
                             : zip
                         )
                       }
