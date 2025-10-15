@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { apiClient, session, ApiError } from '@/api';
 import { authCookies } from '@/lib/cookies';
 import { useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
   id: string | number;
@@ -144,6 +145,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
   }, []);
+
+  // Proactive Token Refresh - Check every minute
+  useEffect(() => {
+    const refreshTokenProactively = async () => {
+      const token = session.getAccessToken();
+      if (!token) return;
+
+      try {
+        // Decode token to check expiration
+        const decoded: any = jwtDecode(token);
+        const expiresAt = decoded.exp * 1000; // Convert to milliseconds
+        const now = Date.now();
+        const timeUntilExpiry = expiresAt - now;
+
+        // Refresh if token expires in less than 5 minutes
+        if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
+          console.log('🔄 Token expiring soon, refreshing proactively...');
+          const refreshToken = session.getRefreshToken();
+          
+          if (refreshToken) {
+            const response = await apiClient.refresh(refreshToken);
+            session.setAccessToken(response.accessToken);
+            if (response.refreshToken) {
+              session.setRefreshToken(response.refreshToken);
+            }
+            console.log('✅ Token refreshed successfully');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Proactive token refresh failed:', error);
+        // Don't logout here, let normal 401 flow handle it
+      }
+    };
+
+    // Run immediately on mount
+    refreshTokenProactively();
+
+    // Then check every minute
+    const interval = setInterval(refreshTokenProactively, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Refresh token when page becomes visible (user returns to tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && user) {
+        const token = session.getAccessToken();
+        if (!token) return;
+
+        try {
+          const decoded: any = jwtDecode(token);
+          const expiresAt = decoded.exp * 1000;
+          const now = Date.now();
+          const timeUntilExpiry = expiresAt - now;
+
+          // Refresh if token is close to expiring or already expired
+          if (timeUntilExpiry < 10 * 60 * 1000) {
+            console.log('🔄 Page focused - refreshing token...');
+            const refreshToken = session.getRefreshToken();
+            
+            if (refreshToken) {
+              const response = await apiClient.refresh(refreshToken);
+              session.setAccessToken(response.accessToken);
+              if (response.refreshToken) {
+                session.setRefreshToken(response.refreshToken);
+              }
+              console.log('✅ Token refreshed on page focus');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Token refresh on focus failed:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
 
   const login = async (email: string, password: string, returnUrl?: string) => {
     try {

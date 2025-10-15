@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone } from '@/lib/validation';
-import { apiClient } from '@/api';
+import { customerApi } from '@/api/customer';
+import Link from 'next/link';
 
 interface CustomerProfile {
   firstName: string;
@@ -53,14 +54,15 @@ export default function CustomerProfile() {
 
       try {
         // Fetch profile from backend API
-        const response = await apiClient.getProfile() as any;
+        const response = await customerApi.getProfile();
         
         if (response) {
+          const nameParts = response.user.name.split(' ');
           const profile = {
-            firstName: response.firstName || response.first_name || '',
-            lastName: response.lastName || response.last_name || '',
-            email: response.email || '',
-            phone: response.phoneNumber || response.phone_number || response.phone || '',
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            email: response.user.email,
+            phone: response.user.phone,
             address: response.address || ''
           };
           setProfileData(profile);
@@ -131,10 +133,11 @@ export default function CustomerProfile() {
 
     try {
       // Update profile via backend API
-      await apiClient.updateProfile({
+      await customerApi.updateProfile({
         firstName: editData.firstName,
         lastName: editData.lastName,
-        phoneNumber: editData.phone,
+        phone: editData.phone,
+        address: editData.address,
       });
 
       // Update local state
@@ -171,8 +174,13 @@ export default function CustomerProfile() {
   return (
     <div className="py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back to Dashboard */}
+        <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700 text-sm mb-4 inline-flex items-center gap-1">
+          ← Back to Dashboard
+        </Link>
+        
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-2">
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
           <p className="text-gray-600 mt-2">Manage your personal information</p>
         </div>

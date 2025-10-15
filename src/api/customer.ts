@@ -8,53 +8,99 @@ import { apiClient } from './index';
 // ==================== TYPE DEFINITIONS ====================
 
 export interface CustomerDashboard {
-  stats: {
-    activeJobs: number;
-    completedJobs: number;
+  summary: {
+    totalJobs: number;
     totalSpent: number;
     pendingFeedback: number;
   };
-  recentJobs: CustomerJob[];
-  upcomingAppointments?: Appointment[];
+  jobs: {
+    new: number;
+    in_progress: number;
+    completed: number;
+    paid: number;
+    cancelled: number;
+    rejected_by_sp: number;
+  };
+  recentJobs: Array<{
+    id: number;
+    service: string;
+    provider: string;
+    status: string;
+    price: number;
+    createdAt: string;
+  }>;
+  recentFeedback: Array<{
+    id: number;
+    rating: number;
+    feedback: string;
+    provider: string;
+    createdAt: string;
+  }>;
 }
 
 export interface CustomerJob {
   id: number;
-  serviceName: string;
-  serviceCategory?: string;
+  status: string;
+  service: {
+    id: number;
+    name: string;
+    category: string;
+  };
   provider: {
     id: number;
     businessName: string;
-    phone?: string;
-    rating?: number;
+    rating: number;
+    user: {
+      first_name: string;
+      last_name: string;
+      phone_number: string;
+    };
   };
-  status: string;
-  price: number;
-  scheduledAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  canCancel?: boolean;
-  canReassign?: boolean;
-  needsFeedback?: boolean;
-  timeline?: JobTimelineEvent[];
+  location: string;
+  scheduled_at: string | null;
+  completed_at: string | null;
+  created_at: string;
 }
 
-export interface JobTimelineEvent {
-  id: number;
-  action: string;
-  description: string;
-  performedBy: string;
-  performedAt: string;
+export interface CustomerJobDetails {
+  job: {
+    id: number;
+    service: string;
+    category: string;
+    status: string;
+    price: number;
+    originalAnswers: any;
+    editedAnswers: any;
+    spAccepted: boolean;
+    pendingApproval: boolean;
+    location: string;
+    scheduledAt: string | null;
+    completedAt: string | null;
+    createdAt: string;
+  };
+  provider: {
+    id: number;
+    businessName: string;
+    ownerName: string;
+    phone: string;
+    rating: number;
+    location: string;
+  };
+  payment: {
+    amount: number;
+    status: string;
+    method: string | null;
+    markedAt: string | null;
+  } | null;
+  chatId: number | null;
+  actions: {
+    canApproveEdits: boolean;
+    canCloseDeal: boolean;
+    canCancel: boolean;
+    canGiveFeedback: boolean;
+  };
 }
 
-export interface Appointment {
-  id: number;
-  jobId: number;
-  serviceName: string;
-  providerName: string;
-  scheduledAt: string;
-  address: string;
-}
 
 export interface CreateJobDto {
   serviceId: number;  // Required - numeric service ID
@@ -77,7 +123,7 @@ export interface CreateJobDto {
 
 export interface JobActionDto {
   action: 'approve_edits' | 'close_deal' | 'cancel';
-  reason?: string;
+  cancellationReason?: string;  // Backend expects cancellationReason, not reason
 }
 
 export interface ReassignJobDto {
@@ -87,27 +133,29 @@ export interface ReassignJobDto {
 
 export interface SubmitFeedbackDto {
   rating: number;
-  comment: string;
-  wouldRecommend: boolean;
+  feedback: string;  // Backend expects 'feedback', not 'comment'
+  punctualityRating?: number;  // Optional backend field
+  responseTime?: number;  // Optional backend field
 }
 
 export interface FileDisputeDto {
   jobId: number;
-  reason: string;
-  description: string;
 }
 
 export interface RequestNewServiceDto {
-  serviceName: string;
+  keyword: string;  // Backend expects 'keyword', not 'serviceName'
   description: string;
   region: string;
+  zipcode: string;  // Backend requires zipcode
 }
 
 export interface UpdateCustomerProfileDto {
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
+  phone?: string;  // Backend expects 'phone', not 'phoneNumber'
   address?: string;
+  zipcode?: string;  // Backend supports zipcode
+  region?: string;  // Backend supports region
 }
 
 // ==================== CUSTOMER API CLASS ====================
@@ -124,10 +172,10 @@ class CustomerApi {
 
   /**
    * Get all customer jobs
-   * Endpoint: GET /customers/jobs
+   * Endpoint: GET /customer/jobs
    */
   async getJobs(): Promise<CustomerJob[]> {
-    const response = await apiClient.request<CustomerJob[]>('/customers/jobs');
+    const response = await apiClient.request<CustomerJob[]>('/customer/jobs');
     return response;
   }
 
@@ -135,8 +183,8 @@ class CustomerApi {
    * Get job details by ID
    * Endpoint: GET /customers/jobs/:id
    */
-  async getJobDetails(jobId: number): Promise<CustomerJob> {
-    const response = await apiClient.request<CustomerJob>(`/customers/jobs/${jobId}`);
+  async getJobDetails(jobId: number): Promise<CustomerJobDetails> {
+    const response = await apiClient.request<CustomerJobDetails>(`/customers/jobs/${jobId}`);
     return response;
   }
 
@@ -156,8 +204,8 @@ class CustomerApi {
    * Perform job action (approve, cancel, close)
    * Endpoint: POST /customers/jobs/:id/action
    */
-  async performJobAction(jobId: number, data: JobActionDto): Promise<{ message: string }> {
-    const response = await apiClient.request<{ message: string }>(`/customers/jobs/${jobId}/action`, {
+  async performJobAction(jobId: number, data: JobActionDto): Promise<any> {
+    const response = await apiClient.request<any>(`/customers/jobs/${jobId}/action`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -166,10 +214,10 @@ class CustomerApi {
 
   /**
    * Reassign job to different provider
-   * Endpoint: POST /customers/jobs/:id/reassign
+   * Endpoint: POST /jobs/:id/reassign
    */
   async reassignJob(jobId: number, data: ReassignJobDto): Promise<{ message: string }> {
-    const response = await apiClient.request<{ message: string }>(`/customers/jobs/${jobId}/reassign`, {
+    const response = await apiClient.request<{ message: string }>(`/jobs/${jobId}/reassign`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -192,8 +240,17 @@ class CustomerApi {
    * Get jobs pending feedback
    * Endpoint: GET /customers/pending-feedback
    */
-  async getPendingFeedback(): Promise<CustomerJob[]> {
-    const response = await apiClient.request<CustomerJob[]>('/customers/pending-feedback');
+  async getPendingFeedback(): Promise<{
+    pendingCount: number;
+    jobs: Array<{
+      jobId: number;
+      service: string;
+      provider: string;
+      completedAt: string;
+      amount: number;
+    }>;
+  }> {
+    const response = await apiClient.request<any>('/customers/pending-feedback');
     return response;
   }
 
@@ -201,8 +258,8 @@ class CustomerApi {
    * File a dispute
    * Endpoint: POST /customers/disputes
    */
-  async fileDispute(data: FileDisputeDto): Promise<{ id: number; message: string }> {
-    const response = await apiClient.request<{ id: number; message: string }>('/customers/disputes', {
+  async fileDispute(data: FileDisputeDto): Promise<{ disputeId: number; message: string }> {
+    const response = await apiClient.request<{ disputeId: number; message: string }>('/customers/disputes', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -213,7 +270,20 @@ class CustomerApi {
    * Get customer profile
    * Endpoint: GET /customers/profile
    */
-  async getProfile(): Promise<any> {
+  async getProfile(): Promise<{
+    user: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+    address: string;
+    region: string;
+    zipcode: string;
+    statistics: {
+      totalJobs: number;
+      totalSpent: number;
+    };
+  }> {
     const response = await apiClient.request<any>('/customers/profile');
     return response;
   }
@@ -228,6 +298,15 @@ class CustomerApi {
       body: JSON.stringify(data),
     });
     return response;
+  }
+
+  /**
+   * Get customer dashboard
+   * Alias for getDashboard for consistency
+   * Endpoint: GET /customers/dashboard
+   */
+  async getDashboardData(): Promise<CustomerDashboard> {
+    return this.getDashboard();
   }
 
   /**

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { customerApi, CustomerJob } from '@/api/customer';
+import { useChat } from '@/contexts/ChatContext';
 
 export default function CustomerBookings() {
+  const { openConversationByJobId } = useChat();
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +35,17 @@ export default function CustomerBookings() {
   const filteredJobs = jobs.filter(job => {
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     const matchesSearch = !searchQuery || 
-      job.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.provider.businessName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  const handleOpenChat = (jobId: number) => {
+    const chatOpened = openConversationByJobId(jobId);
+    if (!chatOpened) {
+      alert('Chat not available for this job yet. Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
@@ -81,17 +90,22 @@ export default function CustomerBookings() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
-          <p className="text-gray-600 mt-1">View and manage your service requests</p>
-        </div>
-        <Link
-          href="/"
-          className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium"
-        >
-          + New Booking
+      <div>
+        <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700 text-sm mb-2 inline-flex items-center gap-1">
+          ← Back to Dashboard
         </Link>
+        <div className="flex items-center justify-between mt-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
+            <p className="text-gray-600 mt-1">View and manage your service requests</p>
+          </div>
+          <Link
+            href="/"
+            className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium"
+          >
+            + New Booking
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -153,29 +167,40 @@ export default function CustomerBookings() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{job.serviceName}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{job.service.name}</h3>
                       {getStatusBadge(job.status)}
                     </div>
                     <p className="text-sm text-gray-600 mb-1">
                       Provider: <span className="font-medium">{job.provider.businessName}</span>
                     </p>
-                    {job.scheduledAt && (
+                    <p className="text-sm text-gray-600 mb-1">
+                      Location: {job.location}
+                    </p>
+                    {job.scheduled_at && (
                       <p className="text-sm text-gray-600 mb-1">
-                        Scheduled: {new Date(job.scheduledAt).toLocaleDateString()} at {new Date(job.scheduledAt).toLocaleTimeString()}
+                        Scheduled: {new Date(job.scheduled_at).toLocaleDateString()} at {new Date(job.scheduled_at).toLocaleTimeString()}
                       </p>
                     )}
                     <p className="text-xs text-gray-500">
-                      Created: {new Date(job.createdAt).toLocaleDateString()}
+                      Created: {new Date(job.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-right ml-4">
-                    <p className="text-2xl font-bold text-gray-900">${job.price}</p>
+                  <div className="text-right ml-4 flex flex-col gap-2">
                     <Link
                       href={`/customer/bookings/${job.id}`}
-                      className="mt-2 inline-block text-sm text-navy-600 hover:text-navy-700 font-medium"
+                      className="inline-block text-sm text-navy-600 hover:text-navy-700 font-medium"
                     >
                       View Details →
                     </Link>
+                    <button
+                      onClick={() => handleOpenChat(job.id)}
+                      className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700 font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      Open Chat
+                    </button>
                   </div>
                 </div>
               </div>
@@ -190,9 +215,6 @@ export default function CustomerBookings() {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">
               Showing {filteredJobs.length} of {jobs.length} booking{jobs.length !== 1 ? 's' : ''}
-            </span>
-            <span className="text-gray-900 font-semibold">
-              Total Spent: ${filteredJobs.reduce((sum, job) => sum + job.price, 0).toFixed(2)}
             </span>
           </div>
         </div>
