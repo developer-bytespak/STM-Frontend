@@ -10,6 +10,8 @@ export default function TotalJobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedJobDetails, setSelectedJobDetails] = useState<JobDetailsResponse | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // State for filters and pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,53 +21,54 @@ export default function TotalJobsPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
+  // Fetch jobs function
+  const fetchJobs = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const params: {
+        fromDate?: string;
+        toDate?: string;
+        page: number;
+        limit: number;
+      } = {
+        page: currentPage,
+        limit: 6,
+      };
+
+      // Add date filters
+      if (fromDate) {
+        params.fromDate = fromDate;
+      }
+      if (toDate) {
+        params.toDate = toDate;
+      }
+
+      const data = await providerApi.getJobs(params);
+      setJobs(data);
+      
+    } catch (err: unknown) {
+      console.error('Error fetching jobs:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load jobs';
+      setError(errorMessage);
+      // Set empty jobs on error
+      setJobs({
+        data: [],
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 6,
+          totalPages: 0,
+        }
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch jobs with filters
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const params: {
-          fromDate?: string;
-          toDate?: string;
-          page: number;
-          limit: number;
-        } = {
-          page: currentPage,
-          limit: 6,
-        };
-
-        // Add date filters
-        if (fromDate) {
-          params.fromDate = fromDate;
-        }
-        if (toDate) {
-          params.toDate = toDate;
-        }
-
-        const data = await providerApi.getJobs(params);
-        setJobs(data);
-        
-      } catch (err: unknown) {
-        console.error('Error fetching jobs:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load jobs';
-        setError(errorMessage);
-        // Set empty jobs on error
-        setJobs({
-          data: [],
-          pagination: {
-            total: 0,
-            page: 1,
-            limit: 6,
-            totalPages: 0,
-          }
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchJobs();
   }, [currentPage, fromDate, toDate]);
 
@@ -77,6 +80,44 @@ export default function TotalJobsPage() {
     } catch (err: unknown) {
       console.error('Error fetching job details:', err);
       alert('Failed to load job details');
+    }
+  };
+
+  const handleMarkComplete = async (jobId: number) => {
+    try {
+      setIsUpdating(true);
+      setUpdateMessage(null);
+      
+      const response = await providerApi.updateJobStatus(jobId, 'MARK_COMPLETE');
+      
+      setUpdateMessage({ type: 'success', text: response.message });
+      
+      // Refresh job details
+      if (selectedJobDetails) {
+        const updatedDetails = await providerApi.getJobDetails(jobId);
+        setSelectedJobDetails(updatedDetails);
+      }
+      
+      // Refresh jobs list
+      await fetchJobs();
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setUpdateMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Failed to mark job complete:', err);
+      console.error('Error details:', err);
+      
+      // Show more detailed error message
+      let errorMessage = 'Failed to mark job as complete';
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.status) {
+        errorMessage = `Server error (${err.status})`;
+      }
+      
+      setUpdateMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -443,13 +484,26 @@ export default function TotalJobsPage() {
                   </div>
                 )}
 
+                {/* Update Message */}
+                {updateMessage && (
+                  <div className={`mb-4 p-3 rounded-lg ${
+                    updateMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    <p className="text-sm font-medium">{updateMessage.text}</p>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="border-t pt-4">
                   <h3 className="font-medium text-gray-900 mb-2">Available Actions</h3>
                   <div className="flex gap-3">
                     {selectedJobDetails.actions.canMarkComplete && (
-                      <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                        Mark Complete
+                      <button 
+                        onClick={() => handleMarkComplete(selectedJobDetails.job.id)}
+                        disabled={isUpdating}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUpdating ? 'Updating...' : 'Mark Complete'}
                       </button>
                     )}
                     {selectedJobDetails.actions.canMarkPayment && (

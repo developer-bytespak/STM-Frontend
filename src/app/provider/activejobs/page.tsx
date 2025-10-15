@@ -8,24 +8,48 @@ export default function ActiveJobsPage() {
   const [jobs, setJobs] = useState<ActiveJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const fetchActiveJobs = async () => {
+    try {
+      setLoading(true);
+      const data = await providerApi.getProviderJobs();
+      setJobs(data);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch active jobs:', err);
+      setError(err.message || 'Failed to load active jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchActiveJobs = async () => {
-      try {
-        setLoading(true);
-        const data = await providerApi.getProviderJobs();
-        setJobs(data);
-        setError(null);
-      } catch (err: any) {
-        console.error('Failed to fetch active jobs:', err);
-        setError(err.message || 'Failed to load active jobs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchActiveJobs();
   }, []);
+
+  const handleMarkComplete = async (jobId: number) => {
+    try {
+      setIsUpdating(true);
+      setUpdateMessage(null);
+      
+      const response = await providerApi.updateJobStatus(jobId, 'MARK_COMPLETE');
+      
+      setUpdateMessage({ type: 'success', text: response.message });
+      
+      // Refresh jobs list
+      await fetchActiveJobs();
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setUpdateMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Failed to mark job complete:', err);
+      setUpdateMessage({ type: 'error', text: err.message || 'Failed to mark job as complete' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -107,6 +131,17 @@ export default function ActiveJobsPage() {
           </div>
         </div>
       </div>
+
+      {/* Update Message */}
+      {updateMessage && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className={`p-4 rounded-lg ${
+            updateMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            <p className="font-medium">{updateMessage.text}</p>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
@@ -195,8 +230,12 @@ export default function ActiveJobsPage() {
                   View Details
                 </button>
                 {job.status === 'in_progress' && (
-                  <button className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                    Mark Complete
+                  <button 
+                    onClick={() => handleMarkComplete(job.id)}
+                    disabled={isUpdating}
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? 'Updating...' : 'Mark Complete'}
                   </button>
                 )}
                 <button className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
