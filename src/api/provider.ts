@@ -337,6 +337,25 @@ export interface SetAvailabilityResponse {
   message: string;
 }
 
+export interface UpdateJobStatusDto {
+  action: 'MARK_COMPLETE' | 'MARK_PAYMENT';
+  paymentDetails?: {
+    method: string;
+    notes?: string;
+  };
+}
+
+export interface UpdateJobStatusResponse {
+  jobId: number;
+  status: string;
+  completedAt?: string;
+  paidAt?: string;
+  paymentAmount?: number;
+  paymentMethod?: string;
+  markedAt?: string;
+  message: string;
+}
+
 // ==================== PROVIDER API CLASS ====================
 
 class ProviderApi {
@@ -544,6 +563,26 @@ class ProviderApi {
       body: JSON.stringify({
         action,
         ...data
+      })
+    });
+    return response;
+  }
+
+  /**
+   * Update job status (mark complete or mark payment)
+   * Endpoint: POST /provider/jobs/:id/update-status
+   */
+  async updateJobStatus(jobId: number, action: 'MARK_COMPLETE' | 'MARK_PAYMENT', paymentDetails?: {
+    method: string;
+    notes?: string;
+  }): Promise<UpdateJobStatusResponse> {
+    const response = await apiClient.request<UpdateJobStatusResponse>(`/provider/jobs/${jobId}/update-status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'MARK_COMPLETE'
       })
     });
     return response;

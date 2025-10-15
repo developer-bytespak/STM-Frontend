@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
+import { useChat } from '@/contexts/ChatContext';
 import Link from 'next/link';
+import ChatPopup from '@/components/chat/ChatPopup';
 
 interface JobRequestCardProps {
   jobId: number;
@@ -10,6 +12,7 @@ interface JobRequestCardProps {
 }
 
 export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardProps) {
+  const { createConversation } = useChat();
   const [jobDetails, setJobDetails] = useState<JobDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -216,12 +219,31 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
     });
   };
 
+  const handleOpenChat = () => {
+    if (!jobDetails) return;
+    
+    // Create conversation with job context
+    const formData = {
+      serviceType: jobDetails.job.service,
+      description: `${jobDetails.job.category} - ${jobDetails.job.location}`,
+      budget: `$${jobDetails.job.price.toFixed(2)}`,
+      additionalDetails: `Job ID: ${jobDetails.job.id}\nCustomer: ${jobDetails.customer.name}\nPhone: ${jobDetails.customer.phone}\nAddress: ${jobDetails.customer.address}`
+    };
+    
+    createConversation(
+      `provider-${jobDetails.job.id}`, // providerId
+      'You', // providerName (current user)
+      formData,
+      jobDetails.job.id // jobId
+    );
+  };
+
   return (
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-200">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-start justify-between mb-3">
-          <div>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900">{job.service}</h3>
             <p className="text-sm text-gray-500">{job.category}</p>
           </div>
@@ -230,18 +252,15 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
           </span>
         </div>
         
-        <div className="flex items-center text-gray-600 text-sm">
+        <div className="flex items-center text-gray-600 text-sm mb-3">
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {formatDate(job.createdAt)}
         </div>
-      </div>
 
-      {/* Customer Info */}
-      <div className="p-6 border-b border-gray-200 bg-gray-50">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Customer Information</h4>
-        <div className="space-y-2">
+        {/* Essential Info Grid */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center text-sm">
             <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -250,68 +269,27 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
           </div>
           <div className="flex items-center text-sm">
             <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <span className="text-gray-600">{customer.phone}</span>
-          </div>
-          <div className="flex items-start text-sm">
-            <svg className="w-4 h-4 mr-2 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="text-gray-600">{customer.address}</span>
+            <span className="text-gray-600 truncate">{job.location}</span>
           </div>
-        </div>
-      </div>
-
-      {/* Job Details */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Price</p>
-            <p className="text-lg font-bold text-green-600">${job.price.toFixed(2)}</p>
+          <div className="flex items-center text-sm">
+            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+            <span className="text-green-600 font-bold text-lg">${job.price.toFixed(2)}</span>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Location</p>
-            <p className="text-sm text-gray-900">{job.location}</p>
-          </div>
-          {job.scheduledAt && (
-            <div className="col-span-2">
-              <p className="text-xs text-gray-500 mb-1">Scheduled For</p>
-              <p className="text-sm text-gray-900">{formatDate(job.scheduledAt)}</p>
-            </div>
-          )}
           {job.responseDeadline && job.status === 'new' && (
-            <div className="col-span-2">
-              <p className="text-xs text-gray-500 mb-1">Response Deadline</p>
-              <p className="text-sm text-red-600 font-medium">{formatDate(job.responseDeadline)}</p>
+            <div className="flex items-center text-sm">
+              <svg className="w-4 h-4 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span className="text-red-600 font-medium">Deadline: {new Date(job.responseDeadline).toLocaleDateString()}</span>
             </div>
           )}
         </div>
       </div>
-
-      {/* Payment Info (if exists) */}
-      {payment && (
-        <div className="p-6 border-b border-gray-200 bg-green-50">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Information</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Amount</p>
-              <p className="text-sm font-bold text-green-600">${payment.amount.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Status</p>
-              <p className="text-sm text-gray-900 font-medium">{payment.status}</p>
-            </div>
-            {payment.method && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Method</p>
-                <p className="text-sm text-gray-900">{payment.method}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Response Message */}
       {responseMessage && (
@@ -334,21 +312,15 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
       )}
 
       {/* Job Status Indicators */}
-      {job.spAccepted && (
-        <div className="mx-6 mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">✅ You have accepted this job. Waiting for customer to close the deal.</p>
-        </div>
-      )}
-      
       {job.pendingApproval && (
-        <div className="mx-6 mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="mx-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">⏳ Your proposed changes are pending customer approval.</p>
         </div>
       )}
 
       {/* Actions */}
       <div className="p-6">
-        <div className="flex gap-3 mb-3">
+        <div className="flex gap-3">
           <Link
             href={`/provider/jobs/${jobId}`}
             className="flex-1 px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -356,41 +328,40 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
             View Details
           </Link>
 
-          {jobDetails.chatId && (
-            <Link
-              href={`/provider/chat/${jobDetails.chatId}`}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              💬 Chat
-            </Link>
-          )}
+          <button
+            onClick={handleOpenChat}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            title="Open chat with customer"
+          >
+            💬
+          </button>
         </div>
         
-        {/* Response Actions - Only show if status is 'new' */}
+        {/* Quick Actions - Only show if status is 'new' */}
         {job.status === 'new' && !job.spAccepted && !job.pendingApproval && (
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-200">
+          <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
             <button
               onClick={() => setShowAcceptModal(true)}
               disabled={responding}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ✅ Accept
+              Accept
             </button>
             
             <button
               onClick={() => setShowNegotiateModal(true)}
               disabled={responding}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              💡 Negotiate
+              Negotiate
             </button>
             
             <button
               onClick={() => setShowRejectModal(true)}
               disabled={responding}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ❌ Reject
+              Reject
             </button>
           </div>
         )}
@@ -575,6 +546,9 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
           </div>
         </div>
       )}
+      
+      {/* Chat Popup */}
+      <ChatPopup />
     </div>
   );
 }
