@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '@/contexts/ChatContext';
+import { customerApi } from '@/api/customer';
 
 export default function ChatPopup() {
   const { 
@@ -58,10 +59,29 @@ export default function ChatPopup() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const handleAddLSM = () => {
-    // Mock LSM data - in real app, this would come from a selection modal
-    addLSMToChat('lsm-1', 'Sarah Johnson');
-    setShowLSMModal(false);
+  const handleAddLSM = async () => {
+    if (!activeConversation?.jobId) {
+      alert('Cannot file dispute: No job ID associated with this conversation');
+      setShowLSMModal(false);
+      return;
+    }
+
+    try {
+      // File dispute through the API
+      const result = await customerApi.fileDispute({
+        jobId: activeConversation.jobId
+      });
+
+      // Add LSM to chat UI
+      addLSMToChat('lsm-1', 'Local Service Manager');
+      
+      alert(result.message || 'Dispute filed successfully. LSM has been notified and will join the conversation.');
+      setShowLSMModal(false);
+    } catch (error: any) {
+      console.error('Failed to file dispute:', error);
+      alert(error.message || 'Failed to file dispute. Please try again.');
+      setShowLSMModal(false);
+    }
   };
 
   const handleViewFile = (file: {name: string, url: string, type: string}) => {

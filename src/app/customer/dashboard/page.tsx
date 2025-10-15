@@ -68,10 +68,10 @@ export default function CustomerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600 text-sm font-medium">Active Jobs</span>
-            <span className="text-2xl">🔵</span>
+            <span className="text-gray-600 text-sm font-medium">Total Jobs</span>
+            <span className="text-2xl">📋</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.activeJobs || 0}</p>
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.totalJobs || 0}</p>
           <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
             View all →
           </Link>
@@ -79,12 +79,12 @@ export default function CustomerDashboard() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-600 text-sm font-medium">Completed</span>
-            <span className="text-2xl">✅</span>
+            <span className="text-gray-600 text-sm font-medium">In Progress</span>
+            <span className="text-2xl">🔵</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.completedJobs || 0}</p>
-          <Link href="/customer/avalied-jobs" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
-            View history →
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.jobs?.in_progress || 0}</p>
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+            View active →
           </Link>
         </div>
 
@@ -93,7 +93,7 @@ export default function CustomerDashboard() {
             <span className="text-gray-600 text-sm font-medium">Total Spent</span>
             <span className="text-2xl">💰</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">${dashboard?.stats?.totalSpent || 0}</p>
+          <p className="text-3xl font-bold text-gray-900">${dashboard?.summary?.totalSpent || 0}</p>
           <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
             View payments →
           </Link>
@@ -104,7 +104,7 @@ export default function CustomerDashboard() {
             <span className="text-gray-600 text-sm font-medium">Pending Feedback</span>
             <span className="text-2xl">⭐</span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{dashboard?.stats?.pendingFeedback || 0}</p>
+          <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.pendingFeedback || 0}</p>
           <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
             Leave feedback →
           </Link>
@@ -208,18 +208,15 @@ export default function CustomerDashboard() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{job.serviceName}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{job.provider.businessName}</p>
+                    <h3 className="font-semibold text-gray-900">{job.service}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{job.provider}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {job.scheduledAt 
-                        ? `Scheduled: ${new Date(job.scheduledAt).toLocaleDateString()}` 
-                        : `Created: ${new Date(job.createdAt).toLocaleDateString()}`
-                      }
+                      Created: {new Date(job.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                      job.status === 'completed' 
+                      job.status === 'completed' || job.status === 'paid'
                         ? 'bg-green-100 text-green-800'
                         : job.status === 'in_progress'
                         ? 'bg-blue-100 text-blue-800'

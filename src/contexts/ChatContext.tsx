@@ -49,6 +49,7 @@ interface ChatContextType {
   activeConversation: ChatConversation | null;
   createConversation: (providerId: string, providerName: string, formData: BookingFormData, jobId?: number) => void;
   openConversation: (conversationId: string) => void;
+  openConversationByJobId: (jobId: number) => boolean; // New method to open chat by job ID
   closeConversation: () => void;
   minimizeConversation: () => void; // Original minimize (to preview button)
   minimizeToCompact: () => void; // New minimize (to compact chat)
@@ -188,6 +189,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         conv.id === conversationId ? { ...conv, isOpen: true, isMinimized: false } : conv
       ));
     }
+  };
+
+  const openConversationByJobId = (jobId: number): boolean => {
+    const conversation = conversations.find(conv => conv.jobId === jobId);
+    if (conversation) {
+      setActiveConversation(conversation);
+      setConversations(prev => prev.map(conv => 
+        conv.jobId === jobId ? { ...conv, isOpen: true, isMinimized: false } : conv
+      ));
+      setIsPreviewMinimized(false);
+      return true;
+    }
+    return false;
   };
 
   const closeConversation = () => {
@@ -332,6 +346,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       activeConversation,
       createConversation,
       openConversation,
+      openConversationByJobId,
       closeConversation,
       minimizeConversation,
       minimizeToCompact,

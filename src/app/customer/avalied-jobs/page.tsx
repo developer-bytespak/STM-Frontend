@@ -1,24 +1,83 @@
 'use client';
 
-import { useState } from 'react';
-import JobCard from '@/components/cards/JobCard';
-import { dummyCompletedJobs } from '@/data/dummyjobdone';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { customerApi, CustomerJob } from '@/api/customer';
+import Link from 'next/link';
 
 const JOBS_PER_PAGE = 10;
 
 export default function AvailedJobsPage() {
+  const router = useRouter();
+  const [jobs, setJobs] = useState<CustomerJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  
+  const [selectedJob, setSelectedJob] = useState<CustomerJob | null>(null);
+  const [feedbackData, setFeedbackData] = useState({
+    rating: 5,
+    feedback: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchCompletedJobs();
+  }, []);
+
+  const fetchCompletedJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const allJobs = await customerApi.getJobs();
+      // Filter for completed and paid jobs
+      const completedJobs = allJobs.filter(job => job.status === 'completed' || job.status === 'paid');
+      setJobs(completedJobs);
+    } catch (err: any) {
+      console.error('Error fetching completed jobs:', err);
+      setError(err.message || 'Failed to load completed jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedJob) return;
+
+    if (!feedbackData.feedback.trim()) {
+      alert('Please provide feedback comments');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await customerApi.submitFeedback(selectedJob.id, {
+        rating: feedbackData.rating,
+        feedback: feedbackData.feedback,
+      });
+
+      alert('Feedback submitted successfully!');
+      setSelectedJob(null);
+      setFeedbackData({ rating: 5, feedback: '' });
+      
+      // Refresh jobs list
+      fetchCompletedJobs();
+    } catch (err: any) {
+      console.error('Failed to submit feedback:', err);
+      alert(err.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Calculate pagination
-  const totalJobs = dummyCompletedJobs.length;
+  const totalJobs = jobs.length;
   const totalPages = Math.ceil(totalJobs / JOBS_PER_PAGE);
   const startIndex = (currentPage - 1) * JOBS_PER_PAGE;
   const endIndex = startIndex + JOBS_PER_PAGE;
-  const currentJobs = dummyCompletedJobs.slice(startIndex, endIndex);
+  const currentJobs = jobs.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to top when changing pages
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -28,11 +87,9 @@ export default function AvailedJobsPage() {
     const pages = [];
     const maxVisiblePages = 5;
     
-    // Calculate start and end page numbers
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
-    // Adjust start page if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
@@ -95,9 +152,49 @@ export default function AvailedJobsPage() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading completed jobs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md mx-auto">
+            <p className="font-semibold">Error Loading Jobs</p>
+            <p className="text-sm mt-1">{error}</p>
+            <button
+              onClick={fetchCompletedJobs}
+              className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
+        {/* Back to Dashboard */}
+        <div className="max-w-4xl mx-auto mb-4">
+          <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700 text-sm inline-flex items-center gap-1">
+            ← Back to Dashboard
+          </Link>
+        </div>
+        
+        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Completed Jobs
@@ -107,33 +204,184 @@ export default function AvailedJobsPage() {
           </p>
           {totalJobs > 0 && (
             <p className="text-sm text-gray-500 mt-2">
-              Total: {totalJobs} completed jobs
+              Total: {totalJobs} completed job{totalJobs !== 1 ? 's' : ''}
             </p>
           )}
         </div>
         
+        {/* Jobs List */}
         <div className="max-w-4xl mx-auto">
           {totalJobs > 0 ? (
             <>
               <div className="space-y-4">
                 {currentJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
+                  <div
+                    key={job.id}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{job.service.name}</h3>
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-1">
+                          Provider: <span className="font-medium">{job.provider.businessName}</span>
+                        </p>
+                        {job.provider.rating && (
+                          <p className="text-sm text-gray-600 mb-1">
+                            Rating: ⭐ {job.provider.rating}/5
+                          </p>
+                        )}
+                        {job.completed_at && (
+                          <p className="text-xs text-gray-500">
+                            Completed on {new Date(job.completed_at).toLocaleDateString()} at {new Date(job.completed_at).toLocaleTimeString()}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-600 mb-1">
+                          Location: {job.location}
+                        </p>
+                      </div>
+                      <div className="ml-4 flex flex-col gap-2">
+                        <button
+                          onClick={() => router.push(`/customer/bookings/${job.id}`)}
+                          className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium text-sm"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setFeedbackData({ rating: 5, feedback: '' });
+                          }}
+                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm"
+                        >
+                          Leave Feedback
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
               {renderPagination()}
             </>
           ) : (
-            <div className="text-center py-12">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
               <div className="text-gray-400 text-6xl mb-4">📋</div>
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
                 No Completed Jobs Yet
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-500 mb-4">
                 When you complete services, they will appear here for feedback.
               </p>
+              <button
+                onClick={() => router.push('/customer/bookings')}
+                className="text-navy-600 hover:text-navy-700 font-medium"
+              >
+                View Your Bookings →
+              </button>
             </div>
           )}
         </div>
+
+        {/* Feedback Modal */}
+        {selectedJob && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Leave Feedback</h2>
+                  <p className="text-sm text-gray-600 mt-1">{selectedJob.service.name} - {selectedJob.provider.businessName}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedJob(null)}
+                  disabled={submitting}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Job Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Service:</span> {selectedJob.service.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Provider:</span> {selectedJob.provider.businessName}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Completed:</span> {selectedJob.completed_at ? new Date(selectedJob.completed_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Location:</span> {selectedJob.location}
+                  </p>
+                </div>
+
+                {/* Rating */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    How would you rate this service?
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFeedbackData({ ...feedbackData, rating: star })}
+                        className="text-4xl transition-transform hover:scale-110"
+                      >
+                        {star <= feedbackData.rating ? '⭐' : '☆'}
+                      </button>
+                    ))}
+                    <span className="ml-3 text-lg font-semibold text-gray-700 self-center">
+                      {feedbackData.rating}/5
+                    </span>
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Share your experience
+                  </label>
+                  <textarea
+                    value={feedbackData.feedback}
+                    onChange={(e) => setFeedbackData({ ...feedbackData, feedback: e.target.value })}
+                    rows={6}
+                    maxLength={1000}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    placeholder="Tell us about your experience with this service provider..."
+                  />
+                  <p className="text-sm text-gray-500 mt-1 text-right">{feedbackData.feedback.length}/1000</p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleSubmitFeedback}
+                    disabled={submitting}
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Feedback'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedJob(null)}
+                    disabled={submitting}
+                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
