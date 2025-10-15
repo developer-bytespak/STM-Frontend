@@ -1,7 +1,6 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { customerApi, CustomerJobDetails } from '@/api/customer';
 import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
@@ -13,7 +12,6 @@ interface BookingDetailsProps {
 }
 
 export default function BookingDetails({ params }: BookingDetailsProps) {
-  const router = useRouter();
   const { openConversationByJobId } = useChat();
   const resolvedParams = use(params);
   const jobId = parseInt(resolvedParams.id);

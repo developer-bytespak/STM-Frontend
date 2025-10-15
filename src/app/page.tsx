@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/hooks/useAuth';

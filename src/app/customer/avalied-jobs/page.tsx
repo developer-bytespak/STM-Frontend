@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { customerApi, CustomerJob } from '@/api/customer';
+import Link from 'next/link';
 
 const JOBS_PER_PAGE = 10;
 
@@ -15,8 +16,7 @@ export default function AvailedJobsPage() {
   const [selectedJob, setSelectedJob] = useState<CustomerJob | null>(null);
   const [feedbackData, setFeedbackData] = useState({
     rating: 5,
-    comment: '',
-    wouldRecommend: true,
+    feedback: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,8 +29,8 @@ export default function AvailedJobsPage() {
       setLoading(true);
       setError(null);
       const allJobs = await customerApi.getJobs();
-      // Filter for completed jobs
-      const completedJobs = allJobs.filter(job => job.status === 'completed');
+      // Filter for completed and paid jobs
+      const completedJobs = allJobs.filter(job => job.status === 'completed' || job.status === 'paid');
       setJobs(completedJobs);
     } catch (err: any) {
       console.error('Error fetching completed jobs:', err);
@@ -43,7 +43,7 @@ export default function AvailedJobsPage() {
   const handleSubmitFeedback = async () => {
     if (!selectedJob) return;
 
-    if (!feedbackData.comment.trim()) {
+    if (!feedbackData.feedback.trim()) {
       alert('Please provide feedback comments');
       return;
     }
@@ -52,13 +52,12 @@ export default function AvailedJobsPage() {
       setSubmitting(true);
       await customerApi.submitFeedback(selectedJob.id, {
         rating: feedbackData.rating,
-        comment: feedbackData.comment,
-        wouldRecommend: feedbackData.wouldRecommend,
+        feedback: feedbackData.feedback,
       });
 
       alert('Feedback submitted successfully!');
       setSelectedJob(null);
-      setFeedbackData({ rating: 5, comment: '', wouldRecommend: true });
+      setFeedbackData({ rating: 5, feedback: '' });
       
       // Refresh jobs list
       fetchCompletedJobs();
@@ -223,7 +222,7 @@ export default function AvailedJobsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{job.serviceName}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">{job.service.name}</h3>
                           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                             Completed
                           </span>
@@ -236,13 +235,13 @@ export default function AvailedJobsPage() {
                             Rating: ⭐ {job.provider.rating}/5
                           </p>
                         )}
-                        {job.completedAt && (
+                        {job.completed_at && (
                           <p className="text-xs text-gray-500">
-                            Completed on {new Date(job.completedAt).toLocaleDateString()} at {new Date(job.completedAt).toLocaleTimeString()}
+                            Completed on {new Date(job.completed_at).toLocaleDateString()} at {new Date(job.completed_at).toLocaleTimeString()}
                           </p>
                         )}
-                        <p className="text-sm font-semibold text-gray-900 mt-2">
-                          Service Cost: ${job.price}
+                        <p className="text-sm text-gray-600 mb-1">
+                          Location: {job.location}
                         </p>
                       </div>
                       <div className="ml-4 flex flex-col gap-2">
@@ -252,17 +251,15 @@ export default function AvailedJobsPage() {
                         >
                           View Details
                         </button>
-                        {job.needsFeedback && (
-                          <button
-                            onClick={() => {
-                              setSelectedJob(job);
-                              setFeedbackData({ rating: 5, comment: '', wouldRecommend: true });
-                            }}
-                            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm"
-                          >
-                            Leave Feedback
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setFeedbackData({ rating: 5, feedback: '' });
+                          }}
+                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm"
+                        >
+                          Leave Feedback
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -296,7 +293,7 @@ export default function AvailedJobsPage() {
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Leave Feedback</h2>
-                  <p className="text-sm text-gray-600 mt-1">{selectedJob.serviceName} - {selectedJob.provider.businessName}</p>
+                  <p className="text-sm text-gray-600 mt-1">{selectedJob.service.name} - {selectedJob.provider.businessName}</p>
                 </div>
                 <button
                   onClick={() => setSelectedJob(null)}
@@ -313,16 +310,16 @@ export default function AvailedJobsPage() {
                 {/* Job Summary */}
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Service:</span> {selectedJob.serviceName}
+                    <span className="font-semibold">Service:</span> {selectedJob.service.name}
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-semibold">Provider:</span> {selectedJob.provider.businessName}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Completed:</span> {selectedJob.completedAt ? new Date(selectedJob.completedAt).toLocaleDateString() : 'N/A'}
+                    <span className="font-semibold">Completed:</span> {selectedJob.completed_at ? new Date(selectedJob.completed_at).toLocaleDateString() : 'N/A'}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <span className="font-semibold">Cost:</span> ${selectedJob.price}
+                    <span className="font-semibold">Location:</span> {selectedJob.location}
                   </p>
                 </div>
 
@@ -354,29 +351,14 @@ export default function AvailedJobsPage() {
                     Share your experience
                   </label>
                   <textarea
-                    value={feedbackData.comment}
-                    onChange={(e) => setFeedbackData({ ...feedbackData, comment: e.target.value })}
+                    value={feedbackData.feedback}
+                    onChange={(e) => setFeedbackData({ ...feedbackData, feedback: e.target.value })}
                     rows={6}
                     maxLength={1000}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
                     placeholder="Tell us about your experience with this service provider..."
                   />
-                  <p className="text-sm text-gray-500 mt-1 text-right">{feedbackData.comment.length}/1000</p>
-                </div>
-
-                {/* Would Recommend */}
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={feedbackData.wouldRecommend}
-                      onChange={(e) => setFeedbackData({ ...feedbackData, wouldRecommend: e.target.checked })}
-                      className="w-5 h-5 text-navy-600 border-gray-300 rounded focus:ring-navy-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      I would recommend this provider to others
-                    </span>
-                  </label>
+                  <p className="text-sm text-gray-500 mt-1 text-right">{feedbackData.feedback.length}/1000</p>
                 </div>
 
                 {/* Buttons */}
