@@ -71,26 +71,32 @@ export const getPasswordStrength = (
 };
 
 /**
- * Validate phone number (American format)
+ * Validate phone number (American format or E.164 international format)
  */
 export const validatePhone = (phone: string): ValidationResult => {
   if (!phone) {
     return { valid: false, error: 'Phone number is required' };
   }
 
-  // Remove spaces, dashes, and parentheses
+  // Remove spaces, dashes, and parentheses for validation
   const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
 
-  // Check for American format: (XXX) XXX-XXXX or XXX-XXX-XXXX or XXXXXXXXXX
-  const phoneRegex = /^(\(?[0-9]{3}\)?[-.\s]?)?[0-9]{3}[-.\s]?[0-9]{4}$/;
-  if (!phoneRegex.test(cleanPhone)) {
-    return { 
-      valid: false, 
-      error: 'Please enter a valid American phone number (e.g., (555) 123-4567)' 
-    };
+  // Check for E.164 format: +1234567890 (international format)
+  const e164Regex = /^\+[1-9]\d{6,14}$/;
+  if (e164Regex.test(cleanPhone)) {
+    return { valid: true };
   }
 
-  return { valid: true };
+  // Check for American format: (XXX) XXX-XXXX or XXX-XXX-XXXX or XXXXXXXXXX
+  const americanRegex = /^1?[0-9]{10}$/;
+  if (americanRegex.test(cleanPhone)) {
+    return { valid: true };
+  }
+
+  return { 
+    valid: false, 
+    error: 'Please enter a valid phone number (e.g., (555) 123-4567 or +1234567890)' 
+  };
 };
 
 /**
@@ -172,6 +178,12 @@ export const formatPhoneNumber = (phone: string): string => {
  * Format phone number to E.164 format for backend API
  */
 export const formatPhoneToE164 = (phone: string): string => {
+  // If already in E.164 format (starts with +), validate and return
+  if (phone.startsWith('+')) {
+    const digits = phone.replace(/\D/g, '');
+    return `+${digits}`;
+  }
+  
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
   
@@ -185,8 +197,8 @@ export const formatPhoneToE164 = (phone: string): string => {
     return `+1${digits}`;
   }
   
-  // Otherwise, add + if not present
-  return digits.startsWith('+') ? digits : `+${digits}`;
+  // For any other international format, add + if not present
+  return `+${digits}`;
 };
 
 
