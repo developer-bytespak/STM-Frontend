@@ -9,6 +9,8 @@ import { registerServiceProvider, uploadDocument, ApiError, handleApiError } fro
 import { RegisterRequest } from '@/config/api';
 import { SERVICES, getGranularServices } from '@/data/services';
 import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
+import { COUNTRY_CODES, validatePhoneForCountry, formatPhoneWithCountry } from '@/data/countryCodes';
+import { getAreaCodesByCountry } from '@/data/areaCodes';
 
 interface DocumentData {
   file: File | null;
@@ -37,6 +39,8 @@ interface ServiceProviderFormData {
   lastName: string;
   email: string;
   phone: string;
+  countryCode: string;
+  areaCode: string;
   businessName: string;
   description: string;
   area: string;
@@ -110,6 +114,8 @@ export default function ServiceProviderSignupPage() {
     lastName: '',
     email: '',
     phone: '',
+    countryCode: 'US', // Default to US
+    areaCode: '555', // Default to testing area code
     businessName: '',
     description: '',
     area: '',
@@ -343,8 +349,13 @@ export default function ServiceProviderSignupPage() {
       newErrors.email = emailValidation.error;
     }
 
-    // Validate phone
-    const phoneValidation = validatePhone(formData.phone);
+    // Validate phone with country-specific rules
+    // For US/CA, combine area code + phone for validation
+    const fullPhone = (formData.countryCode === 'US' || formData.countryCode === 'CA') 
+      ? formData.areaCode + formData.phone 
+      : formData.phone;
+    
+    const phoneValidation = validatePhoneForCountry(fullPhone, formData.countryCode);
     if (!phoneValidation.valid) {
       newErrors.phone = phoneValidation.error;
     }
@@ -573,9 +584,15 @@ export default function ServiceProviderSignupPage() {
         password: formData.password, // Don't sanitize password
         firstName: sanitizedData.firstName,
         lastName: sanitizedData.lastName,
-        phoneNumber: formatPhoneToE164(sanitizedData.phone), // Convert to E.164 format
+        phoneNumber: formatPhoneWithCountry(
+          (formData.countryCode === 'US' || formData.countryCode === 'CA') 
+            ? formData.areaCode + sanitizedData.phone 
+            : sanitizedData.phone, 
+          formData.countryCode
+        ), // Convert to E.164 format with country code
         role: 'PROVIDER',
-        region: resolvedState || 'Not specified',
+        state: resolvedState || 'Not specified',
+        city: resolvedCity || undefined,
         location: resolvedCity ? `${resolvedCity}, ${resolvedState}` : undefined,
         
         // Optional provider fields
@@ -811,26 +828,96 @@ export default function ServiceProviderSignupPage() {
                         )}
                       </div>
 
-                      {/* Phone Field */}
-                      <div>
+                      {/* Phone Field with Country Code */}
+                      <div className="md:col-span-2">
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                           Phone Number <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className={`
-                            w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
-                            focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
-                            ${errors.phone ? 'border-red-500' : 'border-gray-300'}
-                          `}
-                          placeholder="(555) 123-4567"
-                        />
+                        
+                        {/* Single Row with All Three Elements */}
+                        <div className="flex gap-2">
+                          {/* Country Code Selector */}
+                          <div className="w-24">
+                            <select
+                              value={formData.countryCode}
+                              onChange={(e) => {
+                                handleInputChange('countryCode', e.target.value);
+                                // Reset area code when country changes
+                                if (e.target.value === 'US' || e.target.value === 'CA') {
+                                  handleInputChange('areaCode', '555');
+                                }
+                              }}
+                              className="w-full px-2 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500"
+                            >
+                              {COUNTRY_CODES.map((country) => (
+                                <option key={country.code} value={country.code}>
+                                  {country.flag} {country.dialCode}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* Area Code Selector (for US/CA) */}
+                          {(formData.countryCode === 'US' || formData.countryCode === 'CA') && (
+                            <div className="w-16">
+                              <select
+                                value={formData.areaCode}
+                                onChange={(e) => handleInputChange('areaCode', e.target.value)}
+                                className="w-full px-1 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                style={{ 
+                                  fontSize: '12px',
+                                  maxHeight: '120px',
+                                  overflowY: 'auto'
+                                }}
+                              >
+                                {getAreaCodesByCountry(formData.countryCode).map((ac) => (
+                                  <option key={ac.code} value={ac.code}>
+                                    {ac.code}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          
+                          {/* Phone Number Input */}
+                          <div className="flex-1">
+                            <input
+                              type="tel"
+                              id="phone"
+                              value={formData.phone}
+                              onChange={(e) => handleInputChange('phone', e.target.value)}
+                              className={`
+                                w-full px-3 py-2 border rounded-lg text-gray-900 placeholder-gray-500 text-base
+                                focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                                ${errors.phone ? 'border-red-500' : 'border-gray-300'}
+                              `}
+                              placeholder={
+                                (formData.countryCode === 'US' || formData.countryCode === 'CA') 
+                                  ? '123-4567' 
+                                  : COUNTRY_CODES.find(c => c.code === formData.countryCode)?.placeholder || '5551234567'
+                              }
+                              maxLength={
+                                (formData.countryCode === 'US' || formData.countryCode === 'CA') 
+                                  ? 7 
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        </div>
+                        
                         {errors.phone && (
                           <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
                         )}
+                        <p className="text-gray-500 text-xs mt-1">
+                          {(formData.countryCode === 'US' || formData.countryCode === 'CA') ? (
+                            <>
+                              Area code: {formData.areaCode} ({getAreaCodesByCountry(formData.countryCode).find(ac => ac.code === formData.areaCode)?.location || 'Select area code'})
+                              {' • '}Enter 7 digits: XXX-XXXX
+                            </>
+                          ) : (
+                            <>Format: {COUNTRY_CODES.find(c => c.code === formData.countryCode)?.format}</>
+                          )}
+                        </p>
                       </div>
 
                       {/* Business Name Field */}
@@ -1415,7 +1502,12 @@ export default function ServiceProviderSignupPage() {
                           <div className="text-gray-600">Email:</div>
                           <div className="text-gray-900">{formData.email}</div>
                           <div className="text-gray-600">Phone:</div>
-                          <div className="text-gray-900">{formData.phone}</div>
+                          <div className="text-gray-900">
+                            {COUNTRY_CODES.find(c => c.code === formData.countryCode)?.dialCode}{' '}
+                            {(formData.countryCode === 'US' || formData.countryCode === 'CA') 
+                              ? `(${formData.areaCode}) ${formData.phone}` 
+                              : formData.phone}
+                          </div>
                         </div>
                       </div>
 

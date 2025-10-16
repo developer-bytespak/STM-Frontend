@@ -49,7 +49,8 @@ export interface RegisterRequest {
   lastName: string;
   phoneNumber: string;
   role: 'PROVIDER';
-  region: string;
+  state: string;
+  city?: string;
   area?: string;
   businessName?: string;
   serviceType?: string;
