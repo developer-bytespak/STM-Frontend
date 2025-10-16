@@ -2,8 +2,10 @@
  * API Configuration
  */
 
+import { env } from './env';
+
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000',
+  BASE_URL: env.API_URL,
   ENDPOINTS: {
     REGISTER: '/auth/register',
     UPLOAD_DOCUMENTS: '/provider-onboarding/documents/upload',
