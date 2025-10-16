@@ -31,7 +31,7 @@ export const sendOTPEmail = async (
       to_email: email,
       to_name: userName,
       otp_code: otp,
-      company_name: 'ServiceProStars',
+      company_name: 'ConnectAgain',
       expiry_minutes: '5',
     };
 
@@ -61,7 +61,7 @@ export const sendOTPEmail = async (
  * 
  * Create a template in your EmailJS dashboard with these variables:
  * 
- * Subject: Your OTP Code for ServiceProStars
+ * Subject: Your OTP Code for ConnectAgain
  * 
  * Body:
  * Hello {{to_name}},

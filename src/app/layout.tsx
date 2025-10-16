@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ServiceProStars - Professional Services Platform",
+  title: "ConnectAgain - Professional Services Platform",
   description: "Connect with trusted service providers in your area",
 };
 

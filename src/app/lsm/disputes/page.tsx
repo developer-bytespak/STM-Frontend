@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { lsmApi, Dispute, DisputeFilters } from '@/api/lsm';
 import { DisputeCard, DisputeDetailModal } from '@/components/lsm/disputes';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
 
 export default function LSMDisputes() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
@@ -71,10 +72,7 @@ export default function LSMDisputes() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading disputes...</p>
-          </div>
+          <CardListSkeleton />
         </div>
       </div>
     );

@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { customerApi, CustomerJob } from '@/api/customer';
 import { useChat } from '@/contexts/ChatContext';
+import TableSkeleton from '@/components/ui/TableSkeleton';
+import { useAlert } from '@/hooks/useAlert';
 
 export default function CustomerBookings() {
   const { openConversationByJobId } = useChat();
+  const { showAlert, AlertComponent } = useAlert();
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -31,19 +32,14 @@ export default function CustomerBookings() {
     fetchJobs();
   }, []);
 
-  // Filter jobs
-  const filteredJobs = jobs.filter(job => {
-    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
-    const matchesSearch = !searchQuery || 
-      job.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.provider.businessName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
   const handleOpenChat = (jobId: number) => {
     const chatOpened = openConversationByJobId(jobId);
     if (!chatOpened) {
-      alert('Chat not available for this job yet. Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!');
+      showAlert({
+        title: 'Chat Unavailable',
+        message: 'Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!',
+        type: 'info'
+      });
     }
   };
 
@@ -56,7 +52,7 @@ export default function CustomerBookings() {
       'cancelled': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
       'disputed': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Disputed' },
     };
-    
+
     const config = statusConfig[status] || statusConfig['pending'];
     return (
       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
@@ -67,11 +63,8 @@ export default function CustomerBookings() {
 
   if (loading) {
     return (
-      <div className="py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your bookings...</p>
-        </div>
+      <div className="py-8">
+        <TableSkeleton />
       </div>
     );
   }
@@ -108,51 +101,27 @@ export default function CustomerBookings() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by service or provider..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
-            />
+      {/* Summary */}
+      {jobs.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">
+              {jobs.length} booking{jobs.length !== 1 ? 's' : ''} total
+            </span>
           </div>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="new">New</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
         </div>
-      </div>
+      )}
 
       {/* Jobs List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {filteredJobs.length === 0 ? (
+        {jobs.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-gray-600 mb-4">
-              {searchQuery || statusFilter !== 'all' 
-                ? 'No jobs match your filters' 
-                : 'No bookings yet'
-              }
-            </p>
+            <p className="text-gray-600 mb-4">No bookings yet</p>
             <Link
               href="/"
               className="text-navy-600 hover:text-navy-700 font-medium"
@@ -162,7 +131,7 @@ export default function CustomerBookings() {
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {filteredJobs.map((job) => (
+            {jobs.map((job) => (
               <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -209,16 +178,8 @@ export default function CustomerBookings() {
         )}
       </div>
 
-      {/* Summary */}
-      {filteredJobs.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              Showing {filteredJobs.length} of {jobs.length} booking{jobs.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Alert Modal */}
+      <AlertComponent />
     </div>
   );
 }

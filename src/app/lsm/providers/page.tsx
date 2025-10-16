@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { lsmApi, ProviderInRegion } from '@/api/lsm';
 import ProviderManagementCard from '@/components/lsm/ProviderManagementCard';
 import ProviderDetailModal from '@/components/lsm/ProviderDetailModal';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
 
 export default function LSMProviders() {
   const [allProviders, setAllProviders] = useState<ProviderInRegion[]>([]);
@@ -89,10 +90,7 @@ export default function LSMProviders() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading providers...</p>
-          </div>
+          <CardListSkeleton />
         </div>
       </div>
     );

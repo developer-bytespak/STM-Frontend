@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { customerApi } from '@/api/customer';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
+import { useAlert } from '@/hooks/useAlert';
 
 type PendingJob = {
   jobId: number;
@@ -15,6 +17,7 @@ type PendingJob = {
 
 export default function FeedbackPage() {
   const router = useRouter();
+  const { showAlert, AlertComponent } = useAlert();
   const [pendingJobs, setPendingJobs] = useState<PendingJob[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -24,6 +27,8 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState({
     rating: 5,
     feedback: '',
+    punctualityRating: 5,
+    responseTime: 0,
   });
   const [feedbackErrors, setFeedbackErrors] = useState<Record<string, string>>({});
 
@@ -51,6 +56,8 @@ export default function FeedbackPage() {
     setFeedback({
       rating: 5,
       feedback: '',
+      punctualityRating: 5,
+      responseTime: 0,
     });
     setFeedbackErrors({});
   };
@@ -84,16 +91,27 @@ export default function FeedbackPage() {
       await customerApi.submitFeedback(selectedJob.jobId, {
         rating: feedback.rating,
         feedback: feedback.feedback,
+        punctualityRating: feedback.punctualityRating,
+        responseTime: feedback.responseTime > 0 ? feedback.responseTime : undefined,
       });
 
-      alert('Feedback submitted successfully! Thank you for your review.');
+      showAlert({
+        title: 'Success',
+        message: 'Feedback submitted successfully! Thank you for your review.',
+        type: 'success'
+      });
       
       // Close modal and refresh list
       setSelectedJob(null);
+      setFeedback({ rating: 5, feedback: '', punctualityRating: 5, responseTime: 0 });
       fetchPendingFeedback();
     } catch (err: any) {
       console.error('Failed to submit feedback:', err);
-      alert(err.message || 'Failed to submit feedback. Please try again.');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to submit feedback. Please try again.',
+        type: 'error'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -103,10 +121,7 @@ export default function FeedbackPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading pending feedback...</p>
-          </div>
+          <CardListSkeleton />
         </div>
       </div>
     );
@@ -257,10 +272,10 @@ export default function FeedbackPage() {
           </p>
         </div>
         
-                {/* Rating */}
+                {/* Overall Rating */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    How would you rate this service? <span className="text-red-500">*</span>
+                    Overall Rating <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -280,6 +295,48 @@ export default function FeedbackPage() {
                   {feedbackErrors.rating && (
                     <p className="text-sm text-red-500 mt-1">{feedbackErrors.rating}</p>
                   )}
+                </div>
+
+                {/* Punctuality Rating */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Punctuality Rating <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">How punctual was the provider?</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFeedback({ ...feedback, punctualityRating: star })}
+                        className="text-3xl transition-transform hover:scale-110"
+                      >
+                        {star <= feedback.punctualityRating ? '⭐' : '☆'}
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600 self-center">
+                      {feedback.punctualityRating} / 5
+                    </span>
+                  </div>
+                </div>
+
+                {/* Response Time */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Response Time <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">How long did it take for the provider to respond?</p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={feedback.responseTime}
+                      onChange={(e) => setFeedback({ ...feedback, responseTime: parseInt(e.target.value) || 0 })}
+                      min="0"
+                      className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-gray-600">minutes</span>
+                  </div>
                 </div>
 
                 {/* Comment */}
@@ -331,6 +388,9 @@ export default function FeedbackPage() {
             </div>
           </div>
         )}
+
+        {/* Alert Modal */}
+        <AlertComponent />
       </div>
     </div>
   );

@@ -163,7 +163,7 @@ export default function ForgotPasswordPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-navy-900 mb-2">
-              ServiceProStars
+              ConnectAgain
             </h1>
             <p className="text-gray-600">Reset your password</p>
           </div>
@@ -263,7 +263,7 @@ export default function ForgotPasswordPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-navy-900 mb-2">
-              ServiceProStars
+              ConnectAgain
             </h1>
             <p className="text-gray-600">Set new password</p>
           </div>

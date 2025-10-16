@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getRelativeTime } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
+import { ROUTES } from '@/constants/routes';
+import AllNotificationsModal from './AllNotificationsModal';
 
 interface NotificationPopupProps {
   notifications: Notification[];
-  onMarkAsRead: (id: number) => void;
+  onMarkAsRead: (id: number | string) => void;
   onMarkAllAsRead: () => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number | string) => void;
   onClearRead: () => void;
   onClose: () => void;
   bellRef: React.RefObject<HTMLDivElement | null>;
@@ -26,6 +29,8 @@ export default function NotificationPopup({
   isLoading = false
 }: NotificationPopupProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const [showAllModal, setShowAllModal] = useState(false);
 
   // Close popup when clicking outside (but not on the bell)
   useEffect(() => {
@@ -42,6 +47,123 @@ export default function NotificationPopup({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose, bellRef]);
+
+  // Get redirect URL based on notification type and metadata
+  const getRedirectUrl = (notification: Notification): string | null => {
+    const { type, recipient_type, metadata, title } = notification;
+
+    // Normalize recipient type (handle both abbreviated and full names)
+    const recipientStr = recipient_type as string;
+    const isLSM = recipientStr === 'lsm' || recipientStr === 'local_service_manager';
+    const isProvider = recipientStr === 'provider' || recipientStr === 'service_provider';
+    const isCustomer = recipientStr === 'customer';
+    const isAdmin = recipientStr === 'admin';
+
+    switch (type) {
+      case 'job':
+        if (isCustomer) {
+          // For customers, redirect to bookings or specific booking
+          return metadata?.booking_id 
+            ? ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id)
+            : ROUTES.CUSTOMER.BOOKINGS;
+        } else if (isProvider) {
+          // For providers, redirect to jobs or specific job
+          return metadata?.job_id 
+            ? ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id)
+            : ROUTES.PROVIDER.JOBS;
+        } else if (isLSM) {
+          return ROUTES.LSM.JOBS;
+        }
+        return null;
+
+      case 'booking':
+        if (isCustomer) {
+          return metadata?.booking_id 
+            ? ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id)
+            : ROUTES.CUSTOMER.BOOKINGS;
+        } else if (isProvider) {
+          return metadata?.job_id 
+            ? ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id)
+            : ROUTES.PROVIDER.JOBS;
+        }
+        return null;
+
+      case 'payment':
+        if (isCustomer) {
+          return ROUTES.CUSTOMER.PAYMENTS;
+        } else if (isProvider) {
+          return ROUTES.PROVIDER.EARNINGS;
+        } else if (isAdmin) {
+          return ROUTES.ADMIN.FINANCES;
+        }
+        return null;
+
+      case 'message':
+        // Could be enhanced to open chat with specific user
+        if (isCustomer) {
+          return ROUTES.CUSTOMER.DASHBOARD;
+        } else if (isProvider) {
+          return ROUTES.PROVIDER.DASHBOARD;
+        } else if (isLSM) {
+          return ROUTES.LSM.DASHBOARD;
+        }
+        return null;
+
+      case 'approval':
+      case 'provider_request':
+        if (isProvider) {
+          return ROUTES.PROVIDER.PROFILE;
+        } else if (isLSM) {
+          return '/lsm/sp-request'; // Provider requests page
+        } else if (isAdmin) {
+          return ROUTES.ADMIN.PROVIDERS;
+        }
+        return null;
+
+      case 'dispute':
+        if (isLSM) {
+          return '/lsm/disputes';
+        } else if (isAdmin) {
+          return ROUTES.ADMIN.JOBS;
+        }
+        return null;
+
+      case 'system':
+        // Check title/message for context-specific redirects
+        const titleLower = title.toLowerCase();
+        
+        // Provider registration related
+        if (titleLower.includes('provider') && titleLower.includes('registration')) {
+          if (isLSM) {
+            return '/lsm/sp-request'; // Provider requests page
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.PROVIDERS;
+          }
+        }
+        
+        // Provider approval related
+        if (titleLower.includes('approved') || titleLower.includes('rejected')) {
+          if (isProvider) {
+            return ROUTES.PROVIDER.PROFILE;
+          }
+        }
+
+        // Fallback: Redirect to appropriate dashboard
+        if (isCustomer) {
+          return ROUTES.CUSTOMER.DASHBOARD;
+        } else if (isProvider) {
+          return ROUTES.PROVIDER.DASHBOARD;
+        } else if (isLSM) {
+          return ROUTES.LSM.DASHBOARD;
+        } else if (isAdmin) {
+          return ROUTES.ADMIN.DASHBOARD;
+        }
+        return null;
+
+      default:
+        return null;
+    }
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -121,8 +243,22 @@ export default function NotificationPopup({
   };
 
   const handleNotificationClick = (notification: Notification) => {
+    console.log('Notification clicked:', notification);
+    
+    // Mark as read if unread
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
+    }
+
+    // Get redirect URL and navigate
+    const redirectUrl = getRedirectUrl(notification);
+    console.log('Redirect URL:', redirectUrl);
+    
+    if (redirectUrl) {
+      onClose(); // Close popup before navigating
+      router.push(redirectUrl);
+    } else {
+      console.warn('No redirect URL found for notification type:', notification.type, 'recipient:', notification.recipient_type);
     }
   };
 
@@ -132,7 +268,7 @@ export default function NotificationPopup({
   return (
     <div
       ref={popupRef}
-      className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[600px] flex flex-col"
+      className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[calc(100vh-120px)] flex flex-col"
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
@@ -186,7 +322,8 @@ export default function NotificationPopup({
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 hover:bg-gray-50 transition-colors relative ${
+                onClick={() => handleNotificationClick(notification)}
+                className={`p-4 hover:bg-gray-50 transition-colors relative cursor-pointer ${
                   !notification.is_read ? 'bg-blue-50' : ''
                 }`}
               >
@@ -201,7 +338,7 @@ export default function NotificationPopup({
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div onClick={() => handleNotificationClick(notification)} className="cursor-pointer">
+                    <div>
                       <h4 className="text-sm font-semibold text-gray-900 truncate">
                         {notification.title}
                       </h4>
@@ -237,11 +374,24 @@ export default function NotificationPopup({
       {/* Footer */}
       {notifications.length > 0 && (
         <div className="px-4 py-3 border-t border-gray-200 text-center">
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <button 
+            onClick={() => setShowAllModal(true)}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+          >
             View All Notifications
           </button>
         </div>
       )}
+
+      {/* All Notifications Modal */}
+      <AllNotificationsModal
+        isOpen={showAllModal}
+        onClose={() => setShowAllModal(false)}
+        notifications={notifications}
+        onMarkAsRead={onMarkAsRead}
+        onDelete={onDelete}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

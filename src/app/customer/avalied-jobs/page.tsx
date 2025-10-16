@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { customerApi, CustomerJob } from '@/api/customer';
 import Link from 'next/link';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
+import { useAlert } from '@/hooks/useAlert';
 
 const JOBS_PER_PAGE = 10;
 
 export default function AvailedJobsPage() {
   const router = useRouter();
+  const { showAlert, AlertComponent } = useAlert();
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +20,8 @@ export default function AvailedJobsPage() {
   const [feedbackData, setFeedbackData] = useState({
     rating: 5,
     feedback: '',
+    punctualityRating: 5,
+    responseTime: 0,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,7 +49,11 @@ export default function AvailedJobsPage() {
     if (!selectedJob) return;
 
     if (!feedbackData.feedback.trim()) {
-      alert('Please provide feedback comments');
+      showAlert({
+        title: 'Validation Error',
+        message: 'Please provide feedback comments',
+        type: 'warning'
+      });
       return;
     }
 
@@ -53,17 +62,27 @@ export default function AvailedJobsPage() {
       await customerApi.submitFeedback(selectedJob.id, {
         rating: feedbackData.rating,
         feedback: feedbackData.feedback,
+        punctualityRating: feedbackData.punctualityRating,
+        responseTime: feedbackData.responseTime > 0 ? feedbackData.responseTime : undefined,
       });
 
-      alert('Feedback submitted successfully!');
+      showAlert({
+        title: 'Success',
+        message: 'Feedback submitted successfully!',
+        type: 'success'
+      });
       setSelectedJob(null);
-      setFeedbackData({ rating: 5, feedback: '' });
+      setFeedbackData({ rating: 5, feedback: '', punctualityRating: 5, responseTime: 0 });
       
       // Refresh jobs list
       fetchCompletedJobs();
     } catch (err: any) {
       console.error('Failed to submit feedback:', err);
-      alert(err.message || 'Failed to submit feedback. Please try again.');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to submit feedback. Please try again.',
+        type: 'error'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -156,10 +175,7 @@ export default function AvailedJobsPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading completed jobs...</p>
-          </div>
+          <CardListSkeleton />
         </div>
       </div>
     );
@@ -254,7 +270,7 @@ export default function AvailedJobsPage() {
                         <button
                           onClick={() => {
                             setSelectedJob(job);
-                            setFeedbackData({ rating: 5, feedback: '' });
+                            setFeedbackData({ rating: 5, feedback: '', punctualityRating: 5, responseTime: 0 });
                           }}
                           className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm"
                         >
@@ -323,10 +339,10 @@ export default function AvailedJobsPage() {
                   </p>
                 </div>
 
-                {/* Rating */}
+                {/* Overall Rating */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    How would you rate this service?
+                    Overall Rating <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -342,6 +358,48 @@ export default function AvailedJobsPage() {
                     <span className="ml-3 text-lg font-semibold text-gray-700 self-center">
                       {feedbackData.rating}/5
                     </span>
+                  </div>
+                </div>
+
+                {/* Punctuality Rating */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Punctuality Rating <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">How punctual was the provider?</p>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFeedbackData({ ...feedbackData, punctualityRating: star })}
+                        className="text-3xl transition-transform hover:scale-110"
+                      >
+                        {star <= feedbackData.punctualityRating ? '⭐' : '☆'}
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600 self-center">
+                      {feedbackData.punctualityRating} / 5
+                    </span>
+                  </div>
+                </div>
+
+                {/* Response Time */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Response Time <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">How long did it take for the provider to respond?</p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={feedbackData.responseTime}
+                      onChange={(e) => setFeedbackData({ ...feedbackData, responseTime: parseInt(e.target.value) || 0 })}
+                      min="0"
+                      className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <span className="text-sm text-gray-600">minutes</span>
                   </div>
                 </div>
 
@@ -382,6 +440,9 @@ export default function AvailedJobsPage() {
             </div>
           </div>
         )}
+
+        {/* Alert Modal */}
+        <AlertComponent />
       </div>
     </div>
   );

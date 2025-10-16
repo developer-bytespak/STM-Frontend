@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { lsmApi, ServiceRequestHistoryFilters, PendingServiceRequest } from '@/api/lsm';
 import ServiceRequestHistory from '@/components/lsm/ServiceRequestHistory';
+import { useAlert } from '@/hooks/useAlert';
 
 export default function RequestsHistoryPage() {
+  const { showAlert, AlertComponent } = useAlert();
   const [data, setData] = useState<any>(null);
   const [pendingRequests, setPendingRequests] = useState<PendingServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,26 +65,46 @@ export default function RequestsHistoryPage() {
 
     try {
       await lsmApi.approveServiceRequest(requestId);
-      alert('Service request approved successfully');
+      showAlert({
+        title: 'Success',
+        message: 'Service request approved successfully',
+        type: 'success'
+      });
       await fetchAllData();
     } catch (err: any) {
-      alert(`Failed to approve: ${err.message}`);
+      showAlert({
+        title: 'Error',
+        message: `Failed to approve: ${err.message}`,
+        type: 'error'
+      });
     }
   };
 
   const handleReject = async (requestId: number) => {
     const reason = prompt('Please provide a reason for rejection:');
     if (!reason || !reason.trim()) {
-      alert('Rejection reason is required');
+      showAlert({
+        title: 'Validation Error',
+        message: 'Rejection reason is required',
+        type: 'warning'
+      });
       return;
     }
 
     try {
       await lsmApi.rejectServiceRequest(requestId, reason);
-      alert('Service request rejected successfully');
+      showAlert({
+        title: 'Success',
+        message: 'Service request rejected successfully',
+        type: 'success'
+      });
       await fetchAllData();
     } catch (err: any) {
-      alert(`Failed to reject: ${err.message}`);
+      showAlert({
+        title: 'Error',
+        message: `Failed to reject: ${err.message}`,
+        type: 'error'
+      });
     }
   };
 
@@ -296,6 +318,9 @@ export default function RequestsHistoryPage() {
               )}
             </div>
           )}
+
+          {/* Alert Modal */}
+          <AlertComponent />
         </div>
       </div>
     </div>

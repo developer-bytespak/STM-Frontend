@@ -208,7 +208,7 @@ export default function CitySearch({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search Location"
+          placeholder="Enter Zip Code"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}

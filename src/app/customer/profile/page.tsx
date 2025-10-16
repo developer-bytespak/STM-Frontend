@@ -14,6 +14,7 @@ interface CustomerProfile {
   email: string;
   phone: string;
   address: string;
+  zipCode: string;
 }
 
 export default function CustomerProfile() {
@@ -29,7 +30,8 @@ export default function CustomerProfile() {
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    zipCode: ''
   });
 
   const [editData, setEditData] = useState<CustomerProfile>({
@@ -37,7 +39,8 @@ export default function CustomerProfile() {
     lastName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    zipCode: ''
   });
 
   const [errors, setErrors] = useState<Partial<CustomerProfile>>({});
@@ -64,7 +67,8 @@ export default function CustomerProfile() {
             lastName: nameParts.slice(1).join(' ') || '',
             email: response.user.email,
             phone: response.user.phone,
-            address: response.address || ''
+            address: response.address || '',
+            zipCode: response.zipcode || ''
           };
           setProfileData(profile);
           setEditData(profile);
@@ -79,7 +83,8 @@ export default function CustomerProfile() {
             lastName: (user as any).lastName || user.name?.split(' ')[1] || '',
             email: user.email,
             phone: (user as any).phone || '',
-            address: ''
+            address: '',
+            zipCode: ''
           };
           setProfileData(profile);
           setEditData(profile);
@@ -123,6 +128,12 @@ export default function CustomerProfile() {
       newErrors.address = 'Address is required';
     }
 
+    if (!editData.zipCode.trim()) {
+      newErrors.zipCode = 'Zip code is required';
+    } else if (!/^\d{5}(-\d{4})?$/.test(editData.zipCode)) {
+      newErrors.zipCode = 'Please enter a valid zip code (e.g., 12345 or 12345-6789)';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -139,6 +150,7 @@ export default function CustomerProfile() {
         lastName: editData.lastName,
         phone: editData.phone,
         address: editData.address,
+        zipcode: editData.zipCode,
       });
 
       // Update local state
@@ -324,13 +336,37 @@ export default function CustomerProfile() {
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                         errors.address ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="123 Main St, City, State, ZIP"
+                      placeholder="123 Main St, City, State"
                     />
                   ) : (
                     <p className="px-4 py-2 text-gray-900 whitespace-pre-line">{profileData.address}</p>
                   )}
                   {errors.address && (
                     <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                  )}
+                </div>
+
+                {/* Zip Code */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Zip Code <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.zipCode}
+                      onChange={(e) => setEditData({ ...editData, zipCode: e.target.value })}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                        errors.zipCode ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="12345 or 12345-6789"
+                      maxLength={10}
+                    />
+                  ) : (
+                    <p className="px-4 py-2 text-gray-900">{profileData.zipCode}</p>
+                  )}
+                  {errors.zipCode && (
+                    <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>
                   )}
                 </div>
               </div>

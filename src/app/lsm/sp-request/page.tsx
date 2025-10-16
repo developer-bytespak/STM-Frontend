@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { lsmApi, PendingOnboardingResponse, ProviderInRegion } from '@/api/lsm';
 import { SPRequestList, SPRequestModal } from '@/components/lsm/sprequest';
 import ProviderStatusCard from '@/components/lsm/sprequest/ProviderStatusCard';
+import { useAlert } from '@/hooks/useAlert';
 
 export default function SPRequestPage() {
+  const { showAlert, AlertComponent } = useAlert();
   const [requests, setRequests] = useState<PendingOnboardingResponse[]>([]);
   const [rejectedProviders, setRejectedProviders] = useState<ProviderInRegion[]>([]);
   const [approvedProviders, setApprovedProviders] = useState<ProviderInRegion[]>([]);
@@ -48,7 +50,11 @@ export default function SPRequestPage() {
     try {
       // ✅ CORRECT: Using provider onboarding approval endpoint
       const result = await lsmApi.approveProviderOnboarding(id);
-      alert(`Provider #${id} has been approved! ${result.message}`);
+      showAlert({
+        title: 'Provider Approved',
+        message: `Provider #${id} has been approved! ${result.message}`,
+        type: 'success'
+      });
       
       // Refresh all data to reflect changes
       await fetchAllData();
@@ -67,7 +73,11 @@ export default function SPRequestPage() {
     try {
       // ✅ CORRECT: Using provider onboarding rejection endpoint with reason
       const result = await lsmApi.rejectProviderOnboarding(id, reason);
-      alert(`Provider #${id} has been rejected. ${result.message}`);
+      showAlert({
+        title: 'Provider Rejected',
+        message: `Provider #${id} has been rejected. ${result.message}`,
+        type: 'warning'
+      });
       
       // Refresh all data to reflect changes
       await fetchAllData();
@@ -276,6 +286,9 @@ export default function SPRequestPage() {
             onRefresh={handleRefreshRequest}
           />
         )}
+
+        {/* Alert Modal */}
+        <AlertComponent />
       </div>
     </div>
   );

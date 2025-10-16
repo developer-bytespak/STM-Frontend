@@ -19,10 +19,10 @@ export type NotificationType =
   | 'booking'
   | 'provider_request';
 
-export type RecipientType = 'customer' | 'provider' | 'lsm' | 'admin';
+export type RecipientType = 'customer' | 'provider' | 'service_provider' | 'lsm' | 'local_service_manager' | 'admin';
 
 export interface Notification {
-  id: number;
+  id: number | string; // Can be number or UUID string
   recipient_type: RecipientType;
   recipient_id: number;
   type: NotificationType;

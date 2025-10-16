@@ -7,6 +7,7 @@ import CitySearch from './CitySearch';
 import ResultsDisplay from './ResultsDisplay';
 import { homepageApi } from '@/api/homepage';
 import type { HomepageProvider } from '@/types/homepage';
+import { useAlert } from '@/hooks/useAlert';
 
 type SearchStep = 'service' | 'location' | 'results';
 
@@ -17,6 +18,7 @@ interface HierarchicalSearchProps {
 export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { showAlert, AlertComponent } = useAlert();
   
   const [currentStep, setCurrentStep] = useState<SearchStep>('service');
   const [selectedService, setSelectedService] = useState('');
@@ -144,16 +146,20 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
 
   // Handle get estimate
   const handleGetEstimate = () => {
-    // In a real app, this would trigger an estimate request
-    console.log('Getting estimate for:', selectedService, selectedLocation);
-    alert('Estimate request submitted! You will receive a response within 1 hour.');
+    showAlert({
+      title: 'Coming Soon',
+      message: 'Automated quote generation is currently under development. This feature will be available soon!',
+      type: 'info'
+    });
   };
 
   // Handle call now
   const handleCallNow = () => {
-    // In a real app, this would initiate a call or show contact info
-    console.log('Calling provider for:', selectedService, selectedLocation);
-    alert('Calling 962-745-353...');
+    showAlert({
+      title: 'Coming Soon',
+      message: 'Direct calling feature is currently under development. This feature will be available soon!',
+      type: 'info'
+    });
   };
 
   // Scroll to results when they appear
@@ -250,6 +256,9 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
           )}
         </div>
       )}
+      
+      {/* Alert Modal */}
+      <AlertComponent />
     </div>
   );
 }
