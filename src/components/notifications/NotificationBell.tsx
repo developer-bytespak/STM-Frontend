@@ -76,7 +76,7 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     }
   };
 
-  const markAsRead = async (id: number) => {
+  const markAsRead = async (id: number | string) => {
     const notification = notifications.find(n => n.id === id);
     
     // Only proceed if notification exists and is unread
@@ -122,7 +122,7 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     }
   };
 
-  const deleteNotification = async (id: number) => {
+  const deleteNotification = async (id: number | string) => {
     const notificationToDelete = notifications.find(n => n.id === id);
     
     if (!notificationToDelete) return;
@@ -175,7 +175,7 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
       {/* Bell Icon Button */}
       <button
         onClick={togglePopup}
-        className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+        className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg cursor-pointer"
         aria-label="Notifications"
       >
         {/* Bell Icon */}

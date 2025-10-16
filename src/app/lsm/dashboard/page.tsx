@@ -68,7 +68,7 @@ export default function LSMDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1 pt-6">
+x``      <div className="flex-1 pt-6 pb-12">
         <div className="container mx-auto px-4">
         {/* Header */}
         <div className="bg-gradient-to-r from-navy-600 to-blue-600 rounded-2xl p-8 text-white mb-8">
@@ -83,21 +83,21 @@ export default function LSMDashboard() {
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {/* Requests Card */}
-          <Link href="/lsm/sp-request" className="block">
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/sp-request" className="block h-full">
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-1 ml-4">
                   <h3 className="text-lg font-semibold text-gray-800">Onboarding Requests</h3>
                   <p className="text-2xl font-bold text-blue-600">{summary.pendingServiceRequests}</p>
                   <p className="text-sm text-gray-500">Pending Review</p>
                 </div>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-gray-600 mt-auto">
                 <span>{providers.active} Active</span>
                 <span>{providers.pending} Pending</span>
               </div>
@@ -105,110 +105,106 @@ export default function LSMDashboard() {
           </Link>
 
           {/* Providers Card */}
-          <Link href="/lsm/providers" className="block">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/providers" className="block h-full">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-1 ml-4">
                 <h3 className="text-lg font-semibold text-gray-800">Service Providers</h3>
                 <p className="text-2xl font-bold text-green-600">{summary.totalProviders}</p>
                 <p className="text-sm text-gray-500">Total in Region</p>
               </div>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 mt-auto">
               <span>{providers.active} Active • {providers.pending} Pending</span>
             </div>
           </div>
           </Link>
 
           {/* Jobs Card */}
-          <Link href="/lsm/jobs" className="block">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/jobs" className="block h-full">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-1 ml-4">
                 <h3 className="text-lg font-semibold text-gray-800">Jobs in Region</h3>
                 <p className="text-2xl font-bold text-purple-600">{summary.totalJobs}</p>
                 <p className="text-sm text-gray-500">Total Jobs</p>
               </div>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 mt-auto">
               <span>{jobs.in_progress} In Progress • {jobs.completed} Completed</span>
             </div>
           </div>
           </Link>
 
           {/* Service Requests Card */}
-          <Link href="/lsm/requests-history" className="block">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/requests-history" className="block h-full">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-1 ml-4">
                 <h3 className="text-lg font-semibold text-gray-800">Service Requests</h3>
-                <p className="text-sm text-gray-500 mt-1">Approve & Manage</p>
+                <p className="text-2xl font-bold text-teal-600">{summary.pendingServiceRequests}</p>
+                <p className="text-sm text-gray-500">Pending Approval</p>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Review pending service requests</span>
-              <button className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-2xl hover:bg-teal-700 transition-colors">
-                Manage
-              </button>
+            <div className="text-sm text-gray-600 mt-auto">
+              <span>Review & manage requests</span>
             </div>
           </div>
           </Link>
 
           {/* Disputes Card */}
-          <Link href="/lsm/disputes" className="block">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/disputes" className="block h-full">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-1 ml-4">
                 <h3 className="text-lg font-semibold text-gray-800">Disputes</h3>
                 <p className="text-2xl font-bold text-orange-600">{summary.pendingDisputes}</p>
                 <p className="text-sm text-gray-500">Pending</p>
               </div>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 mt-auto">
               <span>{disputes.pending} Pending • {disputes.resolved} Resolved</span>
             </div>
           </div>
           </Link>
 
           {/* SP Feedbacks Card */}
-          <Link href="/lsm/sp-feedbacks" className="block">
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/lsm/sp-feedbacks" className="block h-full">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-1 ml-4">
                 <h3 className="text-lg font-semibold text-gray-800">SP Feedbacks</h3>
-                <p className="text-sm text-gray-500 mt-1">Provider Reviews</p>
+                <p className="text-2xl font-bold text-indigo-600">★ 4.5</p>
+                <p className="text-sm text-gray-500">Average Rating</p>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Review service provider feedback</span>
-              <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-2xl hover:bg-indigo-700 transition-colors">
-                View All
-              </button>
+            <div className="text-sm text-gray-600 mt-auto">
+              <span>View all provider reviews</span>
             </div>
           </div>
           </Link>
@@ -217,7 +213,7 @@ export default function LSMDashboard() {
         </div>
 
         {/* Recent Activity Section */}
-        <div className="max-w-6xl mx-auto mt-8">
+        <div className="max-w-6xl mx-auto mt-8 mb-8">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">Recent Activity (Last 24 Hours)</h2>
@@ -275,9 +271,6 @@ export default function LSMDashboard() {
         </div>
       </div>
       </div>
-      
-      {/* Footer */}
-      
     </div>
   );
 }

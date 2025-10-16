@@ -11,7 +11,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-navy-900 mb-2">
-            ServiceProStars
+            ConnectAgain
           </h1>
           <p className="text-gray-600">Welcome back</p>
         </div>

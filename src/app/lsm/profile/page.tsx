@@ -13,6 +13,7 @@ interface LSMProfile {
   email: string;
   phone: string;
   address: string;
+  zipCode: string;
   region: string;
   area: string;
   department: string;
@@ -33,6 +34,7 @@ export default function LSMProfile() {
     email: '',
     phone: '',
     address: '',
+    zipCode: '',
     region: '',
     area: '',
     department: '',
@@ -45,6 +47,7 @@ export default function LSMProfile() {
     email: '',
     phone: '',
     address: '',
+    zipCode: '',
     region: '',
     area: '',
     department: '',
@@ -75,8 +78,9 @@ export default function LSMProfile() {
             email: response.email || '',
             phone: response.phoneNumber || response.phone_number || response.phone || '',
             address: response.address || '',
-            region: response.region || '',
-            area: response.area || '',
+            zipCode: response.roleData?.zipCode || response.roleData?.zip_code || response.zipCode || response.zip_code || '',
+            region: response.roleData?.region || response.region || '',
+            area: response.roleData?.area || response.area || '',
             department: response.department || '',
             employeeId: response.employeeId || response.employee_id || ''
           };
@@ -94,6 +98,7 @@ export default function LSMProfile() {
             email: user.email,
             phone: (user as any).phone || '',
             address: '',
+            zipCode: '',
             region: '',
             area: '',
             department: '',
@@ -457,7 +462,7 @@ export default function LSMProfile() {
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                         errors.address ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder="123 Main St, City, State, ZIP"
+                      placeholder="123 Main St, City, State"
                     />
                   ) : (
                     <p className="px-4 py-2 text-gray-900 whitespace-pre-line">{profileData.address}</p>
@@ -465,6 +470,17 @@ export default function LSMProfile() {
                   {errors.address && (
                     <p className="text-red-500 text-sm mt-1">{errors.address}</p>
                   )}
+                </div>
+
+                {/* Zip Code (Read-only) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Zip Code
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-300">
+                    {profileData.zipCode || 'Not set'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Zip code is assigned by system</p>
                 </div>
               </div>
 

@@ -14,7 +14,7 @@ function ProviderSignupWrapper() {
             Join as a Service Provider
           </h2>
           <p className="text-gray-600">
-            Start your business journey with ServiceProStars and connect with customers
+            Start your business journey with ConnectAgain and connect with customers
           </p>
         </div>
 

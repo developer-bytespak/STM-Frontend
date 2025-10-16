@@ -7,7 +7,7 @@ export const env = {
   API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000'),
   
   // App Configuration
-  APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'STM Platform',
+  APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'ConnectAgain',
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   APP_ENV: process.env.NODE_ENV || 'development',
   
@@ -22,7 +22,7 @@ export const env = {
   
   // Email Configuration
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
-  FROM_EMAIL: process.env.FROM_EMAIL || 'noreply@stmplatform.com',
+  FROM_EMAIL: process.env.FROM_EMAIL || 'noreply@connectagain.com',
   
   // SMS Configuration
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',

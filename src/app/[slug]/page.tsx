@@ -11,6 +11,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { homepageApi } from '@/api/homepage';
 import { extractProviderIdFromSlug } from '@/lib/slug';
 import type { ProviderDetail, ProviderService } from '@/types/homepage';
+import ProviderProfileSkeleton from '@/components/ui/ProviderProfileSkeleton';
 
 function ProviderPageContent() {
   const params = useParams();
@@ -156,11 +157,8 @@ function ProviderPageContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <AuthenticatedHeader />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mb-4"></div>
-            <p className="text-gray-600">Loading provider details...</p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+          <ProviderProfileSkeleton />
         </div>
         <Footer />
       </div>
@@ -538,19 +536,7 @@ export default function ProviderPage() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <AuthenticatedHeader />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-          <div className="animate-pulse">
-            <div className="h-32 bg-gray-200 rounded-lg mb-8"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="h-64 bg-gray-200 rounded-lg"></div>
-                <div className="h-96 bg-gray-200 rounded-lg"></div>
-              </div>
-              <div className="space-y-6">
-                <div className="h-48 bg-gray-200 rounded-lg"></div>
-                <div className="h-64 bg-gray-200 rounded-lg"></div>
-              </div>
-            </div>
-          </div>
+          <ProviderProfileSkeleton />
         </div>
         <Footer />
       </div>

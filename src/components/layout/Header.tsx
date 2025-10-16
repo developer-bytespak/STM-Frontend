@@ -67,9 +67,9 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <div className="w-8 h-8 bg-navy-600 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">STM</span>
+                <span className="text-white font-bold text-sm">CA</span>
               </div>
-              <h1 className="text-xl font-bold text-navy-900 hidden sm:block">ServiceProStars</h1>
+              <h1 className="text-xl font-bold text-navy-900 hidden sm:block">ConnectAgain</h1>
             </Link>
           </div>
 

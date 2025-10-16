@@ -4,6 +4,8 @@ import { use, useState, useEffect } from 'react';
 import { customerApi, CustomerJobDetails } from '@/api/customer';
 import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
+import DetailPageSkeleton from '@/components/ui/DetailPageSkeleton';
+import { useAlert } from '@/hooks/useAlert';
 
 interface BookingDetailsProps {
   params: Promise<{
@@ -13,6 +15,7 @@ interface BookingDetailsProps {
 
 export default function BookingDetails({ params }: BookingDetailsProps) {
   const { openConversationByJobId } = useChat();
+  const { showAlert, AlertComponent } = useAlert();
   const resolvedParams = use(params);
   const jobId = parseInt(resolvedParams.id);
   
@@ -23,12 +26,15 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reassignReason, setReassignReason] = useState('');
   const [newProviderId, setNewProviderId] = useState('');
   const [feedback, setFeedback] = useState({
     rating: 5,
     feedback: '',
+    punctualityRating: 5,
+    responseTime: 0,
   });
 
   useEffect(() => {
@@ -51,7 +57,11 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
   const handleCancelJob = async () => {
     if (!cancelReason.trim()) {
-      alert('Please provide a reason for cancellation');
+      showAlert({
+        title: 'Validation Error',
+        message: 'Please provide a reason for cancellation',
+        type: 'warning'
+      });
       return;
     }
 
@@ -62,16 +72,25 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         cancellationReason: cancelReason,
       });
       
-      alert(result.message || 'Job cancelled successfully');
-      if (result.cancellationFee && result.cancellationFee > 0) {
-        alert(`Cancellation fee: $${result.cancellationFee}`);
-      }
+      const feeMessage = result.cancellationFee && result.cancellationFee > 0 
+        ? `\n\nCancellation fee: $${result.cancellationFee}` 
+        : '';
+      
+      showAlert({
+        title: 'Job Cancelled',
+        message: (result.message || 'Job cancelled successfully') + feeMessage,
+        type: 'success'
+      });
       setShowCancelModal(false);
       // Refresh job details
       const data = await customerApi.getJobDetails(jobId);
       setJobDetails(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel job');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to cancel job',
+        type: 'error'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -84,12 +103,20 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         action: 'approve_edits',
       });
       
-      alert(result.message || 'Edits approved successfully');
+      showAlert({
+        title: 'Success',
+        message: result.message || 'Edits approved successfully',
+        type: 'success'
+      });
       // Refresh job details
       const data = await customerApi.getJobDetails(jobId);
       setJobDetails(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to approve edits');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to approve edits',
+        type: 'error'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -102,12 +129,20 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         action: 'close_deal',
       });
       
-      alert(result.message || 'Deal closed successfully');
+      showAlert({
+        title: 'Success',
+        message: result.message || 'Deal closed successfully',
+        type: 'success'
+      });
       // Refresh job details
       const data = await customerApi.getJobDetails(jobId);
       setJobDetails(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to close deal');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to close deal',
+        type: 'error'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -115,7 +150,11 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
   const handleReassignJob = async () => {
     if (!newProviderId.trim() || !reassignReason.trim()) {
-      alert('Please provide both provider ID and reason');
+      showAlert({
+        title: 'Validation Error',
+        message: 'Please provide both provider ID and reason',
+        type: 'warning'
+      });
       return;
     }
 
@@ -126,13 +165,21 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         reason: reassignReason,
       });
       
-      alert('Job reassigned successfully');
+      showAlert({
+        title: 'Success',
+        message: 'Job reassigned successfully',
+        type: 'success'
+      });
       setShowReassignModal(false);
       // Refresh job details
       const data = await customerApi.getJobDetails(jobId);
       setJobDetails(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to reassign job');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to reassign job',
+        type: 'error'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -140,7 +187,11 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
   const handleSubmitFeedback = async () => {
     if (!feedback.feedback.trim()) {
-      alert('Please provide feedback comments');
+      showAlert({
+        title: 'Validation Error',
+        message: 'Please provide feedback comments',
+        type: 'warning'
+      });
       return;
     }
 
@@ -149,15 +200,26 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
       await customerApi.submitFeedback(jobId, {
         rating: feedback.rating,
         feedback: feedback.feedback,
+        punctualityRating: feedback.punctualityRating,
+        responseTime: feedback.responseTime > 0 ? feedback.responseTime : undefined,
       });
       
-      alert('Feedback submitted successfully');
+      showAlert({
+        title: 'Success',
+        message: 'Feedback submitted successfully',
+        type: 'success'
+      });
+      setFeedbackSubmitted(true); // Track that feedback was submitted
       setShowFeedbackModal(false);
       // Refresh job details
       const data = await customerApi.getJobDetails(jobId);
       setJobDetails(data);
     } catch (err: any) {
-      alert(err.message || 'Failed to submit feedback');
+      showAlert({
+        title: 'Error',
+        message: err.message || 'Failed to submit feedback',
+        type: 'error'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -166,8 +228,39 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   const handleOpenChat = () => {
     const chatOpened = openConversationByJobId(jobId);
     if (!chatOpened) {
-      alert('Chat not available for this job yet. Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!');
+      showAlert({
+        title: 'Chat Unavailable',
+        message: 'Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!',
+        type: 'info'
+      });
     }
+  };
+
+  // Helper function to format field names
+  const formatFieldName = (key: string): string => {
+    // Convert camelCase to Title Case with spaces
+    const result = key.replace(/([A-Z])/g, ' $1');
+    return result.charAt(0).toUpperCase() + result.slice(1);
+  };
+
+  // Helper function to render job details in a formatted way
+  const renderJobDetails = (answers: any) => {
+    if (!answers || typeof answers !== 'object') return null;
+
+    return (
+      <div className="space-y-3">
+        {Object.entries(answers).map(([key, value]) => (
+          <div key={key} className="flex flex-col sm:flex-row sm:items-start border-b border-gray-100 pb-3 last:border-0">
+            <div className="font-medium text-gray-700 sm:w-1/3 mb-1 sm:mb-0">
+              {formatFieldName(key)}:
+            </div>
+            <div className="text-gray-900 sm:w-2/3">
+              {typeof value === 'object' ? JSON.stringify(value, null, 2) : value?.toString() || 'N/A'}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -190,11 +283,8 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
   if (loading) {
     return (
-      <div className="py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading job details...</p>
-        </div>
+      <div className="py-8">
+        <DetailPageSkeleton />
       </div>
     );
   }
@@ -326,20 +416,20 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         {/* Job Details */}
         {job.originalAnswers && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-2">Job Details</h3>
-            <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-auto">
-              {JSON.stringify(job.originalAnswers, null, 2)}
-            </pre>
+            <h3 className="font-semibold text-gray-900 mb-4">Job Details</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {renderJobDetails(job.originalAnswers)}
+            </div>
           </div>
         )}
 
         {/* Edited Answers */}
         {job.editedAnswers && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="font-semibold text-yellow-700 mb-2">⚠ Proposed Changes by Provider</h3>
-            <pre className="bg-yellow-50 p-4 rounded-lg text-sm overflow-auto border border-yellow-200">
-              {JSON.stringify(job.editedAnswers, null, 2)}
-            </pre>
+            <h3 className="font-semibold text-yellow-700 mb-4">⚠ Proposed Changes by Provider</h3>
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              {renderJobDetails(job.editedAnswers)}
+            </div>
           </div>
         )}
       </div>
@@ -389,7 +479,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             </button>
           )}
 
-          {actions.canGiveFeedback && (
+          {actions.canGiveFeedback && !feedbackSubmitted && (
             <button
               onClick={() => setShowFeedbackModal(true)}
               disabled={actionLoading}
@@ -397,6 +487,15 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             >
               Leave Feedback
             </button>
+          )}
+
+          {feedbackSubmitted && (
+            <div className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg font-medium flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Feedback Submitted
+            </div>
           )}
 
           {(job.status === 'new' || job.status === 'rejected_by_sp') && (
@@ -501,12 +600,13 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
       {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Leave Feedback</h3>
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Overall Rating */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rating (1-5)
+                  Overall Rating <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -514,38 +614,85 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
                       key={star}
                       type="button"
                       onClick={() => setFeedback({ ...feedback, rating: star })}
-                      className="text-3xl"
+                      className="text-3xl hover:scale-110 transition-transform"
                     >
                       {star <= feedback.rating ? '⭐' : '☆'}
                     </button>
                   ))}
+                  <span className="ml-2 text-sm text-gray-600 self-center">
+                    {feedback.rating} / 5
+                  </span>
                 </div>
               </div>
+
+              {/* Punctuality Rating */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Comments
+                  Punctuality Rating <span className="text-gray-400">(Optional)</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-2">How punctual was the provider?</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setFeedback({ ...feedback, punctualityRating: star })}
+                      className="text-3xl hover:scale-110 transition-transform"
+                    >
+                      {star <= feedback.punctualityRating ? '⭐' : '☆'}
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-gray-600 self-center">
+                    {feedback.punctualityRating} / 5
+                  </span>
+                </div>
+              </div>
+
+              {/* Response Time */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Response Time <span className="text-gray-400">(Optional)</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-2">How long did it take for the provider to respond?</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={feedback.responseTime}
+                    onChange={(e) => setFeedback({ ...feedback, responseTime: parseInt(e.target.value) || 0 })}
+                    min="0"
+                    className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                  <span className="text-sm text-gray-600">minutes</span>
+                </div>
+              </div>
+
+              {/* Comments */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comments <span className="text-gray-400">(Optional)</span>
                 </label>
                 <textarea
                   value={feedback.feedback}
                   onChange={(e) => setFeedback({ ...feedback, feedback: e.target.value })}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
-                  placeholder="Share your experience..."
+                  placeholder="Share your experience in detail..."
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSubmitFeedback}
                 disabled={actionLoading}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-medium"
               >
                 {actionLoading ? 'Submitting...' : 'Submit Feedback'}
               </button>
               <button
                 onClick={() => setShowFeedbackModal(false)}
                 disabled={actionLoading}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 font-medium"
               >
                 Close
               </button>
@@ -553,6 +700,9 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertComponent />
     </div>
   );
 }

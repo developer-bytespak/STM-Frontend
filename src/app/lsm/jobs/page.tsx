@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { lsmApi, JobsInRegionFilters } from '@/api/lsm';
 import JobsInRegion from '@/components/lsm/JobsInRegion';
+import TableSkeleton from '@/components/ui/TableSkeleton';
 
 export default function JobsInRegionPage() {
   const [data, setData] = useState<any>(null);
@@ -66,10 +67,7 @@ export default function JobsInRegionPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading jobs...</p>
-          </div>
+          <TableSkeleton />
         </div>
       </div>
     );

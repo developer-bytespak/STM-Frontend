@@ -47,7 +47,7 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="py-6 pb-12 space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-navy-600 to-blue-600 rounded-2xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">
@@ -59,57 +59,57 @@ export default function CustomerDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Total Jobs</span>
             <span className="text-2xl">📋</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.totalJobs || 0}</p>
-          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
             View all →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">In Progress</span>
             <span className="text-2xl">🔵</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.jobs?.in_progress || 0}</p>
-          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
             View active →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Total Spent</span>
             <span className="text-2xl">💰</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">${dashboard?.summary?.totalSpent || 0}</p>
-          <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+          <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
             View payments →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Pending Feedback</span>
             <span className="text-2xl">⭐</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.pendingFeedback || 0}</p>
-          <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-2 inline-block">
+          <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
             Leave feedback →
           </Link>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link
           href="/"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col min-h-[170px]"
         >
           <div className="w-12 h-12 bg-navy-100 rounded-lg flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,14 +117,14 @@ export default function CustomerDashboard() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Find Providers</h3>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-sm mt-auto">
             Search for service providers in your area
           </p>
         </Link>
 
         <Link
           href="/customer/bookings"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col min-h-[170px]"
         >
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,14 +132,14 @@ export default function CustomerDashboard() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">My Bookings</h3>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-sm mt-auto">
             View and manage your service bookings
           </p>
         </Link>
 
         <Link
           href="/customer/payments"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col min-h-[170px]"
         >
           <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,22 +147,22 @@ export default function CustomerDashboard() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Payments</h3>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-sm mt-auto">
             View payment history and manage billing
           </p>
         </Link>
         
         <Link
           href="/customer/avalied-jobs"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col min-h-[170px]"
         >
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed Jobs</h3>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 text-sm mt-auto">
             View completed jobs and leave feedback
           </p>
         </Link>
