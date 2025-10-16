@@ -20,7 +20,6 @@ export default function TotalJobsPage() {
   
   // State for filters and pagination
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [fromDate, setFromDate] = useState('');
@@ -33,6 +32,7 @@ export default function TotalJobsPage() {
       setError(null);
       
       const params: {
+        status?: string;
         fromDate?: string;
         toDate?: string;
         page: number;
@@ -41,6 +41,9 @@ export default function TotalJobsPage() {
         page: currentPage,
         limit: 6,
       };
+
+      // Only show completed/paid jobs on total jobs page, exclude in_progress
+      params.status = 'completed,paid';
 
       // Add date filters
       if (fromDate) {
@@ -168,14 +171,18 @@ export default function TotalJobsPage() {
     }
   };
 
-  // Filter jobs by search query and category (client-side since API doesn't support these filters)
-  const filteredJobs = jobs?.data.filter(job =>
-    job.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.category.toLowerCase().includes(searchQuery.toLowerCase())
-  ).filter(job =>
-    !categoryFilter || job.category.toLowerCase() === categoryFilter.toLowerCase()
-  ) || [];
+  // Filter jobs by search query and exclude in_progress jobs (client-side filtering)
+  const filteredJobs = jobs?.data.filter(job => {
+    // First, exclude in_progress jobs - they should only be on Active Jobs page
+    if (job.status.toLowerCase() === 'in_progress') {
+      return false;
+    }
+    
+    // Then apply search filter
+    return job.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           job.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           job.category.toLowerCase().includes(searchQuery.toLowerCase());
+  }) || [];
 
   // Sort jobs (client-side)
   const sortedJobs = [...filteredJobs].sort((a, b) => {
@@ -222,7 +229,7 @@ export default function TotalJobsPage() {
                 </button>
               </div>
               <h1 className="text-3xl font-bold text-gray-900">Total Jobs</h1>
-            <p className="mt-2 text-gray-600">View and manage all your jobs</p>
+            <p className="mt-2 text-gray-600">View and manage your completed and paid jobs</p>
           </div>
         </div>
       </div>
@@ -287,7 +294,7 @@ export default function TotalJobsPage() {
 
         {/* Filter/Search Bar */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
               <input
                 type="text"
@@ -298,30 +305,11 @@ export default function TotalJobsPage() {
               />
             </div>
             <div>
-              <select 
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              >
-                <option value="">All Categories</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Cleaning">Cleaning</option>
-                <option value="HVAC">HVAC</option>
-                <option value="Landscaping">Landscaping</option>
-                <option value="Painting">Painting</option>
-                <option value="Flooring">Flooring</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Security">Security</option>
-                <option value="Appliance Repair">Appliance Repair</option>
-              </select>
-            </div>
-            <div>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 placeholder="From Date"
               />
             </div>
@@ -330,7 +318,7 @@ export default function TotalJobsPage() {
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 placeholder="To Date"
               />
             </div>
@@ -352,7 +340,6 @@ export default function TotalJobsPage() {
               <button
                 onClick={() => {
                   setSearchQuery('');
-                  setCategoryFilter('');
                   setFromDate('');
                   setToDate('');
                   setSortBy('newest');
@@ -368,11 +355,51 @@ export default function TotalJobsPage() {
 
         {/* Jobs List */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading jobs...</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse">
+                {/* Header skeleton */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                </div>
+                
+                {/* Job details grid skeleton */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-12 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-18"></div>
+                  </div>
+                </div>
+                
+                {/* Customer contact skeleton */}
+                <div className="pt-4 border-t border-gray-200 mb-4">
+                  <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-32"></div>
+                </div>
+                
+                {/* Action buttons skeleton */}
+                <div className="pt-4 border-t border-gray-200 flex gap-3">
+                  <div className="flex-1 h-8 bg-gray-200 rounded"></div>
+                  <div className="flex-1 h-8 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : sortedJobs.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
@@ -380,12 +407,12 @@ export default function TotalJobsPage() {
               <span className="text-4xl">📋</span>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {searchQuery || categoryFilter ? 'No Jobs Found' : 'No Jobs Yet'}
+              {searchQuery ? 'No Jobs Found' : 'No Jobs Yet'}
             </h3>
             <p className="text-gray-600">
-              {searchQuery || categoryFilter 
-                ? 'Try adjusting your filters to see more results.'
-                : 'Your jobs will appear here once you start receiving requests.'}
+              {searchQuery 
+                ? 'Try adjusting your search query to see more results.'
+                : 'Your completed and paid jobs will appear here once you finish active jobs.'}
             </p>
           </div>
         ) : (

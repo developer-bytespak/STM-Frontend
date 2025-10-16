@@ -83,10 +83,88 @@ export default function MyRequestsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-navy-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading service requests...</p>
+      <div>
+        {/* Header */}
+        <div className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-6">
+              <div className="flex items-center mb-4">
+                <button
+                  onClick={() => window.history.back()}
+                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900">My Service Requests</h1>
+              <p className="mt-2 text-gray-600">Track the status of your service requests</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Skeleton request cards */}
+          <div className="space-y-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded-full w-24"></div>
+                </div>
+                
+                {/* Request details skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-18"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-12 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-28"></div>
+                  </div>
+                </div>
+                
+                {/* Description skeleton */}
+                <div className="mb-4">
+                  <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+                
+                {/* Status sections skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
