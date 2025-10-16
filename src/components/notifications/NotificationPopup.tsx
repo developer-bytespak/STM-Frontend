@@ -1,24 +1,18 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-
-interface Notification {
-  id: string;
-  type: 'job' | 'payment' | 'message' | 'system' | 'approval';
-  title: string;
-  message: string;
-  isRead: boolean;
-  timestamp: Date;
-  link?: string;
-}
+import { getRelativeTime } from '@/api/notifications';
+import type { Notification } from '@/api/notifications';
 
 interface NotificationPopupProps {
   notifications: Notification[];
-  onMarkAsRead: (id: string) => void;
+  onMarkAsRead: (id: number) => void;
   onMarkAllAsRead: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
+  onClearRead: () => void;
   onClose: () => void;
   bellRef: React.RefObject<HTMLDivElement | null>;
+  isLoading?: boolean;
 }
 
 export default function NotificationPopup({
@@ -26,8 +20,10 @@ export default function NotificationPopup({
   onMarkAsRead,
   onMarkAllAsRead,
   onDelete,
+  onClearRead,
   onClose,
-  bellRef
+  bellRef,
+  isLoading = false
 }: NotificationPopupProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
 
@@ -46,20 +42,6 @@ export default function NotificationPopup({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose, bellRef]);
-
-  const getRelativeTime = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
-  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -103,6 +85,30 @@ export default function NotificationPopup({
             </svg>
           </div>
         );
+      case 'dispute':
+        return (
+          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+        );
+      case 'booking':
+        return (
+          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        );
+      case 'provider_request':
+        return (
+          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        );
       default:
         return (
           <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -115,12 +121,13 @@ export default function NotificationPopup({
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    if (!notification.isRead) {
+    if (!notification.is_read) {
       onMarkAsRead(notification.id);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const readCount = notifications.filter(n => n.is_read).length;
 
   return (
     <div
@@ -137,19 +144,34 @@ export default function NotificationPopup({
             </span>
           )}
         </h3>
-        {unreadCount > 0 && (
-          <button
-            onClick={onMarkAllAsRead}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Mark all read
-          </button>
-        )}
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={onMarkAllAsRead}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Mark all read
+            </button>
+          )}
+          {readCount > 0 && (
+            <button
+              onClick={onClearRead}
+              className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+            >
+              Clear read
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Notification List */}
       <div className="overflow-y-auto flex-1">
-        {notifications.length === 0 ? (
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+            <p className="text-gray-500 text-sm mt-3">Loading notifications...</p>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,11 +187,11 @@ export default function NotificationPopup({
               <div
                 key={notification.id}
                 className={`p-4 hover:bg-gray-50 transition-colors relative ${
-                  !notification.isRead ? 'bg-blue-50' : ''
+                  !notification.is_read ? 'bg-blue-50' : ''
                 }`}
               >
                 {/* Unread indicator dot */}
-                {!notification.isRead && (
+                {!notification.is_read && (
                   <span className="absolute top-4 left-2 w-2 h-2 bg-blue-600 rounded-full"></span>
                 )}
 
@@ -188,7 +210,7 @@ export default function NotificationPopup({
                       </p>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      {getRelativeTime(notification.timestamp)}
+                      {getRelativeTime(notification.created_at)}
                     </p>
                   </div>
 

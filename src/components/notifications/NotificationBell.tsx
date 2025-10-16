@@ -1,17 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import NotificationPopup from './NotificationPopup';
-
-interface Notification {
-  id: string;
-  type: 'job' | 'payment' | 'message' | 'system' | 'approval';
-  title: string;
-  message: string;
-  isRead: boolean;
-  timestamp: Date;
-  link?: string;
-}
+import { getCombinedNotifications, getUnreadCount, markAllAsRead, clearReadNotifications as clearReadNotificationsApi, markNotificationAsRead, deleteNotification as deleteNotificationApi } from '@/api/notifications';
+import type { Notification } from '@/api/notifications';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NotificationBellProps {
   userRole?: 'customer' | 'service_provider' | 'admin' | 'local_service_manager';
@@ -20,38 +13,161 @@ interface NotificationBellProps {
 export default function NotificationBell({ userRole }: NotificationBellProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const bellRef = useRef<HTMLDivElement | null>(null);
+  const { user, isAuthenticated } = useAuth();
 
-  // Initialize mock notifications based on user role
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      setIsLoading(true);
+      const response = await getCombinedNotifications({
+        limit: 20,
+        offset: 0,
+      });
+      
+      setNotifications(response.notifications);
+      setUnreadCount(response.unreadCount);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, user]);
+
+  // Fetch only unread count (lightweight)
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      const response = await getUnreadCount();
+      setUnreadCount(response.count);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  }, [isAuthenticated, user]);
+
+  // Initial fetch and polling
   useEffect(() => {
-    const mockNotifications = getMockNotifications(userRole);
-    setNotifications(mockNotifications);
-  }, [userRole]);
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+    if (isAuthenticated) {
+      fetchNotifications();
+      
+      // Poll for full notifications every 60 seconds
+      const notificationsInterval = setInterval(fetchNotifications, 60000);
+      
+      // Poll for unread count every 15 seconds (lightweight)
+      const unreadCountInterval = setInterval(fetchUnreadCount, 15000);
+      
+      return () => {
+        clearInterval(notificationsInterval);
+        clearInterval(unreadCountInterval);
+      };
+    }
+  }, [isAuthenticated, fetchNotifications, fetchUnreadCount]);
 
   const togglePopup = () => {
     setShowPopup(!showPopup);
+    // Refresh notifications when opening popup
+    if (!showPopup) {
+      fetchNotifications();
+    }
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: number) => {
+    const notification = notifications.find(n => n.id === id);
+    
+    // Only proceed if notification exists and is unread
+    if (!notification || notification.is_read) return;
+
+    // Optimistically update UI
     setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+      prev.map(n => n.id === id ? { ...n, is_read: true } : n)
     );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    try {
+      // Call API to mark as read
+      await markNotificationAsRead(id);
+      console.log(`Marked notification ${id} as read`);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      // Revert on error
+      fetchNotifications();
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsReadHandler = async () => {
+    const unreadNotifications = notifications.filter(n => !n.is_read);
+    
+    // Only proceed if there are unread notifications
+    if (unreadNotifications.length === 0) return;
+
+    // Optimistically update UI
     setNotifications(prev =>
-      prev.map(n => ({ ...n, isRead: true }))
+      prev.map(n => ({ ...n, is_read: true }))
     );
+    setUnreadCount(0);
+
+    try {
+      // Call API to mark all as read
+      const response = await markAllAsRead();
+      console.log(`Marked ${response.count} notifications as read`);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      // Revert on error
+      fetchNotifications();
+    }
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: number) => {
+    const notificationToDelete = notifications.find(n => n.id === id);
+    
+    if (!notificationToDelete) return;
+
+    // Optimistically update UI
     setNotifications(prev => prev.filter(n => n.id !== id));
+    if (!notificationToDelete.is_read) {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+
+    try {
+      // Call API to delete notification
+      await deleteNotificationApi(id);
+      console.log(`Deleted notification ${id}`);
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      // Revert on error
+      fetchNotifications();
+    }
+  };
+
+  const clearReadNotifications = async () => {
+    const readNotifications = notifications.filter(n => n.is_read);
+    
+    // Only proceed if there are read notifications
+    if (readNotifications.length === 0) return;
+
+    // Optimistically update UI - remove all read notifications
+    setNotifications(prev => prev.filter(n => !n.is_read));
+
+    try {
+      // Call API to clear read notifications
+      const response = await clearReadNotificationsApi();
+      console.log(`Cleared ${response.count} read notifications`);
+    } catch (error) {
+      console.error('Failed to clear read notifications:', error);
+      // Revert on error
+      fetchNotifications();
+    }
   };
 
   const closePopup = () => {
     setShowPopup(false);
+    // Refresh unread count when closing popup to ensure accuracy
+    fetchUnreadCount();
   };
 
   return (
@@ -90,179 +206,14 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
         <NotificationPopup
           notifications={notifications}
           onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
+          onMarkAllAsRead={markAllAsReadHandler}
           onDelete={deleteNotification}
+          onClearRead={clearReadNotifications}
           onClose={closePopup}
           bellRef={bellRef}
+          isLoading={isLoading}
         />
       )}
     </div>
   );
 }
-
-// Mock notifications generator based on user role
-function getMockNotifications(userRole?: string): Notification[] {
-  const baseTime = new Date();
-
-  switch (userRole) {
-    case 'customer':
-      return [
-        {
-          id: '1',
-          type: 'job',
-          title: 'Job Accepted',
-          message: 'Your Plumbing Service request has been accepted by John Doe.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 5 * 60000), // 5 min ago
-          link: '/customer/bookings'
-        },
-        {
-          id: '2',
-          type: 'message',
-          title: 'New Message',
-          message: 'You have a new message from your service provider.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 15 * 60000), // 15 min ago
-        },
-        {
-          id: '3',
-          type: 'payment',
-          title: 'Payment Confirmed',
-          message: 'Your payment of $150.00 has been confirmed.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 2 * 60 * 60000), // 2 hours ago
-          link: '/customer/payments'
-        },
-        {
-          id: '4',
-          type: 'job',
-          title: 'Service Provider Proposed Changes',
-          message: 'ABC Plumbing proposed changes to your Toilet Repair request. Please review.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 24 * 60 * 60000), // 1 day ago
-        }
-      ];
-
-    case 'service_provider':
-      return [
-        {
-          id: '1',
-          type: 'job',
-          title: 'New Job Request',
-          message: 'You have a new Electrical Repair job request from Sarah Wilson.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 3 * 60000), // 3 min ago
-          link: '/provider/jobs'
-        },
-        {
-          id: '2',
-          type: 'job',
-          title: 'Job Completed',
-          message: 'Customer marked your job as completed. Please review.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 30 * 60000), // 30 min ago
-        },
-        {
-          id: '3',
-          type: 'payment',
-          title: 'Payment Received',
-          message: 'You received $200.00 for AC Repair job.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 1 * 60 * 60000), // 1 hour ago
-          link: '/provider/earnings'
-        },
-        {
-          id: '4',
-          type: 'message',
-          title: 'New Message',
-          message: 'Customer sent you a message about House Cleaning job.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 3 * 60 * 60000), // 3 hours ago
-        },
-        {
-          id: '5',
-          type: 'approval',
-          title: 'Service Request Approved',
-          message: 'Your new service request "Window Cleaning" has been approved.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 2 * 24 * 60 * 60000), // 2 days ago
-          link: '/provider/myrequests'
-        }
-      ];
-
-    case 'local_service_manager':
-      return [
-        {
-          id: '1',
-          type: 'approval',
-          title: 'New Provider Request',
-          message: 'New service provider "Mike\'s Plumbing" is waiting for approval.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 10 * 60000), // 10 min ago
-          link: '/lsm/providers'
-        },
-        {
-          id: '2',
-          type: 'system',
-          title: 'Dispute Alert',
-          message: 'A dispute has been raised for Job #1234. Please review.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 45 * 60000), // 45 min ago
-          link: '/lsm/disputes'
-        },
-        {
-          id: '3',
-          type: 'job',
-          title: 'Job Requires Attention',
-          message: 'Job #5678 in your region needs immediate attention.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 4 * 60 * 60000), // 4 hours ago
-          link: '/lsm/jobs'
-        }
-      ];
-
-    case 'admin':
-      return [
-        {
-          id: '1',
-          type: 'system',
-          title: 'System Alert',
-          message: 'High volume of job requests detected in North Region.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 20 * 60000), // 20 min ago
-          link: '/admin/analytics'
-        },
-        {
-          id: '2',
-          type: 'approval',
-          title: 'LSM Request Pending',
-          message: 'New LSM application from John Smith requires approval.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 1 * 60 * 60000), // 1 hour ago
-          link: '/admin/lsms'
-        },
-        {
-          id: '3',
-          type: 'approval',
-          title: 'Service Request',
-          message: 'Provider requested to add "Pool Cleaning" service.',
-          isRead: false,
-          timestamp: new Date(baseTime.getTime() - 2 * 60 * 60000), // 2 hours ago
-          link: '/admin/service-requests'
-        },
-        {
-          id: '4',
-          type: 'system',
-          title: 'Provider Banned',
-          message: 'Provider #789 has been banned due to multiple violations.',
-          isRead: true,
-          timestamp: new Date(baseTime.getTime() - 6 * 60 * 60000), // 6 hours ago
-          link: '/admin/providers'
-        }
-      ];
-
-    default:
-      return [];
-  }
-}
-
