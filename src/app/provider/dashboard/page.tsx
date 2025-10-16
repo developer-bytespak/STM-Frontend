@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { providerApi, DashboardResponse } from '@/api/provider';
 import { MyRequestsCard } from '@/components/provider';
+import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 
 function ProviderDashboardContent() {
   const searchParams = useSearchParams();
@@ -57,14 +58,7 @@ function ProviderDashboardContent() {
   }, [searchParams]);
 
   if (loading && approvalStatus === 'checking') {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-navy-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking approval status...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (approvalStatus === 'pending') {
@@ -110,14 +104,7 @@ function ProviderDashboardContent() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-navy-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

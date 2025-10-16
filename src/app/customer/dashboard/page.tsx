@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { customerApi, CustomerDashboard as DashboardData } from '@/api/customer';
+import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
@@ -31,14 +32,7 @@ export default function CustomerDashboard() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
