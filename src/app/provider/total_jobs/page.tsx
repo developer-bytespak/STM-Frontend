@@ -13,6 +13,11 @@ export default function TotalJobsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
+  // State for payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  
   // State for filters and pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -109,6 +114,48 @@ export default function TotalJobsPage() {
       
       // Show more detailed error message
       let errorMessage = 'Failed to mark job as complete';
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.status) {
+        errorMessage = `Server error (${err.status})`;
+      }
+      
+      setUpdateMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleMarkPayment = async (jobId: number) => {
+    try {
+      setIsUpdating(true);
+      setUpdateMessage(null);
+      
+      // Use default payment details as backend requires them
+      const response = await providerApi.updateJobStatus(jobId, 'MARK_PAYMENT', {
+        method: 'cash',
+        notes: 'Payment received'
+      });
+      
+      setUpdateMessage({ type: 'success', text: response.message });
+      
+      // Refresh job details
+      if (selectedJobDetails) {
+        const updatedDetails = await providerApi.getJobDetails(jobId);
+        setSelectedJobDetails(updatedDetails);
+      }
+      
+      // Refresh jobs list
+      await fetchJobs();
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setUpdateMessage(null), 5000);
+    } catch (err: any) {
+      console.error('Failed to mark payment:', err);
+      console.error('Error details:', err);
+      
+      // Show more detailed error message
+      let errorMessage = 'Failed to mark payment';
       if (err.message) {
         errorMessage = err.message;
       } else if (err.status) {
@@ -416,19 +463,19 @@ export default function TotalJobsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Job ID</p>
-                    <p className="font-medium">#{selectedJobDetails.job.id}</p>
+                    <p className="font-medium text-gray-900">#{selectedJobDetails.job.id}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
-                    <p className="font-medium">{selectedJobDetails.job.status}</p>
+                    <p className="font-medium text-gray-900">{selectedJobDetails.job.status}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Service</p>
-                    <p className="font-medium">{selectedJobDetails.job.service}</p>
+                    <p className="font-medium text-gray-900">{selectedJobDetails.job.service}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Category</p>
-                    <p className="font-medium">{selectedJobDetails.job.category}</p>
+                    <p className="font-medium text-gray-900">{selectedJobDetails.job.category}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Price</p>
@@ -436,7 +483,7 @@ export default function TotalJobsPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Location</p>
-                    <p className="font-medium">{selectedJobDetails.job.location}</p>
+                    <p className="font-medium text-gray-900">{selectedJobDetails.job.location}</p>
                   </div>
                 </div>
 
@@ -446,15 +493,15 @@ export default function TotalJobsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Name</p>
-                      <p className="font-medium">{selectedJobDetails.customer.name}</p>
+                      <p className="font-medium text-gray-900">{selectedJobDetails.customer.name}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Phone</p>
-                      <p className="font-medium">{selectedJobDetails.customer.phone}</p>
+                      <p className="font-medium text-gray-900">{selectedJobDetails.customer.phone}</p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-sm text-gray-500">Address</p>
-                      <p className="font-medium">{selectedJobDetails.customer.address}</p>
+                      <p className="font-medium text-gray-900">{selectedJobDetails.customer.address}</p>
                     </div>
                   </div>
                 </div>
@@ -466,19 +513,19 @@ export default function TotalJobsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Amount</p>
-                        <p className="font-medium">${selectedJobDetails.payment.amount.toFixed(2)}</p>
+                        <p className="font-medium text-green-600">${selectedJobDetails.payment.amount.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Status</p>
-                        <p className="font-medium">{selectedJobDetails.payment.status}</p>
+                        <p className="font-medium text-gray-900">{selectedJobDetails.payment.status}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Method</p>
-                        <p className="font-medium">{selectedJobDetails.payment.method || 'N/A'}</p>
+                        <p className="font-medium text-gray-900">{selectedJobDetails.payment.method || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Marked At</p>
-                        <p className="font-medium">{selectedJobDetails.payment.markedAt ? new Date(selectedJobDetails.payment.markedAt).toLocaleDateString() : 'N/A'}</p>
+                        <p className="font-medium text-gray-900">{selectedJobDetails.payment.markedAt ? new Date(selectedJobDetails.payment.markedAt).toLocaleDateString() : 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -507,8 +554,12 @@ export default function TotalJobsPage() {
                       </button>
                     )}
                     {selectedJobDetails.actions.canMarkPayment && (
-                      <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Mark Payment
+                      <button 
+                        onClick={() => handleMarkPayment(selectedJobDetails.job.id)}
+                        disabled={isUpdating}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUpdating ? 'Updating...' : 'Mark Payment'}
                       </button>
                     )}
                     {selectedJobDetails.chatId && (
