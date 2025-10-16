@@ -41,15 +41,43 @@ export default function MyRequestsPage() {
   };
 
   const getApprovalStatus = (request: ServiceRequest) => {
+    // Debug: Log the actual values being received
+    console.log('MyRequests Page - Request approval status debug:', {
+      id: request.id,
+      serviceName: request.serviceName,
+      lsm_approved: request.lsm_approved,
+      admin_approved: request.admin_approved,
+      lsm_rejection_reason: request.lsm_rejection_reason,
+      admin_rejection_reason: request.admin_rejection_reason
+    });
+
+    // Both approved = approved
     if (request.lsm_approved === true && request.admin_approved === true) {
       return { status: 'approved', text: 'Approved' };
     }
-    if (request.lsm_approved === false || request.admin_approved === false) {
-      return { status: 'rejected', text: 'Rejected' };
+    
+    // Check if LSM has actually rejected (has rejection reason)
+    const hasLSMRejection = request.lsm_rejection_reason && request.lsm_rejection_reason.trim().length > 0;
+    
+    // Check if admin has actually rejected (has rejection reason)
+    const hasAdminRejection = request.admin_rejection_reason && request.admin_rejection_reason.trim().length > 0;
+    
+    // LSM rejected = rejected (no need to wait for admin)
+    if (request.lsm_approved === false && hasLSMRejection) {
+      return { status: 'rejected', text: 'LSM Rejected' };
     }
-    if (request.lsm_approved === true && request.admin_approved === null) {
-      return { status: 'pending', text: 'Admin Review' };
+    
+    // Admin rejected = rejected (LSM was approved but admin rejected with reason)
+    if (request.lsm_approved === true && request.admin_approved === false && hasAdminRejection) {
+      return { status: 'rejected', text: 'Admin Rejected' };
     }
+    
+    // LSM approved, waiting for admin = admin review (even if admin_approved is false but no rejection reason)
+    if (request.lsm_approved === true && (request.admin_approved === null || (request.admin_approved === false && !hasAdminRejection))) {
+      return { status: 'pending', text: 'Under Admin Review' };
+    }
+    
+    // Default case: waiting for LSM review
     return { status: 'pending', text: 'LSM Review' };
   };
 
@@ -123,11 +151,18 @@ export default function MyRequestsPage() {
                     <div className="flex items-center space-x-2">
                       {request.lsm_approved === true ? (
                         <span className="text-green-600 text-sm">✓ Approved</span>
-                      ) : request.lsm_approved === false ? (
-                        <span className="text-red-600 text-sm">✗ Rejected</span>
-                      ) : (
-                        <span className="text-yellow-600 text-sm">⏳ Pending</span>
-                      )}
+                      ) : (() => {
+                        // Check if LSM has actually rejected (has rejection reason)
+                        const hasLSMRejection = request.lsm_rejection_reason && request.lsm_rejection_reason.trim().length > 0;
+                        
+                        // Only show rejected if lsm_approved is false AND there's a rejection reason
+                        if (request.lsm_approved === false && hasLSMRejection) {
+                          return <span className="text-red-600 text-sm">✗ Rejected</span>;
+                        }
+                        
+                        // Otherwise show pending (even if lsm_approved is false but no rejection reason)
+                        return <span className="text-yellow-600 text-sm">⏳ Pending</span>;
+                      })()}
                     </div>
                     {request.lsm_rejection_reason && (
                       <p className="text-red-600 text-sm mt-1">{request.lsm_rejection_reason}</p>
@@ -137,13 +172,29 @@ export default function MyRequestsPage() {
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h5 className="font-medium text-gray-900 mb-2">Admin Approval</h5>
                     <div className="flex items-center space-x-2">
-                      {request.admin_approved === true ? (
-                        <span className="text-green-600 text-sm">✓ Approved</span>
-                      ) : request.admin_approved === false ? (
-                        <span className="text-red-600 text-sm">✗ Rejected</span>
-                      ) : (
-                        <span className="text-yellow-600 text-sm">⏳ Pending</span>
-                      )}
+                      {(() => {
+                        // If LSM rejected, admin approval is not applicable
+                        const hasLSMRejection = request.lsm_rejection_reason && request.lsm_rejection_reason.trim().length > 0;
+                        if (request.lsm_approved === false && hasLSMRejection) {
+                          return <span className="text-gray-500 text-sm">N/A</span>;
+                        }
+                        
+                        // If LSM approved and admin approved
+                        if (request.admin_approved === true) {
+                          return <span className="text-green-600 text-sm">✓ Approved</span>;
+                        }
+                        
+                        // Check if admin has actually rejected (has rejection reason)
+                        const hasAdminRejection = request.admin_rejection_reason && request.admin_rejection_reason.trim().length > 0;
+                        
+                        // Only show rejected if admin_approved is false AND there's a rejection reason
+                        if (request.admin_approved === false && hasAdminRejection) {
+                          return <span className="text-red-600 text-sm">✗ Rejected</span>;
+                        }
+                        
+                        // Otherwise show pending (even if admin_approved is false but no rejection reason)
+                        return <span className="text-yellow-600 text-sm">⏳ Pending</span>;
+                      })()}
                     </div>
                     {request.admin_rejection_reason && (
                       <p className="text-red-600 text-sm mt-1">{request.admin_rejection_reason}</p>
