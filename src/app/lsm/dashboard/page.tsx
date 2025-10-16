@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { lsmApi } from '@/api/lsm';
 import { useAuth } from '@/hooks/useAuth';
-import Loader from '@/components/ui/Loader';
+import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 
 export default function LSMDashboard() {
   const { user } = useAuth();
@@ -23,11 +23,7 @@ export default function LSMDashboard() {
 
   // Show loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Show error state with fallback option

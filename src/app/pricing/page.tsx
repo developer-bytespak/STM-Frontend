@@ -2,12 +2,13 @@
 
 import React from 'react';
 import PricingPlans from '@/components/subscription/pricingGrid';
-import Header from '@/components/layout/Header';
+import AuthenticatedHeader from '@/components/layout/AuthenticatedHeader';
 import Footer from '@/components/layout/Footer';
+
 export default function PricingPage() {
   return (
     <>
-      <Header />
+      <AuthenticatedHeader />
       <PricingPlans />
       <Footer />
     </>
