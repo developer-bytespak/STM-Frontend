@@ -88,8 +88,45 @@ export default function MyRequestsCard({ className = '' }: MyRequestsCardProps) 
   if (loading) {
     return (
       <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${className}`}>
-        <div className="flex items-center justify-center h-32">
-          <div className="w-8 h-8 border-4 border-navy-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="h-6 bg-gray-200 rounded w-40 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </div>
+          <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+        </div>
+        
+        {/* Skeleton request items */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-gray-100 rounded-lg p-4 animate-pulse">
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded w-28"></div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* View All Button Skeleton */}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <div className="h-10 bg-gray-200 rounded w-full animate-pulse"></div>
         </div>
       </div>
     );

@@ -234,7 +234,7 @@ function ProviderDashboardContent() {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Earnings</h3>
-          <p className="text-3xl font-bold text-green-600 mb-1">Rs. {summary.totalEarnings.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-green-600 mb-1">${summary.totalEarnings.toLocaleString()}</p>
           <p className="text-gray-600 text-sm">
             View payment history and manage billing
           </p>

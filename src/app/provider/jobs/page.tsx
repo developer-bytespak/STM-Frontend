@@ -263,9 +263,63 @@ export default function ProviderJobs() {
 
         {/* Loading State */}
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading job requests...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse">
+                {/* Header skeleton */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                </div>
+                
+                {/* Customer info skeleton */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center mb-2">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full mr-3"></div>
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded w-32"></div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Job details skeleton */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-12 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-18"></div>
+                  </div>
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+                    <div className="h-4 bg-gray-200 rounded w-28"></div>
+                  </div>
+                </div>
+                
+                {/* Description skeleton */}
+                <div className="mb-4">
+                  <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+                
+                {/* Action buttons skeleton */}
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                  <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">

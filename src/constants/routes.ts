@@ -7,6 +7,7 @@ export const ROUTES = {
   HELP: '/help',
   PRIVACY: '/privacy',
   TERMS: '/terms',
+  OUR_PLEDGE: '/our-pledge',
   PRICING: '/pricing',
   
   // Authentication routes

@@ -316,13 +316,16 @@ export interface ProfileData {
 }
 
 export interface UpdateProfileDto {
-  businessName?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  business_name?: string;
   description?: string;
   location?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  min_price?: number;
+  max_price?: number;
   experience?: number;
-  serviceAreas?: string[];
+  service_areas?: string[];
 }
 
 export interface UpdateProfileResponse {

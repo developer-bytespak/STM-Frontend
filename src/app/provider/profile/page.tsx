@@ -47,6 +47,8 @@ export default function ProviderProfile() {
   const [apiProfileData, setApiProfileData] = useState<ProfileData | null>(null);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<'active' | 'inactive'>('active');
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<'active' | 'inactive' | null>(null);
   
   const [profileData, setProfileData] = useState<ProviderProfile>({
     firstName: '',
@@ -114,16 +116,24 @@ export default function ProviderProfile() {
     }
   }, [apiProfileData]);
 
-  // Handle availability toggle
-  const handleAvailabilityToggle = async () => {
+  // Handle availability toggle confirmation
+  const handleAvailabilityToggle = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    setPendingStatus(newStatus);
+    setShowAvailabilityModal(true);
+  };
+
+  // Confirm availability change
+  const confirmAvailabilityChange = async () => {
+    if (!pendingStatus) return;
     
     setIsTogglingAvailability(true);
     setErrorMessage('');
+    setShowAvailabilityModal(false);
     
     try {
-      const response = await providerApi.setAvailability(newStatus);
-      setCurrentStatus(newStatus);
+      const response = await providerApi.setAvailability(pendingStatus);
+      setCurrentStatus(pendingStatus);
       setSuccessMessage(response.message);
       
       // Reload profile to get updated data
@@ -136,7 +146,14 @@ export default function ProviderProfile() {
       setErrorMessage(error.message || 'Failed to update availability. Please try again.');
     } finally {
       setIsTogglingAvailability(false);
+      setPendingStatus(null);
     }
+  };
+
+  // Cancel availability change
+  const cancelAvailabilityChange = () => {
+    setShowAvailabilityModal(false);
+    setPendingStatus(null);
   };
 
   // Helper functions for managing multiple services
@@ -396,13 +413,16 @@ export default function ProviderProfile() {
     try {
       // Prepare API update data
       const updateData: UpdateProfileDto = {
-        businessName: editData.businessName,
+        first_name: editData.firstName,
+        last_name: editData.lastName,
+        phone: editData.phone,
+        business_name: editData.businessName,
         description: editData.description,
         location: apiProfileData?.business.location || '',
-        minPrice: editData.services[0]?.minPrice ? parseFloat(editData.services[0].minPrice) : undefined,
-        maxPrice: editData.services[0]?.maxPrice ? parseFloat(editData.services[0].maxPrice) : undefined,
+        min_price: editData.services[0]?.minPrice ? parseFloat(editData.services[0].minPrice) : undefined,
+        max_price: editData.services[0]?.maxPrice ? parseFloat(editData.services[0].maxPrice) : undefined,
         experience: editData.services[0]?.experience ? parseInt(editData.services[0].experience) : undefined,
-        serviceAreas: editData.services[0]?.zipCodes.filter(zip => zip.trim()) || []
+        service_areas: editData.services[0]?.zipCodes.filter(zip => zip.trim()) || []
       };
 
       // Try to update via API first
@@ -419,7 +439,13 @@ export default function ProviderProfile() {
         setTimeout(() => setSuccessMessage(''), 3000);
         
       } catch (apiError: any) {
-        console.error('API update failed, falling back to localStorage:', apiError);
+        console.error('API update failed, falling back to localStorage:', {
+          error: apiError,
+          message: apiError?.message,
+          status: apiError?.status,
+          response: apiError?.response,
+          updateData: updateData
+        });
         
         // Fallback to localStorage update
         const storedProviders = localStorage.getItem('providers');
@@ -577,7 +603,7 @@ export default function ProviderProfile() {
                           type="text"
                           value={editData.firstName}
                           onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                             errors.firstName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
@@ -599,7 +625,7 @@ export default function ProviderProfile() {
                           type="text"
                           value={editData.lastName}
                           onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                             errors.lastName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         />
@@ -632,7 +658,7 @@ export default function ProviderProfile() {
                           type="tel"
                           value={editData.phone}
                           onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                             errors.phone ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="+1 (555) 000-0000"
@@ -655,7 +681,7 @@ export default function ProviderProfile() {
                           type="text"
                           value={editData.businessName}
                           onChange={(e) => setEditData({ ...editData, businessName: e.target.value })}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                             errors.businessName ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="Your Business Name"
@@ -704,7 +730,7 @@ export default function ProviderProfile() {
                                   updateService(service.id, 'categoryType', categoryType);
                                   updateService(service.id, 'serviceType', '');
                                 }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                               >
                                 <option value="">Select category type</option>
                                 {categories.map((category) => (
@@ -724,7 +750,7 @@ export default function ProviderProfile() {
                                 value={service.serviceType}
                                 onChange={(e) => updateService(service.id, 'serviceType', e.target.value)}
                                 disabled={!service.categoryType}
-                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                                   !service.categoryType ? 'bg-gray-100' : ''
                                 }`}
                               >
@@ -745,7 +771,7 @@ export default function ProviderProfile() {
                               <select
                                 value={service.experience}
                                 onChange={(e) => updateService(service.id, 'experience', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                               >
                                 <option value="">Select experience level</option>
                                 {experienceLevels.map((level) => (
@@ -768,7 +794,7 @@ export default function ProviderProfile() {
                                       type="text"
                                       value={zipCode}
                                       onChange={(e) => updateZipCode(service.id, index, e.target.value)}
-                                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                                       placeholder="75001 - Dallas, TX"
                                     />
                                     {service.zipCodes.length > 1 && (
@@ -807,7 +833,7 @@ export default function ProviderProfile() {
                                 value={service.minPrice}
                                 onChange={(e) => updateService(service.id, 'minPrice', e.target.value)}
                                 min="0"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                                 placeholder="100"
                               />
                             </div>
@@ -822,7 +848,7 @@ export default function ProviderProfile() {
                                 value={service.maxPrice}
                                 onChange={(e) => updateService(service.id, 'maxPrice', e.target.value)}
                                 min="0"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                                 placeholder="500"
                               />
                             </div>
@@ -843,7 +869,7 @@ export default function ProviderProfile() {
                       value={editData.description}
                       onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
                       placeholder="Describe your skills, specialties, and what makes you unique..."
                     />
                   ) : (
@@ -912,6 +938,70 @@ export default function ProviderProfile() {
           </div>
         </div>
       </div>
+
+      {/* Availability Confirmation Modal */}
+      {showAvailabilityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  pendingStatus === 'active' 
+                    ? 'bg-green-100' 
+                    : 'bg-gray-100'
+                }`}>
+                  <div className={`w-3 h-3 rounded-full ${
+                    pendingStatus === 'active' 
+                      ? 'bg-green-600' 
+                      : 'bg-gray-600'
+                  }`}></div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {pendingStatus === 'active' ? 'Mark as Available' : 'Mark as Unavailable'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Confirm your availability status change
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="mb-6">
+                <p className="text-gray-700">
+                  {pendingStatus === 'active' 
+                    ? 'Are you sure you want to mark yourself as available? This will make you visible to customers and allow them to book your services.'
+                    : 'Are you sure you want to mark yourself as unavailable? This will hide you from customer searches and prevent new bookings.'
+                  }
+                </p>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelAvailabilityChange}
+                  disabled={isTogglingAvailability}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAvailabilityChange}
+                  disabled={isTogglingAvailability}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    pendingStatus === 'active'
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  {isTogglingAvailability ? 'Updating...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

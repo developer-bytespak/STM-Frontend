@@ -45,6 +45,30 @@ export default function TotalJobsCard({ job, onViewDetails }: TotalJobsCardProps
     });
   };
 
+  // Validate date logic - completed date should not be before scheduled date
+  const isValidDateOrder = () => {
+    if (!job.scheduledAt || !job.completedAt) return true;
+    const scheduledDate = new Date(job.scheduledAt);
+    const completedDate = new Date(job.completedAt);
+    return completedDate >= scheduledDate;
+  };
+
+  // Get the correct completed date (use scheduled date if completed is before scheduled)
+  const getCorrectCompletedDate = () => {
+    if (!job.completedAt) return null;
+    if (!job.scheduledAt) return job.completedAt;
+    
+    const scheduledDate = new Date(job.scheduledAt);
+    const completedDate = new Date(job.completedAt);
+    
+    // If completed date is before scheduled date, use scheduled date instead
+    if (completedDate < scheduledDate) {
+      return job.scheduledAt;
+    }
+    
+    return job.completedAt;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
       {/* Header with Job ID and Status */}
@@ -99,10 +123,17 @@ export default function TotalJobsCard({ job, onViewDetails }: TotalJobsCardProps
         </div>
       )}
 
-      {job.completedAt && (
+      {getCorrectCompletedDate() && (
         <div className="mb-4">
           <p className="text-xs text-gray-500 mb-1">Completed Date</p>
-          <p className="text-sm font-medium text-gray-900">{formatDate(job.completedAt)}</p>
+          <p className="text-sm font-medium text-gray-900">
+            {formatDate(getCorrectCompletedDate()!)}
+            {!isValidDateOrder() && (
+              <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                ⚠️ Adjusted
+              </span>
+            )}
+          </p>
         </div>
       )}
 

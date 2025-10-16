@@ -64,7 +64,7 @@ export default function FeedbackList({
     <div className="space-y-6">
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4 text-black">
           {/* Rating Filter */}
           <div>
             <label htmlFor="rating-filter" className="block text-sm font-medium text-gray-700 mb-1">
