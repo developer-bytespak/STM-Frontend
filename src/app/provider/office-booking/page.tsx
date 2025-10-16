@@ -6,74 +6,74 @@ import { OfficeSpace } from '@/types/office';
 import { mockOfficeSpaces } from '@/data/mockOfficeData';
 import OfficeCard from '@/components/cards/OfficeCard';
 import OfficeBookingModal from '@/components/booking/OfficeBookingModal';
-import Input from '@/components/ui/Input';
+// COMMENTED OUT - Search/Filter functionality
+// import Input from '@/components/ui/Input';
 import { formatPrice } from '@/lib/pricingCalculator';
 
 export default function ProviderOfficeBookingPage() {
   const [offices] = useState<OfficeSpace[]>(
     mockOfficeSpaces.filter(o => o.status === 'available')
   );
-  const [filteredOffices, setFilteredOffices] = useState<OfficeSpace[]>(offices);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  // COMMENTED OUT - Advanced filtering
+  // const [filteredOffices, setFilteredOffices] = useState<OfficeSpace[]>(offices);
+  // const [searchQuery, setSearchQuery] = useState('');
+  // const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedOffice, setSelectedOffice] = useState<OfficeSpace | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'capacity'>('price');
+  // const [sortBy, setSortBy] = useState<'price' | 'rating' | 'capacity'>('price');
 
-  // Filter and sort offices
-  const handleFilter = () => {
-    let filtered = [...offices];
+  // COMMENTED OUT - Advanced filtering and sorting
+  // const handleFilter = () => {
+  //   let filtered = [...offices];
 
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(office =>
-        office.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        office.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        office.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  //   // Search filter
+  //   if (searchQuery) {
+  //     filtered = filtered.filter(office =>
+  //       office.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       office.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       office.description.toLowerCase().includes(searchQuery.toLowerCase())
+  //     );
+  //   }
 
-    // Type filter
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(office => office.type === typeFilter);
-    }
+  //   // Type filter
+  //   if (typeFilter !== 'all') {
+  //     filtered = filtered.filter(office => office.type === typeFilter);
+  //   }
 
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'price':
-          // Use the most common pricing (daily or hourly) for comparison
-          const aPrice = a.pricing.daily || a.pricing.hourly || 0;
-          const bPrice = b.pricing.daily || b.pricing.hourly || 0;
-          return aPrice - bPrice;
-        case 'rating':
-          return b.rating - a.rating;
-        case 'capacity':
-          return b.capacity - a.capacity;
-        default:
-          return 0;
-      }
-    });
+  //   // Sort
+  //   filtered.sort((a, b) => {
+  //     switch (sortBy) {
+  //       case 'price':
+  //         const aPrice = a.pricing.daily || a.pricing.hourly || 0;
+  //         const bPrice = b.pricing.daily || b.pricing.hourly || 0;
+  //         return aPrice - bPrice;
+  //       case 'rating':
+  //         return b.rating - a.rating;
+  //       case 'capacity':
+  //         return b.capacity - a.capacity;
+  //       default:
+  //         return 0;
+  //     }
+  //   });
 
-    setFilteredOffices(filtered);
-  };
+  //   setFilteredOffices(filtered);
+  // };
 
-  // Apply filters whenever search or filter values change
-  useEffect(() => {
-    handleFilter();
-  }, [searchQuery, typeFilter, sortBy]);
+  // useEffect(() => {
+  //   handleFilter();
+  // }, [searchQuery, typeFilter, sortBy]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
+  // const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setSearchQuery(e.target.value);
+  // };
 
-  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTypeFilter(e.target.value);
-  };
+  // const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setTypeFilter(e.target.value);
+  // };
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortBy(e.target.value as any);
-  };
+  // const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setSortBy(e.target.value as any);
+  // };
 
   const handleBookNow = (office: OfficeSpace) => {
     setSelectedOffice(office);
@@ -175,8 +175,8 @@ export default function ProviderOfficeBookingPage() {
           </div>
         </div>
 
-        {/* Pricing Info Banner */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200 p-6 mb-8">
+        {/* COMMENTED OUT - Complex Pricing Info Banner */}
+        {/* <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200 p-6 mb-8">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,10 +205,10 @@ export default function ProviderOfficeBookingPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        {/* COMMENTED OUT - Filters and Search */}
+        {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
               <Input
@@ -247,10 +247,10 @@ export default function ProviderOfficeBookingPage() {
               Showing {filteredOffices.length} of {offices.length} available office spaces
             </p>
           </div>
-        </div>
+        </div> */}
 
-        {/* Office Grid */}
-        {filteredOffices.length === 0 ? (
+        {/* SIMPLIFIED - Office Grid */}
+        {offices.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
             <div className="text-center">
               <svg
@@ -266,15 +266,15 @@ export default function ProviderOfficeBookingPage() {
                   d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                 />
               </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No office spaces found</h3>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">No offices available</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Try adjusting your search or filter criteria
+                Check back later for available office spaces
               </p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOffices.map((office) => (
+            {offices.map((office) => (
               <OfficeCard
                 key={office.id}
                 office={office}
