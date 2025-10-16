@@ -45,27 +45,43 @@ export default function MyRequestsCard({ className = '' }: MyRequestsCardProps) 
   };
 
   const getApprovalStatus = (request: ServiceRequest) => {
+    // Debug: Log the actual values being received
+    console.log('Request approval status debug:', {
+      id: request.id,
+      serviceName: request.serviceName,
+      lsm_approved: request.lsm_approved,
+      admin_approved: request.admin_approved,
+      lsm_rejection_reason: request.lsm_rejection_reason,
+      admin_rejection_reason: request.admin_rejection_reason
+    });
+
     // Both approved = fully approved
     if (request.lsm_approved === true && request.admin_approved === true) {
       return { status: 'approved', text: 'Approved' };
     }
     
-    // Check if there's a rejection reason (explicitly rejected)
-    if (request.lsm_rejection_reason || request.admin_rejection_reason) {
-      return { status: 'rejected', text: 'Rejected' };
+    // Check if LSM has actually rejected (has rejection reason)
+    const hasLSMRejection = request.lsm_rejection_reason && request.lsm_rejection_reason.trim().length > 0;
+    
+    // Check if admin has actually rejected (has rejection reason)
+    const hasAdminRejection = request.admin_rejection_reason && request.admin_rejection_reason.trim().length > 0;
+    
+    // LSM rejected = rejected (no need to wait for admin)
+    if (request.lsm_approved === false && hasLSMRejection) {
+      return { status: 'rejected', text: 'LSM Rejected' };
     }
     
-    // LSM approved, waiting for admin = admin review
-    if (request.lsm_approved === true && (request.admin_approved === null || request.admin_approved === false)) {
-      return { status: 'pending', text: 'Admin Review' };
+    // Admin rejected = rejected (LSM was approved but admin rejected with reason)
+    if (request.lsm_approved === true && request.admin_approved === false && hasAdminRejection) {
+      return { status: 'rejected', text: 'Admin Rejected' };
     }
     
-    // Initial state or LSM review = pending
-    if (request.lsm_approved === null || request.lsm_approved === false) {
-      return { status: 'pending', text: 'LSM Review' };
+    // LSM approved, waiting for admin = admin review (even if admin_approved is false but no rejection reason)
+    if (request.lsm_approved === true && (request.admin_approved === null || (request.admin_approved === false && !hasAdminRejection))) {
+      return { status: 'pending', text: 'Under Admin Review' };
     }
     
-    // Default to pending
+    // Default case: waiting for LSM review
     return { status: 'pending', text: 'LSM Review' };
   };
 
