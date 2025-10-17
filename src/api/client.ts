@@ -132,6 +132,55 @@ class ApiClient {
     return this.doRequest<T>(endpoint, options);
   }
 
+  /**
+   * Upload files using FormData
+   * Don't set Content-Type header - browser will set it with boundary
+   */
+  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      // Don't set Content-Type for FormData - browser will set it automatically with boundary
+    };
+
+    const token = this.getAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      return (await this.safeJson(response)) as T;
+    }
+
+    // Try refresh on 401 once
+    if (response.status === 401 && (await this.onUnauthorized())) {
+      const retryResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.getAccessToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (retryResponse.ok) {
+        return (await this.safeJson(retryResponse)) as T;
+      }
+
+      const retryBody = await this.safeJson(retryResponse);
+      throw this.toApiError(retryResponse, retryBody);
+    }
+
+    const body = await this.safeJson(response);
+    throw this.toApiError(response, body);
+  }
+
   // Auth endpoints
   async login(credentials: LoginCredentials) {
     return this.request<{ user: User; accessToken: string; refreshToken: string }>('/auth/login', {

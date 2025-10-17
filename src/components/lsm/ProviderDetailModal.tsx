@@ -113,9 +113,67 @@ export default function ProviderDetailModal({
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading provider details...</p>
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          {/* Modal Header Skeleton */}
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48"></div>
+            <div className="h-8 w-8 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Modal Content Skeleton */}
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] space-y-6">
+            {/* Provider Info Section */}
+            <div className="animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Services Section */}
+            <div className="animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-24 mb-4"></div>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-8 bg-gray-200 rounded-full w-24"></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Documents Section */}
+            <div className="animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div className="flex items-center flex-1">
+                      <div className="w-8 h-8 bg-gray-200 rounded mr-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-40"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats Section */}
+            <div className="animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-28 mb-4"></div>
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-gray-50 rounded-lg p-4">
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                    <div className="h-6 bg-gray-200 rounded w-16"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

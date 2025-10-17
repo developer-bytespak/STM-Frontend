@@ -140,6 +140,7 @@ export interface SubmitFeedbackDto {
 
 export interface FileDisputeDto {
   jobId: number;
+  description: string;
 }
 
 export interface RequestNewServiceDto {

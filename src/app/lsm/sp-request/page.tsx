@@ -130,9 +130,59 @@ export default function SPRequestPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading pending requests...</p>
+          {/* Header Skeleton */}
+          <div className="text-center mb-8">
+            <div className="h-8 bg-gray-200 rounded w-80 mx-auto mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto animate-pulse"></div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="flex justify-center mb-8 space-x-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
+            ))}
+          </div>
+
+          {/* Request Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-28"></div>
+                  </div>
+                </div>
+
+                {/* Status Badge */}
+                <div className="mb-4">
+                  <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4 border-t border-gray-100">
+                  <div className="flex-1 h-9 bg-gray-200 rounded"></div>
+                  <div className="flex-1 h-9 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

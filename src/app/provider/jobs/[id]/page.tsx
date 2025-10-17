@@ -14,7 +14,7 @@ interface JobDetailsProps {
 
 export default function JobDetails({ params }: JobDetailsProps) {
   const router = useRouter();
-  const { createConversation } = useChat();
+  const { openConversation } = useChat();
   const resolvedParams = use(params);
   const [jobDetails, setJobDetails] = useState<JobDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,21 +188,8 @@ export default function JobDetails({ params }: JobDetailsProps) {
       return;
     }
     
-    // Create conversation with job context
-    const formData = {
-      serviceType: jobDetails.job.service,
-      description: `${jobDetails.job.category} - ${jobDetails.job.location}`,
-      budget: `$${jobDetails.job.price.toFixed(2)}`,
-      additionalDetails: `Job ID: ${jobDetails.job.id}\nCustomer: ${jobDetails.customer.name}\nPhone: ${jobDetails.customer.phone}\nAddress: ${jobDetails.customer.address}`
-    };
-    
-    createConversation(
-      `provider-${jobDetails.job.id}`, // providerId
-      'You', // providerName (current user)
-      formData,
-      jobDetails.job.id, // jobId
-      String(jobDetails.chatId) // ✅ chatId from backend
-    );
+    // Open existing chat conversation
+    openConversation(String(jobDetails.chatId));
   };
 
   if (loading) {
@@ -460,7 +447,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
               <div className="space-y-3">
                 <button
                   onClick={handleOpenChat}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   💬 Chat with Customer
                 </button>
@@ -471,7 +458,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
                     <button
                       onClick={() => setShowAcceptModal(true)}
                       disabled={responding}
-                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       ✅ Accept Job
                     </button>
@@ -479,7 +466,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
                     <button
                       onClick={() => setShowNegotiateModal(true)}
                       disabled={responding}
-                      className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       💡 Propose Changes
                     </button>
@@ -487,7 +474,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
                     <button
                       onClick={() => setShowRejectModal(true)}
                       disabled={responding}
-                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       ❌ Reject Job
                     </button>

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { lsmApi, DisputeDetail } from '@/api/lsm';
+import { useChat } from '@/contexts/ChatContext';
 
 interface DisputeDetailModalProps {
   disputeId: number;
@@ -14,12 +16,15 @@ export default function DisputeDetailModal({
   onClose, 
   onDisputeUpdated 
 }: DisputeDetailModalProps) {
+  const router = useRouter();
+  const { openConversation } = useChat();
   const [dispute, setDispute] = useState<DisputeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showResolveForm, setShowResolveForm] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showFullHistory, setShowFullHistory] = useState(false);
 
   useEffect(() => {
     fetchDisputeDetails();
@@ -43,14 +48,27 @@ export default function DisputeDetailModal({
 
     try {
       setIsProcessing(true);
-      await lsmApi.joinDisputeChat(disputeId);
-      alert('Successfully joined the dispute chat');
+      const result = await lsmApi.joinDisputeChat(disputeId);
+      alert('Successfully joined the dispute chat. You can now communicate with both parties.');
       await fetchDisputeDetails();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to join chat');
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleOpenChat = () => {
+    if (!dispute?.chatStatus?.chatId) return;
+    
+    // Open the chat conversation
+    openConversation(dispute.chatStatus.chatId.toString());
+    
+    // Close the modal
+    onClose();
+    
+    // Navigate to chats page if not already there
+    router.push('/lsm/chats');
   };
 
   const handleResolve = async () => {
@@ -115,6 +133,95 @@ export default function DisputeDetailModal({
     }
   };
 
+  const formatMessageContent = (message: string) => {
+    // Check if this is a service request message
+    if (message.includes('New ') && message.includes('Request')) {
+      return formatServiceRequestMessage(message);
+    }
+    
+    // Check if this is a formatted service request details message
+    if (message.includes('**Service Request Details**')) {
+      return formatServiceRequestDetailsMessage(message);
+    }
+    
+    // Regular message - return as is
+    return message;
+  };
+
+  const formatServiceRequestMessage = (message: string) => {
+    const lines = message.split('\n');
+    const serviceType = lines[0].replace('New ', '').replace(' Request', '');
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-3">
+          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span className="font-semibold text-blue-600">{serviceType} Request</span>
+        </div>
+        
+        {lines.slice(1).map((line, index) => {
+          if (!line.trim()) return null;
+          
+          const colonIndex = line.indexOf(':');
+          if (colonIndex > 0) {
+            const label = line.substring(0, colonIndex).trim();
+            const value = line.substring(colonIndex + 1).trim();
+            
+            return (
+              <div key={index} className="flex items-start gap-2 text-sm">
+                <span className="text-gray-500 min-w-0 flex-shrink-0">{label}:</span>
+                <span className="text-gray-900 break-words">{value}</span>
+              </div>
+            );
+          }
+          
+          return (
+            <div key={index} className="text-sm text-gray-900">
+              {line}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const formatServiceRequestDetailsMessage = (message: string) => {
+    const lines = message.split('\n');
+    
+    return (
+      <div className="space-y-2">
+        <div className="font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
+          Service Request Details
+        </div>
+        
+        {lines.slice(1).map((line, index) => {
+          if (!line.trim()) return null;
+          
+          const colonIndex = line.indexOf(':');
+          if (colonIndex > 0) {
+            const label = line.substring(0, colonIndex).trim();
+            const value = line.substring(colonIndex + 1).trim();
+            
+            return (
+              <div key={index} className="flex items-start gap-2 text-sm">
+                <span className="text-gray-600 min-w-0 flex-shrink-0 font-medium">{label}:</span>
+                <span className="text-gray-900 break-words">{value}</span>
+              </div>
+            );
+          }
+          
+          return (
+            <div key={index} className="text-sm text-gray-900">
+              {line}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -152,6 +259,39 @@ export default function DisputeDetailModal({
         </div>
 
         <div className="p-6">
+          {/* Dispute Summary */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6 border border-blue-200">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Dispute Summary
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Service:</span>
+                <span className="font-medium text-gray-900 ml-2">{dispute.job.service}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Price:</span>
+                <span className="font-medium text-gray-900 ml-2">${dispute.job.price}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Raised By:</span>
+                <span className="font-medium text-gray-900 ml-2 capitalize">{dispute.dispute.raisedBy}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Messages:</span>
+                <span className="font-medium text-gray-900 ml-2">
+                  {dispute.chatHistory.length > 3 && !showFullHistory 
+                    ? `3 of ${dispute.chatHistory.length}` 
+                    : dispute.chatHistory.length
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Job Information */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-gray-900 mb-2">Job Information</h3>
@@ -214,28 +354,62 @@ export default function DisputeDetailModal({
               {dispute.chatHistory.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">No messages yet</p>
               ) : (
-                <div className="space-y-3">
-                  {dispute.chatHistory.map((message) => (
-                    <div
-                      key={message.id}
-                      className={'flex ' + (message.senderType === 'local_service_manager' ? 'justify-end' : 'justify-start')}
-                    >
-                      <div className={'max-w-xs rounded-lg p-3 ' + (
-                        message.senderType === 'local_service_manager' 
-                          ? 'bg-blue-600 text-white'
-                          : message.senderType === 'customer'
-                          ? 'bg-white border border-gray-300 text-gray-900'
-                          : 'bg-purple-100 text-purple-900'
-                      )}>
-                        <p className="text-xs font-semibold mb-1">{getSenderName(message.senderType)}</p>
-                        <p className="text-sm">{message.message}</p>
-                        <p className={'text-xs mt-1 ' + (message.senderType === 'local_service_manager' ? 'text-blue-100' : 'text-gray-500')}>
-                          {formatDate(message.createdAt)}
-                        </p>
-                      </div>
+                <>
+                  <div className="space-y-4">
+                    {(showFullHistory ? dispute.chatHistory : dispute.chatHistory.slice(-3)).map((message) => {
+                      const isServiceRequest = message.message.includes('New ') && message.message.includes('Request');
+                      const isServiceDetails = message.message.includes('**Service Request Details**');
+                      
+                      return (
+                        <div
+                          key={message.id}
+                          className={'flex ' + (message.senderType === 'local_service_manager' ? 'justify-end' : 'justify-start')}
+                        >
+                          <div className={'max-w-lg rounded-lg p-4 shadow-sm ' + (
+                            message.senderType === 'local_service_manager' 
+                              ? 'bg-blue-600 text-white'
+                              : message.senderType === 'customer'
+                              ? 'bg-white border border-gray-300 text-gray-900'
+                              : 'bg-purple-100 text-purple-900'
+                          )}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="text-xs font-semibold">{getSenderName(message.senderType)}</p>
+                              {(isServiceRequest || isServiceDetails) && (
+                                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                                  Service Request
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm">
+                              {formatMessageContent(message.message)}
+                            </div>
+                            <p className={'text-xs mt-2 ' + (message.senderType === 'local_service_manager' ? 'text-blue-100' : 'text-gray-500')}>
+                              {formatDate(message.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {dispute.chatHistory.length > 3 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                      <button
+                        onClick={() => setShowFullHistory(!showFullHistory)}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mx-auto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {showFullHistory ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          )}
+                        </svg>
+                        {showFullHistory ? 'Show Recent Messages' : `Show Full History (${dispute.chatHistory.length} messages)`}
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -250,13 +424,24 @@ export default function DisputeDetailModal({
           {/* Action Buttons */}
           {dispute.dispute.status !== 'resolved' && !showResolveForm && (
             <div className="flex gap-3 pt-4 border-t border-gray-200">
-              {dispute.chatStatus && dispute.chatStatus.lsmInvited && !dispute.chatStatus.lsmJoined && (
+              {dispute.chatStatus && dispute.chatStatus.lsmInvited && !dispute.chatStatus.lsmJoined ? (
                 <button
                   onClick={handleJoinChat}
                   disabled={isProcessing}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing ? 'Joining...' : 'Join Chat'}
+                </button>
+              ) : dispute.chatStatus && dispute.chatStatus.lsmJoined && (
+                <button
+                  onClick={handleOpenChat}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Open Chat
                 </button>
               )}
               <button

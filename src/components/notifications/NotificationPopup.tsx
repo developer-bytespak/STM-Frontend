@@ -134,6 +134,24 @@ export default function NotificationPopup({
         // Check title/message for context-specific redirects
         const titleLower = title.toLowerCase();
         
+        // Dispute related notifications
+        if (titleLower.includes('dispute') || titleLower.includes('new dispute filed')) {
+          if (isLSM) {
+            return '/lsm/disputes'; // Dispute management page
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.JOBS;
+          }
+        }
+        
+        // LSM joined chat notifications
+        if (titleLower.includes('lsm joined') || titleLower.includes('local service manager')) {
+          if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer dashboard to see chat
+          } else if (isProvider) {
+            return ROUTES.PROVIDER.DASHBOARD; // Provider dashboard to see chat
+          }
+        }
+        
         // Provider registration related
         if (titleLower.includes('provider') && titleLower.includes('registration')) {
           if (isLSM) {
@@ -244,6 +262,18 @@ export default function NotificationPopup({
     }
   };
 
+  // Helper to extract chat ID from notification title and clean it for display
+  const extractChatId = (title: string): { chatId: string | null; cleanTitle: string } => {
+    const match = title.match(/\[chat:([^\]]+)\]/);
+    if (match && match[1]) {
+      return {
+        chatId: match[1],
+        cleanTitle: title.replace(/\s*\[chat:[^\]]+\]/, '').trim()
+      };
+    }
+    return { chatId: null, cleanTitle: title };
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     console.log('Notification clicked:', notification);
     
@@ -259,10 +289,8 @@ export default function NotificationPopup({
       
       // If not in metadata, try to parse from title format: "New Message [chat:uuid]"
       if (!chatId && notification.title) {
-        const match = notification.title.match(/\[chat:([^\]]+)\]/);
-        if (match && match[1]) {
-          chatId = match[1];
-        }
+        const extracted = extractChatId(notification.title);
+        chatId = extracted.chatId;
       }
       
       if (chatId) {
@@ -363,7 +391,7 @@ export default function NotificationPopup({
                   <div className="flex-1 min-w-0">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 truncate">
-                        {notification.title}
+                        {extractChatId(notification.title).cleanTitle}
                       </h4>
                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                         {notification.message}

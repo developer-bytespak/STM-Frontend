@@ -137,6 +137,7 @@ export default function AllNotificationsModal({
     const isCustomer = recipientStr === 'customer';
     const isAdmin = recipientStr === 'admin';
 
+
     switch (type) {
       case 'job':
         if (isCustomer) {
@@ -206,6 +207,24 @@ export default function AllNotificationsModal({
       case 'system':
         const titleLower = title.toLowerCase();
         
+        // Dispute related notifications
+        if (titleLower.includes('dispute') || titleLower.includes('new dispute filed')) {
+          if (isLSM) {
+            return '/lsm/disputes'; // Dispute management page
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.JOBS;
+          }
+        }
+        
+        // LSM joined chat notifications
+        if (titleLower.includes('lsm joined') || titleLower.includes('local service manager')) {
+          if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer dashboard to see chat
+          } else if (isProvider) {
+            return ROUTES.PROVIDER.DASHBOARD; // Provider dashboard to see chat
+          }
+        }
+        
         if (titleLower.includes('provider') && titleLower.includes('registration')) {
           if (isLSM) {
             return '/lsm/sp-request';
@@ -220,15 +239,7 @@ export default function AllNotificationsModal({
           }
         }
 
-        if (isCustomer) {
-          return ROUTES.CUSTOMER.DASHBOARD;
-        } else if (isProvider) {
-          return ROUTES.PROVIDER.DASHBOARD;
-        } else if (isLSM) {
-          return ROUTES.LSM.DASHBOARD;
-        } else if (isAdmin) {
-          return ROUTES.ADMIN.DASHBOARD;
-        }
+        // For system notifications that don't match specific patterns, don't redirect
         return null;
 
       default:
