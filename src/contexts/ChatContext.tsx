@@ -1,12 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { socketService } from '@/lib/socketService';
+import { chatApi } from '@/api/chat';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Message {
   id: string;
-  senderId: string;
+  senderId: string | number;
   senderName: string;
-  senderRole: 'customer' | 'provider' | 'lsm';
+  senderRole: 'customer' | 'service_provider' | 'local_service_manager';
   content: string;
   timestamp: Date;
   type: 'text' | 'form-data' | 'file';
@@ -30,33 +33,35 @@ export interface BookingFormData {
 }
 
 export interface ChatConversation {
-  id: string;
-  providerId: string;
+  id: string;  // UUID from backend
+  providerId: string | number;
   providerName: string;
-  customerId: string;
+  customerId: string | number;
   customerName: string;
   jobId?: number;  // Link to backend job
-  lsmId?: string;
+  lsmId?: string | number;
   lsmName?: string;
   messages: Message[];
   isOpen: boolean;
   isMinimized: boolean;
   createdAt: Date;
+  isLoadingHistory?: boolean; // Track if we're loading message history
 }
 
 interface ChatContextType {
   conversations: ChatConversation[];
   activeConversation: ChatConversation | null;
-  createConversation: (providerId: string, providerName: string, formData: BookingFormData, jobId?: number) => void;
+  createConversation: (providerId: string | number, providerName: string, formData: BookingFormData, jobId?: number, chatId?: string) => void;
   openConversation: (conversationId: string) => void;
-  openConversationByJobId: (jobId: number) => boolean; // New method to open chat by job ID
+  openConversationByJobId: (jobId: number) => boolean;
   closeConversation: () => void;
-  minimizeConversation: () => void; // Original minimize (to preview button)
-  minimizeToCompact: () => void; // New minimize (to compact chat)
+  minimizeConversation: () => void;
+  minimizeToCompact: () => void;
   maximizeConversation: () => void;
   sendMessage: (content: string, files?: File[]) => void;
   addLSMToChat: (lsmId: string, lsmName: string) => void;
-  isPreviewMinimized: boolean; // New state for preview minimize
+  isPreviewMinimized: boolean;
+  isSocketConnected: boolean; // Track socket connection status
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -65,36 +70,273 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null);
   const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
-  // Load conversations from localStorage on mount
+  // ==========================================
+  // SOCKET.IO CONNECTION SETUP
+  // ==========================================
+
+  // Initialize socket connection when user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      // User not authenticated, don't connect socket
+      socketService.disconnect();
+      setIsSocketConnected(false);
+      return;
+    }
+
+    console.log('🔌 Initializing socket connection for user:', user.name);
+    
+    // Connect to socket server
+    const socket = socketService.connect();
+    
+    if (socket) {
+      // Update connection status
+      setIsSocketConnected(socket.connected);
+
+      // Listen for connection status changes
+      socket.on('connect', () => {
+        console.log('✅ Socket connected in ChatContext');
+        setIsSocketConnected(true);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('❌ Socket disconnected in ChatContext');
+        setIsSocketConnected(false);
+      });
+
+      // Listen for new messages from all chats
+      socketService.onNewMessage((messageData) => {
+        console.log('📨 New message received:', messageData);
+        handleIncomingMessage(messageData);
+      });
+
+      // Listen for typing indicators
+      socketService.onUserTyping((data) => {
+        console.log('⌨️ User typing:', data);
+        // You can add typing indicator UI here if needed
+      });
+    }
+
+    // Cleanup on unmount or user change
+    return () => {
+      socketService.offNewMessage();
+      socketService.offUserTyping();
+      // Don't disconnect socket here - keep it alive for other components
+    };
+  }, [isAuthenticated, user]);
+
+  // ==========================================
+  // JOIN/LEAVE CHAT ROOMS
+  // ==========================================
+
+  // Join chat room when active conversation changes
+  useEffect(() => {
+    if (activeConversation && isSocketConnected) {
+      console.log('📥 Joining chat room:', activeConversation.id);
+      socketService.joinChat(activeConversation.id);
+
+      // Load message history if not already loaded
+      if (!activeConversation.isLoadingHistory && activeConversation.messages.length === 0) {
+        loadMessageHistory(activeConversation.id);
+      }
+
+      // Leave room when conversation changes or closes
+      return () => {
+        console.log('📤 Leaving chat room:', activeConversation.id);
+        socketService.leaveChat(activeConversation.id);
+      };
+    }
+  }, [activeConversation?.id, isSocketConnected]);
+
+  // ==========================================
+  // HANDLE INCOMING MESSAGES
+  // ==========================================
+
+  const handleIncomingMessage = (messageData: {
+    id: string;
+    chatId: string;
+    sender_type: 'customer' | 'service_provider' | 'local_service_manager';
+    sender_id: number;
+    message: string;
+    message_type: 'text' | 'image' | 'document';
+    created_at: string;
+  }) => {
+    // Convert backend message to frontend Message format
+    const newMessage: Message = {
+      id: messageData.id,
+      senderId: messageData.sender_id,
+      senderName: getSenderName(messageData.sender_id, messageData.sender_type),
+      senderRole: messageData.sender_type,
+      content: messageData.message,
+      timestamp: new Date(messageData.created_at),
+      type: messageData.message_type as 'text' | 'file',
+    };
+
+    // Update conversations list
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === messageData.chatId
+          ? { ...conv, messages: [...conv.messages, newMessage] }
+          : conv
+      )
+    );
+
+    // Update active conversation if it's the same chat
+    setActiveConversation(prev =>
+      prev?.id === messageData.chatId
+        ? { ...prev, messages: [...prev.messages, newMessage] }
+        : prev
+    );
+  };
+
+  // Helper function to get sender name (you can enhance this to fetch from backend)
+  const getSenderName = (senderId: number, senderType: string): string => {
+    // If it's current user
+    if (user && Number(user.id) === senderId) {
+      return user.name;
+    }
+
+    // Try to find sender name from conversations
+    for (const conv of conversations) {
+      if (senderType === 'customer' && Number(conv.customerId) === senderId) {
+        return conv.customerName;
+      } else if (senderType === 'service_provider' && Number(conv.providerId) === senderId) {
+        return conv.providerName;
+      } else if (senderType === 'local_service_manager' && Number(conv.lsmId) === senderId) {
+        return conv.lsmName || 'Local Service Manager';
+      }
+    }
+
+    // Fallback
+    return 'Unknown User';
+  };
+
+  // ==========================================
+  // LOAD MESSAGE HISTORY
+  // ==========================================
+
+  const loadMessageHistory = async (chatId: string) => {
+    try {
+      console.log('📜 Loading message history for chat:', chatId);
+      
+      // Mark as loading
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === chatId ? { ...conv, isLoadingHistory: true } : conv
+        )
+      );
+
+      // Fetch messages from backend
+      const response = await chatApi.getChatMessages(chatId);
+      
+      // Convert backend messages to frontend format
+      const messages: Message[] = response.messages.map(msg => ({
+        id: msg.id,
+        senderId: msg.sender_id,
+        senderName: getSenderName(msg.sender_id, msg.sender_type),
+        senderRole: msg.sender_type,
+        content: msg.message,
+        timestamp: new Date(msg.created_at),
+        type: msg.message_type as 'text' | 'file',
+      }));
+
+      // Update conversations with loaded messages
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === chatId
+            ? { ...conv, messages, isLoadingHistory: false }
+            : conv
+        )
+      );
+
+      // Update active conversation
+      setActiveConversation(prev =>
+        prev?.id === chatId
+          ? { ...prev, messages, isLoadingHistory: false }
+          : prev
+      );
+
+      console.log('✅ Message history loaded:', messages.length, 'messages');
+    } catch (error) {
+      console.error('❌ Failed to load message history:', error);
+      
+      // Mark loading as done even on error
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === chatId ? { ...conv, isLoadingHistory: false } : conv
+        )
+      );
+    }
+  };
+
+  // ==========================================
+  // LEGACY LOCALSTORAGE (Optional - for offline viewing)
+  // ==========================================
+
+  // Load conversations from localStorage on mount (backup)
   useEffect(() => {
     const stored = localStorage.getItem('chatConversations');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      // Convert date strings back to Date objects
-      const withDates = parsed.map((conv: any) => ({
-        ...conv,
-        createdAt: new Date(conv.createdAt),
-        messages: conv.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      }));
-      setConversations(withDates);
+      try {
+        const parsed = JSON.parse(stored);
+        const withDates = parsed.map((conv: any) => ({
+          ...conv,
+          createdAt: new Date(conv.createdAt),
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        }));
+        // Only use localStorage if no conversations loaded from backend
+        if (conversations.length === 0) {
+          setConversations(withDates);
+        }
+      } catch (error) {
+        console.error('Failed to parse localStorage conversations:', error);
+      }
     }
   }, []);
 
-  // Save conversations to localStorage whenever they change
+  // Save conversations to localStorage (backup)
   useEffect(() => {
     if (conversations.length > 0) {
-      localStorage.setItem('chatConversations', JSON.stringify(conversations));
+      try {
+        localStorage.setItem('chatConversations', JSON.stringify(conversations));
+      } catch (error) {
+        console.error('Failed to save to localStorage:', error);
+      }
     }
   }, [conversations]);
 
-  const createConversation = (providerId: string, providerName: string, formData: BookingFormData, jobId?: number) => {
-    const conversationId = `conv-${Date.now()}`;
-    const customerId = 'customer-1'; // This would come from auth context
-    const customerName = 'John Doe'; // This would come from auth context
+  // ==========================================
+  // CREATE CONVERSATION
+  // ==========================================
+
+  const createConversation = (
+    providerId: string | number,
+    providerName: string,
+    formData: BookingFormData,
+    jobId?: number,
+    chatId?: string // Optional: If chat already exists from backend
+  ) => {
+    if (!user) {
+      console.error('Cannot create conversation: User not authenticated');
+      return;
+    }
+
+    // Use provided chatId or create a temporary one (will be replaced by backend UUID)
+    const conversationId = chatId || `temp-${Date.now()}`;
+    const customerId = user.id;
+    const customerName = user.name;
+
+    console.log('💬 Creating conversation:', {
+      conversationId,
+      providerId,
+      providerName,
+      jobId,
+    });
 
     // Create initial message with form data
     const initialMessage: Message = {
@@ -105,7 +347,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       content: formatFormDataMessage(formData),
       timestamp: new Date(),
       type: 'form-data',
-      formData: formData
+      formData: formData,
     };
 
     const newConversation: ChatConversation = {
@@ -114,45 +356,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       providerName,
       customerId,
       customerName,
-      jobId,  // Link to backend job
+      jobId,
       messages: [initialMessage],
       isOpen: true,
       isMinimized: false,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     setConversations(prev => [...prev, newConversation]);
     setActiveConversation(newConversation);
 
-    // Simulate provider reading the message after 2 seconds
-    setTimeout(() => {
-      const autoReply: Message = {
-        id: `msg-${Date.now()}`,
-        senderId: providerId,
-        senderName: providerName,
-        senderRole: 'provider',
-        content: `Hi! Thanks for reaching out. I've received your request for ${formData.serviceType}. Let me review the details and I'll get back to you shortly with a quote.`,
-        timestamp: new Date(),
-        type: 'text'
-      };
-
-      setConversations(prev => prev.map(conv => 
-        conv.id === conversationId 
-          ? { ...conv, messages: [...conv.messages, autoReply] }
-          : conv
-      ));
-
-      // Update active conversation if this is the active one
-      setActiveConversation(prev => {
-        if (prev && prev.id === conversationId) {
-          return {
-            ...prev,
-            messages: [...prev.messages, autoReply]
-          };
+    // If socket is connected and we have a real chatId, join the room and send the form data
+    if (isSocketConnected && chatId) {
+      socketService.joinChat(chatId);
+      
+      // Send form data as first message via socket
+      setTimeout(() => {
+        try {
+          socketService.sendMessage(chatId, formatFormDataMessage(formData), 'text');
+        } catch (error) {
+          console.error('Failed to send initial message:', error);
         }
-        return prev;
-      });
-    }, 2000);
+      }, 500);
+    }
   };
 
   const formatFormDataMessage = (formData: BookingFormData): string => {
@@ -243,67 +469,113 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ==========================================
+  // SEND MESSAGE
+  // ==========================================
+
   const sendMessage = (content: string, files?: File[]) => {
-    if (!activeConversation) return;
-    if (!content.trim() && (!files || files.length === 0)) return;
+    if (!activeConversation) {
+      console.error('Cannot send message: No active conversation');
+      return;
+    }
+    
+    if (!content.trim() && (!files || files.length === 0)) {
+      console.error('Cannot send empty message');
+      return;
+    }
 
-    const customerId = 'customer-1'; // From auth context
-    const customerName = 'John Doe'; // From auth context
+    if (!user) {
+      console.error('Cannot send message: User not authenticated');
+      return;
+    }
 
-    // Handle file uploads
+    if (!isSocketConnected) {
+      console.error('Cannot send message: Socket not connected');
+      alert('Connection lost. Please check your internet connection.');
+      return;
+    }
+
+    const customerId = user.id;
+    const customerName = user.name;
+
+    // Handle file uploads (you'll need to implement file upload to server first)
     if (files && files.length > 0) {
-      const fileData = files.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file) // In production, upload to server first
-      }));
-
+      console.log('📎 File upload not yet implemented - sending as text for now');
+      // TODO: Upload files to server, get URLs, then send message with file URLs
+      // For now, just send as text message
+      
       const fileMessage: Message = {
-        id: `msg-${Date.now()}`,
+        id: `temp-${Date.now()}`,
         senderId: customerId,
         senderName: customerName,
         senderRole: 'customer',
         content: content.trim() || 'Sent file(s)',
         timestamp: new Date(),
         type: 'file',
-        files: fileData
+        files: files.map(file => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: URL.createObjectURL(file),
+        })),
       };
 
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversation.id 
-          ? { ...conv, messages: [...conv.messages, fileMessage] }
-          : conv
-      ));
+      // Optimistically add to UI
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === activeConversation.id
+            ? { ...conv, messages: [...conv.messages, fileMessage] }
+            : conv
+        )
+      );
 
-      // Update active conversation
-      setActiveConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, fileMessage]
-      } : null);
-    } else {
-      // Text message
-      const newMessage: Message = {
-        id: `msg-${Date.now()}`,
+      setActiveConversation(prev =>
+        prev ? { ...prev, messages: [...prev.messages, fileMessage] } : null
+      );
+
+      // TODO: Implement actual file upload and sending via socket
+      return;
+    }
+
+    // Send text message via Socket.IO
+    try {
+      console.log('📤 Sending message via socket:', content.substring(0, 50));
+      
+      // Optimistically add message to UI
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
         senderId: customerId,
         senderName: customerName,
         senderRole: 'customer',
         content: content.trim(),
         timestamp: new Date(),
-        type: 'text'
+        type: 'text',
       };
 
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversation.id 
-          ? { ...conv, messages: [...conv.messages, newMessage] }
-          : conv
-      ));
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === activeConversation.id
+            ? { ...conv, messages: [...conv.messages, optimisticMessage] }
+            : conv
+        )
+      );
 
-      // Update active conversation
-      setActiveConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, newMessage]
-      } : null);
+      setActiveConversation(prev =>
+        prev
+          ? { ...prev, messages: [...prev.messages, optimisticMessage] }
+          : null
+      );
+
+      // Send via socket
+      socketService.sendMessage(activeConversation.id, content.trim(), 'text');
+
+      console.log('✅ Message sent successfully');
+    } catch (error) {
+      console.error('❌ Failed to send message:', error);
+      alert('Failed to send message. Please try again.');
+      
+      // TODO: Remove optimistic message if send fails
+      // Or add a "failed" status to messages and allow retry
     }
   };
 
@@ -314,7 +586,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       id: `msg-${Date.now()}`,
       senderId: 'system',
       senderName: 'System',
-      senderRole: 'lsm',
+      senderRole: 'local_service_manager',
       content: `${lsmName} was added`,
       timestamp: new Date(),
       type: 'text'
@@ -341,20 +613,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ChatContext.Provider     value={{
-      conversations,
-      activeConversation,
-      createConversation,
-      openConversation,
-      openConversationByJobId,
-      closeConversation,
-      minimizeConversation,
-      minimizeToCompact,
-      maximizeConversation,
-      sendMessage,
-      addLSMToChat,
-      isPreviewMinimized
-    }}>
+    <ChatContext.Provider
+      value={{
+        conversations,
+        activeConversation,
+        createConversation,
+        openConversation,
+        openConversationByJobId,
+        closeConversation,
+        minimizeConversation,
+        minimizeToCompact,
+        maximizeConversation,
+        sendMessage,
+        addLSMToChat,
+        isPreviewMinimized,
+        isSocketConnected,
+      }}
+    >
       {children}
     </ChatContext.Provider>
   );
