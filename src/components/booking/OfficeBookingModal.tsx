@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import Calendar from '@/components/ui/Calendar';
 import { OfficeSpace } from '@/types/office';
+import { bookingApi, officeSpaceApi } from '@/api/officeBooking';
+import { useAlert } from '@/hooks/useAlert';
 // COMMENTED OUT - Complex pricing calculator
 // import { calculateBookingPrice, formatPrice, PricingBreakdown } from '@/lib/pricingCalculator';
 import Badge from '@/components/ui/Badge';
@@ -23,10 +26,62 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
   const [startTime, setStartTime] = useState('09:00');
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('17:00');
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [unavailableDates, setUnavailableDates] = useState<Array<{
+    start: string;
+    end: string;
+    status: string;
+  }>>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const { showAlert } = useAlert();
   // COMMENTED OUT - Complex pricing options
   // const [selectedPricing, setSelectedPricing] = useState<PricingBreakdown | null>(null);
   // const [pricingOptions, setPricingOptions] = useState<PricingBreakdown[]>([]);
-  const [specialRequests, setSpecialRequests] = useState('');
+
+  // Fetch office availability when modal opens
+  useEffect(() => {
+    if (isOpen && office?.id) {
+      fetchOfficeAvailability();
+    }
+  }, [isOpen, office?.id]);
+
+  const fetchOfficeAvailability = async () => {
+    if (!office?.id) return;
+    
+    setAvailabilityLoading(true);
+    try {
+      const availability = await officeSpaceApi.getOfficeAvailability(office.id);
+      console.log('Office availability:', availability);
+      setUnavailableDates(availability.unavailableDates || []);
+    } catch (error) {
+      console.error('Error fetching office availability:', error);       
+      showAlert({
+        title: 'Error',
+        message: 'Failed to load office availability. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
+  // Check if a date is unavailable
+  const isDateUnavailable = (date: string) => {
+    if (!date || unavailableDates.length === 0) return false;
+    
+    const checkDate = new Date(date);
+    return unavailableDates.some(period => {
+      const startDate = new Date(period.start);
+      const endDate = new Date(period.end);
+      return checkDate >= startDate && checkDate <= endDate;
+    });
+  };
+
+  // Get minimum selectable date (today)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
 
   // COMMENTED OUT - Complex pricing calculation
   // useEffect(() => {
@@ -52,27 +107,71 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
     e.preventDefault();
     if (!office || !startDate || !endDate) return;
 
+    // Check for unavailable dates before submitting
+    if (isDateUnavailable(startDate)) {
+      showAlert({
+        title: 'Error',
+        message: 'Start date is already booked. Please select a different date.',
+        type: 'error'
+      });
+      return;
+    }
+    
+    if (isDateUnavailable(endDate)) {
+      showAlert({
+        title: 'Error',
+        message: 'End date is already booked. Please select a different date.',
+        type: 'error'
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // SIMPLIFIED - Calculate daily rate booking
+      // Create dates properly handling timezone
       const start = new Date(`${startDate}T${startTime}`);
       const end = new Date(`${endDate}T${endTime}`);
-      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      const totalAmount = daysDiff * office.pricing.daily;
       
-      // TODO: Replace with actual API call
+      // Validate dates on frontend before sending
+      const now = new Date();
+      if (start < now) {
+        showAlert({
+          title: 'Error',
+          message: 'Start date cannot be in the past. Please select a future date.',
+          type: 'error'
+        });
+        setLoading(false);
+        return;
+      }
+      
+      if (end <= start) {
+        showAlert({
+          title: 'Error',
+          message: 'End date must be after start date.',
+          type: 'error'
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Creating booking with dates:', {
+        startDate: startDate,
+        startTime: startTime,
+        endDate: endDate,
+        endTime: endTime,
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        now: now.toISOString()
+      });
+      
       const bookingData = {
-        officeId: office.id,
+        officeSpaceId: office.id,
         startDate: start.toISOString(),
         endDate: end.toISOString(),
-        duration: daysDiff,
-        durationType: 'daily',
-        totalAmount,
-        specialRequests,
+        specialRequests: specialRequests || undefined,
       };
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Creating booking:', bookingData);
+      await bookingApi.createBooking(bookingData);
       
       // Show success message
       setShowSuccess(true);
@@ -84,8 +183,26 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
       setTimeout(() => {
         handleClose();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating booking:', error);
+      
+      // Show specific error message from backend
+      let errorMessage = 'Failed to create booking. Please try again.';
+      if (error?.response?.data?.message) {
+        if (Array.isArray(error.response.data.message)) {
+          errorMessage = error.response.data.message[0];
+        } else {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      showAlert({
+        title: 'Error',
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -167,57 +284,86 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Date & Time Selection */}
-          <div className="bg-blue-50 rounded-xl p-6 space-y-4">
+        {/* Date & Time Selection - Moved to top for better calendar visibility */}
+        <div className="bg-blue-50 rounded-xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Select Booking Period</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Start Date & Time */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Start Date & Time</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    min={today}
-                    required
-                  />
-                  <Input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
-                </div>
+            {availabilityLoading && (
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Loading availability...
               </div>
-
-              {/* End Date & Time */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">End Date & Time</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate || today}
-                    required
-                  />
-                  <Input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {startDate && endDate && new Date(`${endDate}T${endTime}`) <= new Date(`${startDate}T${startTime}`) && (
-              <p className="text-sm text-red-600">End date/time must be after start date/time</p>
             )}
           </div>
+          
+          {unavailableDates.length > 0 && !availabilityLoading && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center">
+                <svg className="w-4 h-4 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm text-yellow-800">
+                  This office has {unavailableDates.length} existing booking{unavailableDates.length !== 1 ? 's' : ''}. 
+                  Booked dates are highlighted in red below.
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date & Time */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">Start Date & Time</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Calendar
+                  selectedDate={startDate}
+                  onDateSelect={setStartDate}
+                  unavailableDates={unavailableDates}
+                  minDate={getMinDate()}
+                  className="w-full"
+                />
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              {isDateUnavailable(startDate) && (
+                <p className="text-sm text-red-600">This date is already booked. Please select a different date.</p>
+              )}
+            </div>
+
+            {/* End Date & Time */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">End Date & Time</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Calendar
+                  selectedDate={endDate}
+                  onDateSelect={setEndDate}
+                  unavailableDates={unavailableDates}
+                  minDate={startDate || getMinDate()}
+                  className="w-full"
+                />
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+              {isDateUnavailable(endDate) && (
+                <p className="text-sm text-red-600">This date is already booked. Please select a different date.</p>
+              )}
+            </div>
+          </div>
+
+          {startDate && endDate && new Date(`${endDate}T${endTime}`) <= new Date(`${startDate}T${startTime}`) && (
+            <p className="text-sm text-red-600">End date/time must be after start date/time</p>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* COMMENTED OUT - Complex Pricing Options */}
           {/* {pricingOptions.length > 0 && (

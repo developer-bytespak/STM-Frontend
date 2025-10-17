@@ -3,24 +3,43 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { OfficeSpace } from '@/types/office';
-import { mockOfficeSpaces } from '@/data/mockOfficeData';
+import { officeSpaceApi, transformOfficeSpace } from '@/api/officeBooking';
 import OfficeCard from '@/components/cards/OfficeCard';
 import OfficeBookingModal from '@/components/booking/OfficeBookingModal';
 // COMMENTED OUT - Search/Filter functionality
 // import Input from '@/components/ui/Input';
 import { formatPrice } from '@/lib/pricingCalculator';
+import { useAlert } from '@/hooks/useAlert';
 
 export default function ProviderOfficeBookingPage() {
-  const [offices] = useState<OfficeSpace[]>(
-    mockOfficeSpaces.filter(o => o.status === 'available')
-  );
-  // COMMENTED OUT - Advanced filtering
-  // const [filteredOffices, setFilteredOffices] = useState<OfficeSpace[]>(offices);
-  // const [searchQuery, setSearchQuery] = useState('');
-  // const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [offices, setOffices] = useState<OfficeSpace[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedOffice, setSelectedOffice] = useState<OfficeSpace | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  // const [sortBy, setSortBy] = useState<'price' | 'rating' | 'capacity'>('price');
+  const { showAlert } = useAlert();
+
+  // Load offices from API
+  useEffect(() => {
+    const loadOffices = async () => {
+      try {
+        setLoading(true);
+        const response = await officeSpaceApi.getAvailableOffices();
+        const transformedOffices = response.map(transformOfficeSpace);
+        setOffices(transformedOffices);
+      } catch (error) {
+        console.error('Failed to load offices:', error);
+        showAlert({
+          title: 'Error',
+          message: 'Failed to load office spaces. Please try again.',
+          type: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOffices();
+  }, [showAlert]);
 
   // COMMENTED OUT - Advanced filtering and sorting
   // const handleFilter = () => {
@@ -250,7 +269,17 @@ export default function ProviderOfficeBookingPage() {
         </div> */}
 
         {/* SIMPLIFIED - Office Grid */}
-        {offices.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mx-auto"></div>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Loading office spaces...</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Please wait while we fetch available offices
+              </p>
+            </div>
+          </div>
+        ) : offices.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
             <div className="text-center">
               <svg

@@ -56,13 +56,7 @@ const STATUS_COLORS = {
   booked: 'bg-purple-100 text-purple-800 border-purple-200',
 };
 
-const TYPE_LABELS = {
-  private_office: 'Private Office',
-  shared_desk: 'Shared Desk',
-  meeting_room: 'Meeting Room',
-  conference_room: 'Conference Room',
-  coworking_space: 'Coworking Space',
-};
+// Removed TYPE_LABELS - no longer displaying office type on cards
 
 export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, buttonText }: OfficeCardProps) {
   return (
@@ -81,19 +75,7 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
           </div>
         )}
         
-        {/* Enhanced Status Badge */}
-        <div className="absolute top-4 right-4">
-          <Badge className={`${STATUS_COLORS[office.status]} border-0 shadow-sm backdrop-blur-sm`}>
-            {office.status.charAt(0).toUpperCase() + office.status.slice(1)}
-          </Badge>
-        </div>
-
-        {/* Enhanced Type Badge */}
-        <div className="absolute top-4 left-4">
-          <Badge className="bg-white/95 text-navy-800 border-0 shadow-sm backdrop-blur-sm font-medium">
-            {TYPE_LABELS[office.type]}
-          </Badge>
-        </div>
+        {/* Removed badges from image overlay */}
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -116,6 +98,13 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
             <span className="text-xs font-bold text-gray-900">{office.rating}</span>
             <span className="text-xs text-gray-500">({office.reviews})</span>
           </div>
+        </div>
+
+        {/* Status Badge - Moved down from image overlay */}
+        <div className="mb-3">
+          <Badge className={`${STATUS_COLORS[office.status]} border-0 shadow-sm`}>
+            {office.status.charAt(0).toUpperCase() + office.status.slice(1)}
+          </Badge>
         </div>
 
         {/* Description - Fixed height */}

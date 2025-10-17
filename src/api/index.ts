@@ -58,3 +58,4 @@ export const apiClient = new ApiClient(
 export { session };
 export * from './client';
 export * from './customer';
+export * from './officeBooking';
