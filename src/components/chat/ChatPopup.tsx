@@ -232,7 +232,7 @@ export default function ChatPopup() {
                     {!isCustomer && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
                     )}
-                    {message.senderRole === 'lsm' && (
+                    {message.senderRole === 'local_service_manager' && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded-full font-medium">LSM</span>
                     )}
                   </div>
@@ -496,7 +496,7 @@ export default function ChatPopup() {
                     {!isCustomer && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
                     )}
-                    {message.senderRole === 'lsm' && (
+                    {message.senderRole === 'local_service_manager' && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">LSM</span>
                     )}
                   </div>
