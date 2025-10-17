@@ -8,6 +8,7 @@ export interface Message {
   id: string;
   sender_type: 'customer' | 'service_provider' | 'local_service_manager';
   sender_id: number;
+  sender_name?: string;
   message: string;
   message_type: 'text' | 'image' | 'document';
   created_at: string;

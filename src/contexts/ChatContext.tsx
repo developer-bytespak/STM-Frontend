@@ -5,6 +5,11 @@ import { socketService } from '@/lib/socketService';
 import { chatApi } from '@/api/chat';
 import { useAuth } from '@/hooks/useAuth';
 
+// Import debug tools (only in development)
+if (process.env.NODE_ENV === 'development') {
+  import('@/lib/socketDebug');
+}
+
 export interface Message {
   id: string;
   senderId: string | number;
@@ -62,6 +67,7 @@ interface ChatContextType {
   addLSMToChat: (lsmId: string, lsmName: string) => void;
   isPreviewMinimized: boolean;
   isSocketConnected: boolean; // Track socket connection status
+  connectionError: string | null; // Track connection errors
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -71,6 +77,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null);
   const [isPreviewMinimized, setIsPreviewMinimized] = useState(false);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
 
   // ==========================================
@@ -83,6 +90,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // User not authenticated, don't connect socket
       socketService.disconnect();
       setIsSocketConnected(false);
+      setConnectionError(null);
       return;
     }
 
@@ -91,33 +99,48 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // Connect to socket server
     const socket = socketService.connect();
     
-    if (socket) {
-      // Update connection status
-      setIsSocketConnected(socket.connected);
-
-      // Listen for connection status changes
-      socket.on('connect', () => {
-        console.log('✅ Socket connected in ChatContext');
-        setIsSocketConnected(true);
-      });
-
-      socket.on('disconnect', () => {
-        console.log('❌ Socket disconnected in ChatContext');
-        setIsSocketConnected(false);
-      });
-
-      // Listen for new messages from all chats
-      socketService.onNewMessage((messageData) => {
-        console.log('📨 New message received:', messageData);
-        handleIncomingMessage(messageData);
-      });
-
-      // Listen for typing indicators
-      socketService.onUserTyping((data) => {
-        console.log('⌨️ User typing:', data);
-        // You can add typing indicator UI here if needed
-      });
+    if (!socket) {
+      setConnectionError('Failed to initialize socket connection');
+      return;
     }
+
+    // Update connection status
+    setIsSocketConnected(socket.connected);
+
+    // Listen for connection status changes
+    socket.on('connect', () => {
+      console.log('✅ Socket connected in ChatContext');
+      setIsSocketConnected(true);
+      setConnectionError(null);
+    });
+
+    socket.on('disconnect', (reason: string) => {
+      console.log('❌ Socket disconnected in ChatContext:', reason);
+      setIsSocketConnected(false);
+      
+      if (reason === 'io server disconnect') {
+        setConnectionError('Server disconnected. Please refresh the page.');
+      } else {
+        setConnectionError('Connection lost. Reconnecting...');
+      }
+    });
+
+    socket.on('connect_error', (error: Error) => {
+      console.error('❌ Socket connection error:', error.message);
+      setConnectionError(`Connection error: ${error.message}`);
+    });
+
+    // Listen for new messages from all chats
+    socketService.onNewMessage((messageData) => {
+      console.log('📨 New message received:', messageData);
+      handleIncomingMessage(messageData);
+    });
+
+    // Listen for typing indicators
+    socketService.onUserTyping((data) => {
+      console.log('⌨️ User typing:', data);
+      // You can add typing indicator UI here if needed
+    });
 
     // Cleanup on unmount or user change
     return () => {
@@ -159,6 +182,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     chatId: string;
     sender_type: 'customer' | 'service_provider' | 'local_service_manager';
     sender_id: number;
+    sender_name?: string;
     message: string;
     message_type: 'text' | 'image' | 'document';
     created_at: string;
@@ -167,7 +191,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const newMessage: Message = {
       id: messageData.id,
       senderId: messageData.sender_id,
-      senderName: getSenderName(messageData.sender_id, messageData.sender_type),
+      senderName: messageData.sender_name || getSenderName(messageData.sender_id, messageData.sender_type),
       senderRole: messageData.sender_type,
       content: messageData.message,
       timestamp: new Date(messageData.created_at),
@@ -235,7 +259,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const messages: Message[] = response.messages.map(msg => ({
         id: msg.id,
         senderId: msg.sender_id,
-        senderName: getSenderName(msg.sender_id, msg.sender_type),
+        senderName: msg.sender_name || getSenderName(msg.sender_id, msg.sender_type),
         senderRole: msg.sender_type,
         content: msg.message,
         timestamp: new Date(msg.created_at),
@@ -338,18 +362,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       jobId,
     });
 
-    // Create initial message with form data
-    const initialMessage: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: customerId,
-      senderName: customerName,
-      senderRole: 'customer',
-      content: formatFormDataMessage(formData),
-      timestamp: new Date(),
-      type: 'form-data',
-      formData: formData,
-    };
+    // Check if conversation already exists
+    const existingConversation = conversations.find(conv => conv.id === conversationId);
+    
+    if (existingConversation) {
+      console.log('📂 Opening existing conversation:', conversationId);
+      // Just open the existing conversation
+      setActiveConversation(existingConversation);
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId ? { ...conv, isOpen: true, isMinimized: false } : conv
+      ));
+      return;
+    }
 
+    // Create new conversation with empty messages (will be loaded from backend)
     const newConversation: ChatConversation = {
       id: conversationId,
       providerId,
@@ -357,7 +383,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       customerId,
       customerName,
       jobId,
-      messages: [initialMessage],
+      messages: [], // Start with empty, messages will be loaded from backend
       isOpen: true,
       isMinimized: false,
       createdAt: new Date(),
@@ -366,18 +392,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setConversations(prev => [...prev, newConversation]);
     setActiveConversation(newConversation);
 
-    // If socket is connected and we have a real chatId, join the room and send the form data
+    // If socket is connected and we have a real chatId, join the room
+    // Message history will be loaded automatically by the join effect
     if (isSocketConnected && chatId) {
       socketService.joinChat(chatId);
-      
-      // Send form data as first message via socket
-      setTimeout(() => {
-        try {
-          socketService.sendMessage(chatId, formatFormDataMessage(formData), 'text');
-        } catch (error) {
-          console.error('Failed to send initial message:', error);
-        }
-      }, 500);
     }
   };
 
@@ -407,13 +425,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return message;
   };
 
-  const openConversation = (conversationId: string) => {
+  const openConversation = (conversationId: string, reloadMessages = true) => {
     const conversation = conversations.find(conv => conv.id === conversationId);
     if (conversation) {
       setActiveConversation(conversation);
       setConversations(prev => prev.map(conv => 
         conv.id === conversationId ? { ...conv, isOpen: true, isMinimized: false } : conv
       ));
+      
+      // Reload message history to get latest messages (especially when opened from notification)
+      if (reloadMessages && isSocketConnected) {
+        console.log('🔄 Reloading messages for chat:', conversationId);
+        loadMessageHistory(conversationId);
+      }
     }
   };
 
@@ -628,6 +652,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         addLSMToChat,
         isPreviewMinimized,
         isSocketConnected,
+        connectionError,
       }}
     >
       {children}

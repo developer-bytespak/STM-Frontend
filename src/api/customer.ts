@@ -192,8 +192,17 @@ class CustomerApi {
    * Create a new job booking
    * Endpoint: POST /jobs/create
    */
-  async createJob(data: CreateJobDto): Promise<{ id: number; message: string; job: CustomerJob }> {
-    const response = await apiClient.request<{ id: number; message: string; job: CustomerJob }>('/jobs/create', {
+  async createJob(data: CreateJobDto): Promise<{ 
+    job: CustomerJob & { id: number }; 
+    chat: { id: string; created_at: string }; 
+    message: string;
+    id?: number; // Legacy support
+  }> {
+    const response = await apiClient.request<{ 
+      job: CustomerJob & { id: number }; 
+      chat: { id: string; created_at: string }; 
+      message: string 
+    }>('/jobs/create', {
       method: 'POST',
       body: JSON.stringify(data),
     });

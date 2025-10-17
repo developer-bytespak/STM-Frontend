@@ -222,6 +222,12 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
   const handleOpenChat = () => {
     if (!jobDetails) return;
     
+    // Check if chat exists
+    if (!jobDetails.chatId) {
+      alert('No chat available for this job. Chat is created when the job is created.');
+      return;
+    }
+    
     // Create conversation with job context
     const formData = {
       serviceType: jobDetails.job.service,
@@ -234,7 +240,8 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
       `provider-${jobDetails.job.id}`, // providerId
       'You', // providerName (current user)
       formData,
-      jobDetails.job.id // jobId
+      jobDetails.job.id, // jobId
+      String(jobDetails.chatId) // ✅ chatId from backend
     );
   };
 
