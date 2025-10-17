@@ -7,6 +7,8 @@ import Button from '@/components/ui/Button';
 // COMMENTED OUT - Amenities system
 // import AmenityIcon from '@/components/ui/AmenityIcon';
 import { CreateOfficeSpaceDto, OfficeSpaceType } from '@/types/office';
+import { officeSpaceApi, transformCreateOfficeData } from '@/api/officeBooking';
+import { useAlert } from '@/hooks/useAlert';
 // COMMENTED OUT - Amenities data
 // import { availableAmenities } from '@/data/mockOfficeData';
 
@@ -16,15 +18,10 @@ interface CreateOfficeModalProps {
   onSuccess?: () => void;
 }
 
-// SIMPLIFIED - Just one office type for MVP
-const OFFICE_TYPES: { value: OfficeSpaceType; label: string }[] = [
-  { value: 'private_office', label: 'Office' },
-  // COMMENTED OUT - Multiple office types
-  // { value: 'shared_desk', label: 'Shared Desk' },
-  // { value: 'meeting_room', label: 'Meeting Room' },
-  // { value: 'conference_room', label: 'Conference Room' },
-  // { value: 'coworking_space', label: 'Coworking Space' },
-];
+// FIXED - Only private_office type supported by backend
+// const OFFICE_TYPES: { value: OfficeSpaceType; label: string }[] = [
+//   { value: 'private_office', label: 'Office' },
+// ];
 
 const DEFAULT_AVAILABILITY = {
   monday: { start: '09:00', end: '18:00', available: true },
@@ -41,6 +38,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { showAlert } = useAlert();
   
   useEffect(() => {
     console.log('Step changed to:', currentStep);
@@ -49,7 +47,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
   
   const [formData, setFormData] = useState<CreateOfficeSpaceDto>({
     name: '',
-    type: 'private_office',
+    type: 'private_office', // Fixed - only type supported by backend
     description: '',
     location: {
       address: '',
@@ -60,14 +58,8 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
     capacity: 1,
     area: 100,
     pricing: {
-      // COMMENTED OUT - Complex pricing options
-      // hourly: 0,
       daily: 0,
-      // weekly: 0,
-      // monthly: 0,
     },
-    // COMMENTED OUT - Amenities system
-    // amenities: [],
     images: [],
     availability: DEFAULT_AVAILABILITY,
   });
@@ -109,21 +101,30 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
   //   });
   // };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('Form submitted, current step:', currentStep);
+    // Prevent form submission on Enter key - only allow button clicks
+    return false;
+  };
+
+  const handleCreateOffice = async () => {
+    console.log('Create office clicked, current step:', currentStep);
+    console.log('Form data:', formData);
     
     // Only submit if we're on the final step
-    if (currentStep !== 4) {
+    if (currentStep !== 6) {
       console.log('Not on final step, preventing submission');
       return;
     }
     
     // Validate the final step before submitting
-    if (!validateAndSetErrors()) {
-      console.log('Final step validation failed');
+    const validation = validateStep(currentStep);
+    console.log('Step 6 validation result:', validation);
+    
+    if (!validation.isValid) {
+      console.log('Final step validation failed:', validation.errors);
+      setErrors(validation.errors);
       return;
     }
     
@@ -131,19 +132,49 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Creating office space:', formData);
+      const backendData = transformCreateOfficeData(formData);
+      console.log('Transformed backend data:', backendData);
       
+      // Call the API to create office
+      const createdOffice = await officeSpaceApi.createOffice(backendData);
+      console.log('Office created successfully:', createdOffice);
+      
+      // Show success message
       setShowSuccess(true);
+      showAlert({
+        title: 'Success',
+        message: 'Office space created successfully!',
+        type: 'success'
+      });
+      
+      // Call success callback to refresh the list
       onSuccess?.();
       
       // Auto close after showing success message
       setTimeout(() => {
         handleClose();
-      }, 2000);
-    } catch (error) {
+      }, 3000);
+    } catch (error: any) {
       console.error('Error creating office space:', error);
+      
+      // Better error handling
+      let errorMessage = 'Failed to create office space. Please try again.';
+      
+      if (error?.response?.status === 401) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'You do not have permission to create office spaces.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = 'Invalid data. Please check all fields and try again.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      showAlert({
+        title: 'Error',
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -152,7 +183,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
   const handleClose = () => {
     setFormData({
       name: '',
-      type: 'private_office',
+      type: 'private_office', // Fixed - always private_office
       description: '',
       location: {
         address: '',
@@ -163,12 +194,8 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
       capacity: 1,
       area: 100,
       pricing: {
-        hourly: 0,
         daily: 0,
-        weekly: 0,
-        monthly: 0,
       },
-      amenities: [],
       images: [],
       availability: DEFAULT_AVAILABILITY,
     });
@@ -185,15 +212,17 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
         if (!formData.name || formData.name.trim().length < 2) {
           stepErrors.name = 'Office name must be at least 2 characters';
         }
-        if (!formData.type) {
-          stepErrors.type = 'Please select an office type';
-        }
+        // Type is fixed to 'private_office', no validation needed
         if (!formData.description || formData.description.trim().length < 10) {
           stepErrors.description = 'Description must be at least 10 characters';
         }
         break;
 
-      case 2: // Location
+      case 2: // Images (now step 2, optional)
+        // Images are optional, no validation needed
+        break;
+
+      case 3: // Location (was step 2)
         if (!formData.location.address || formData.location.address.trim().length < 5) {
           stepErrors.address = 'Address must be at least 5 characters';
         }
@@ -208,7 +237,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
         }
         break;
 
-      case 3: // Details
+      case 4: // Details (was step 3)
         if (!formData.capacity || formData.capacity < 1) {
           stepErrors.capacity = 'Capacity must be at least 1 person';
         }
@@ -227,24 +256,23 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
         // }
         break;
 
-      case 4: // Pricing
+      case 5: // Pricing (was step 4)
         if (!formData.pricing.daily || formData.pricing.daily <= 0) {
           stepErrors.daily = 'Daily rate must be greater than $0';
         }
         if (formData.pricing.daily > 10000) {
           stepErrors.daily = 'Daily rate cannot exceed $10,000';
         }
-        if (formData.pricing.hourly && formData.pricing.hourly <= 0) {
-          stepErrors.hourly = 'Hourly rate must be greater than $0';
-        }
-        if (formData.pricing.hourly && formData.pricing.hourly > 1000) {
-          stepErrors.hourly = 'Hourly rate cannot exceed $1,000';
-        }
-        if (formData.pricing.weekly && formData.pricing.weekly <= 0) {
-          stepErrors.weekly = 'Weekly rate must be greater than $0';
-        }
-        if (formData.pricing.monthly && formData.pricing.monthly <= 0) {
-          stepErrors.monthly = 'Monthly rate must be greater than $0';
+        break;
+
+      case 6: // Availability (was step 5)
+        // Validate availability structure - only check days that are marked as available
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        for (const day of days) {
+          const dayAvailability = formData.availability[day as keyof typeof formData.availability];
+          if (dayAvailability.available && (!dayAvailability.start || !dayAvailability.end)) {
+            stepErrors[`${day}Time`] = `${day.charAt(0).toUpperCase() + day.slice(1)} start and end times are required when available`;
+          }
         }
         break;
 
@@ -276,14 +304,14 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
         
         {/* Progress Steps */}
         <div className="flex items-center justify-center mt-2">
-          {[1, 2, 3, 4].map((step) => (
+          {[1, 2, 3, 4, 5, 6].map((step) => (
             <div key={step} className="flex items-center">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
                 currentStep >= step ? 'bg-navy-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 {step}
               </div>
-              {step < 4 && (
+              {step < 6 && (
                 <div className={`h-1 w-12 ${
                   currentStep > step ? 'bg-navy-600' : 'bg-gray-200'
                 }`} />
@@ -292,10 +320,10 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
           ))}
         </div>
         <div className="flex justify-center mt-2 text-xs text-gray-600">
-          {['Basic Info', 'Location', 'Details', 'Pricing'].map((label, index) => (
+          {['Basic Info', 'Images', 'Location', 'Details', 'Pricing', 'Availability'].map((label, index) => (
             <div key={label} className="flex items-center">
               <span className="text-center w-10">{label}</span>
-              {index < 3 && <div className="w-12" />}
+              {index < 5 && <div className="w-12" />}
             </div>
           ))}
         </div>
@@ -319,7 +347,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
 
         {/* Form Content */}
         {!showSuccess && (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -336,19 +364,10 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 <label className="block text-sm font-medium text-gray-900 mb-2">
                   Office Type
                 </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => handleInputChange('type', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none appearance-none bg-white"
-                  required
-                >
-                  {OFFICE_TYPES.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.type && <p className="text-red-500 text-sm mt-1">{errors.type}</p>}
+                <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
+                  Private Office (Fixed)
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Only private office type is supported</p>
               </div>
 
               <div>
@@ -368,8 +387,105 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
             </div>
           )}
 
-          {/* Step 2: Location */}
+          {/* Step 2: Images (moved from step 6) */}
           {currentStep === 2 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Add Images (Optional)</h3>
+              <p className="text-sm text-gray-600">
+                Upload images to showcase your office space. You can add images later.
+              </p>
+              
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center">
+                    <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-sm text-gray-600 mb-2">Add images to your office space</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                    <p className="text-xs text-blue-600 mt-1">Images will be stored permanently</p>
+                  </div>
+                </label>
+                <input
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                  multiple
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    
+                    // Check file sizes (10MB limit)
+                    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);                                                          
+                    if (oversizedFiles.length > 0) {
+                      showAlert({
+                        title: 'Error',
+                        message: 'Some files are too large. Please select files under 10MB each.',
+                        type: 'error'
+                      });                                             
+                      return;
+                    }
+                    
+                    const imagePromises = files.map(file => {
+                      return new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          resolve(event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    });
+                    
+                    try {
+                      const base64Images = await Promise.all(imagePromises);                                                                            
+                      handleInputChange('images', [...(formData.images || []), ...base64Images]);                                                       
+                      showAlert({
+                        title: 'Success',
+                        message: `${files.length} image(s) added successfully`,
+                        type: 'success'
+                      });                                                              
+                    } catch (error) {
+                      console.error('Error processing images:', error); 
+                      showAlert({
+                        title: 'Error',
+                        message: 'Error processing images. Please try again.',
+                        type: 'error'
+                      });                                                                 
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Image Preview */}
+              {formData.images && formData.images.length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Office ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = formData.images.filter((_, i) => i !== index);
+                          handleInputChange('images', newImages);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Location (was step 2) */}
+          {currentStep === 3 && (
             <div className="space-y-4">
               <Input
                 label="Street Address"
@@ -411,8 +527,8 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
             </div>
           )}
 
-          {/* Step 3: Details */}
-          {currentStep === 3 && (
+          {/* Step 4: Details (was step 3) */}
+          {currentStep === 4 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Details</h3>
               
@@ -481,8 +597,8 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
             </div>
           )}
 
-          {/* Step 4: Pricing */}
-          {currentStep === 4 && (
+          {/* Step 5: Pricing (was step 4) */}
+          {currentStep === 5 && (
             <div className="space-y-4">
               {/* SIMPLIFIED - Daily rate only */}
               <div className="grid grid-cols-1 gap-4">
@@ -498,49 +614,77 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 />
                 {errors.daily && <p className="text-red-500 text-sm mt-1">{errors.daily}</p>}
               </div>
-
-              {/* COMMENTED OUT - Complex pricing options */}
-              {/* <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Hourly Rate ($)"
-                  type="number"
-                  value={formData.pricing.hourly || ''}
-                  onChange={(e) => handleNumericInput('pricing.hourly', e.target.value, true)}
-                  placeholder="Optional"
-                  min={0}
-                  max={1000}
-                  step="0.01"
-                />
-                {errors.hourly && <p className="text-red-500 text-sm mt-1">{errors.hourly}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Weekly Rate ($)"
-                  type="number"
-                  value={formData.pricing.weekly || ''}
-                  onChange={(e) => handleNumericInput('pricing.weekly', e.target.value, true)}
-                  placeholder="Optional"
-                  min={0}
-                  max={50000}
-                  step="0.01"
-                />
-                {errors.weekly && <p className="text-red-500 text-sm mt-1">{errors.weekly}</p>}
-                
-                <Input
-                  label="Monthly Rate ($)"
-                  type="number"
-                  value={formData.pricing.monthly || ''}
-                  onChange={(e) => handleNumericInput('pricing.monthly', e.target.value, true)}
-                  placeholder="Optional"
-                  min={0}
-                  max={200000}
-                  step="0.01"
-                />
-                {errors.monthly && <p className="text-red-500 text-sm mt-1">{errors.monthly}</p>}
-              </div> */}
             </div>
           )}
+
+          {/* Step 6: Availability (was step 5) */}
+          {currentStep === 6 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Set Availability Schedule</h3>
+              <p className="text-sm text-gray-600">Configure when this office space is available for booking.</p>
+              
+              <div className="space-y-4">
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                  <div key={day} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                    <div className="w-24">
+                      <label className="block text-sm font-medium text-gray-700 capitalize">
+                        {day}
+                      </label>
+              </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.availability[day as keyof typeof formData.availability].available}
+                        onChange={(e) => {
+                          const newAvailability = {
+                            ...formData.availability[day as keyof typeof formData.availability],
+                            available: e.target.checked,
+                            start: e.target.checked ? formData.availability[day as keyof typeof formData.availability].start : '00:00',
+                            end: e.target.checked ? formData.availability[day as keyof typeof formData.availability].end : '00:00',
+                          };
+                          handleInputChange(`availability.${day}`, newAvailability);
+                        }}
+                        className="w-4 h-4 text-navy-600 border-gray-300 rounded focus:ring-navy-500"
+                      />
+                      <span className="text-sm text-gray-600">Available</span>
+              </div>
+
+                    {formData.availability[day as keyof typeof formData.availability].available && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="time"
+                          value={formData.availability[day as keyof typeof formData.availability].start}
+                          onChange={(e) => {
+                            const newAvailability = {
+                              ...formData.availability[day as keyof typeof formData.availability],
+                              start: e.target.value,
+                            };
+                            handleInputChange(`availability.${day}`, newAvailability);
+                          }}
+                          className="w-32"
+                        />
+                        <span className="text-gray-500">to</span>
+                <Input
+                          type="time"
+                          value={formData.availability[day as keyof typeof formData.availability].end}
+                          onChange={(e) => {
+                            const newAvailability = {
+                              ...formData.availability[day as keyof typeof formData.availability],
+                              end: e.target.value,
+                            };
+                            handleInputChange(`availability.${day}`, newAvailability);
+                          }}
+                          className="w-32"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
 
           {/* Navigation Buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -561,7 +705,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 Cancel
               </Button>
               
-              {currentStep < 4 ? (
+              {currentStep < 6 ? (
                 <Button
                   type="button"
                   onClick={() => {
@@ -574,7 +718,11 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                   Next
                 </Button>
               ) : (
-                <Button type="submit" loading={loading}>
+                <Button 
+                  type="button" 
+                  loading={loading}
+                  onClick={handleCreateOffice}
+                >
                   Create Office Space
                 </Button>
               )}

@@ -7,6 +7,8 @@ import Button from '@/components/ui/Button';
 // COMMENTED OUT - Amenities system
 // import AmenityIcon from '@/components/ui/AmenityIcon';
 import { OfficeSpace, OfficeStatus } from '@/types/office';
+import { officeSpaceApi, transformUpdateOfficeData } from '@/api/officeBooking';
+import { useAlert } from '@/hooks/useAlert';
 // import { availableAmenities } from '@/data/mockOfficeData';
 
 interface EditOfficeModalProps {
@@ -27,6 +29,7 @@ export default function EditOfficeModal({ isOpen, onClose, office, onSuccess }: 
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState<Partial<OfficeSpace>>({});
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     if (office) {
@@ -79,22 +82,63 @@ export default function EditOfficeModal({ isOpen, onClose, office, onSuccess }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!office?.id) return;
+
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
       console.log('Updating office space:', formData);
       
+      // Transform the data to UpdateOfficeSpaceDto format first
+      const updateDto: any = {
+        ...formData,
+        amenities: formData.amenities?.map((a: any) => typeof a === 'string' ? a : a.name || a.id)
+      };
+      
+      // Then transform for the backend
+      const backendData = transformUpdateOfficeData(updateDto);
+      console.log('Transformed backend data:', backendData);
+      
+      // Call the API to update office
+      const updatedOffice = await officeSpaceApi.updateOffice(office.id, backendData);
+      console.log('Office updated successfully:', updatedOffice);
+      
+      // Show success message
       setShowSuccess(true);
+      showAlert({
+        title: 'Success',
+        message: 'Office space updated successfully!',
+        type: 'success'
+      });
+      
+      // Call success callback to refresh the list
       onSuccess?.();
       
       // Auto close after showing success message
       setTimeout(() => {
         onClose();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating office space:', error);
+      
+      // Better error handling
+      let errorMessage = 'Failed to update office space. Please try again.';
+      
+      if (error?.response?.status === 401) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'You do not have permission to update office spaces.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = 'Invalid data. Please check all fields and try again.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      showAlert({
+        title: 'Error',
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

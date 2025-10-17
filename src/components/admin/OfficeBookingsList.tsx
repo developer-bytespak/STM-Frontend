@@ -1,11 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { OfficeBooking } from '@/types/office';
 import Badge from '@/components/ui/Badge';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { adminBookingApi } from '@/api/officeBooking';
+import { useAlert } from '@/hooks/useAlert';
 
 interface OfficeBookingsListProps {
   bookings: OfficeBooking[];
   title?: string;
+  onBookingUpdate?: () => void;
 }
 
 const STATUS_COLORS = {
@@ -22,13 +27,93 @@ const PAYMENT_STATUS_COLORS = {
   refunded: 'bg-gray-100 text-gray-800',
 };
 
-export default function OfficeBookingsList({ bookings, title = 'Recent Bookings' }: OfficeBookingsListProps) {
+export default function OfficeBookingsList({ bookings, title = 'Recent Bookings', onBookingUpdate }: OfficeBookingsListProps) {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    type: 'confirm' | 'complete';
+    bookingId: string;
+    bookingName: string;
+  }>({
+    isOpen: false,
+    type: 'confirm',
+    bookingId: '',
+    bookingName: ''
+  });
+  const { showAlert } = useAlert();
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+  };
+
+  const openConfirmationModal = (type: 'confirm' | 'complete', bookingId: string, bookingName: string) => {
+    setConfirmationModal({
+      isOpen: true,
+      type,
+      bookingId,
+      bookingName
+    });
+  };
+
+  const closeConfirmationModal = () => {
+    setConfirmationModal({
+      isOpen: false,
+      type: 'confirm',
+      bookingId: '',
+      bookingName: ''
+    });
+  };
+
+  const handleConfirmBooking = async () => {
+    const { bookingId } = confirmationModal;
+    try {
+      setLoading(bookingId);
+      await adminBookingApi.confirmBooking(bookingId);
+      showAlert({
+        title: 'Success',
+        message: 'Booking confirmed successfully!',
+        type: 'success'
+      });
+      onBookingUpdate?.();
+      closeConfirmationModal();
+    } catch (error: any) {
+      console.error('Error confirming booking:', error);
+      showAlert({
+        title: 'Error',
+        message: error.message || 'Failed to confirm booking. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleCompleteBooking = async () => {
+    const { bookingId } = confirmationModal;
+    try {
+      setLoading(bookingId);
+      await adminBookingApi.completeBooking(bookingId);
+      showAlert({
+        title: 'Success',
+        message: 'Booking marked as completed!',
+        type: 'success'
+      });
+      onBookingUpdate?.();
+      closeConfirmationModal();
+    } catch (error: any) {
+      console.error('Error completing booking:', error);
+      showAlert({
+        title: 'Error',
+        message: error.message || 'Failed to complete booking. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
@@ -67,12 +152,15 @@ export default function OfficeBookingsList({ bookings, title = 'Recent Bookings'
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Payment
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center">
+                <td colSpan={8} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
                     <svg
                       className="w-12 h-12 text-gray-400 mb-3"
@@ -109,7 +197,7 @@ export default function OfficeBookingsList({ bookings, title = 'Recent Bookings'
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {booking.duration} {booking.durationType.replace('ly', '')}
+                      {booking.duration} {booking.durationType === 'daily' ? 'day' : booking.durationType.replace('ly', '')}
                       {booking.duration > 1 ? 's' : ''}
                     </div>
                   </td>
@@ -128,12 +216,50 @@ export default function OfficeBookingsList({ bookings, title = 'Recent Bookings'
                       {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
                     </Badge>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex space-x-2">
+                      {booking.status === 'pending' && (
+                        <button
+                          onClick={() => openConfirmationModal('confirm', booking.id, booking.officeName)}
+                          disabled={loading === booking.id}
+                          className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading === booking.id ? 'Confirming...' : 'Confirm'}
+                        </button>
+                      )}
+                      {booking.status === 'confirmed' && (
+                        <button
+                          onClick={() => openConfirmationModal('complete', booking.id, booking.officeName)}
+                          disabled={loading === booking.id}
+                          className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading === booking.id ? 'Completing...' : 'Complete'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmationModal}
+        onConfirm={confirmationModal.type === 'confirm' ? handleConfirmBooking : handleCompleteBooking}
+        title={confirmationModal.type === 'confirm' ? 'Confirm Booking' : 'Complete Booking'}
+        message={
+          confirmationModal.type === 'confirm'
+            ? `Are you sure you want to confirm the booking for "${confirmationModal.bookingName}"? This will change the status to confirmed.`
+            : `Are you sure you want to mark the booking for "${confirmationModal.bookingName}" as completed? This action cannot be undone.`
+        }
+        confirmText={confirmationModal.type === 'confirm' ? 'Confirm Booking' : 'Mark Complete'}
+        type={confirmationModal.type === 'confirm' ? 'confirm' : 'warning'}
+        loading={loading === confirmationModal.bookingId}
+      />
     </div>
   );
 }

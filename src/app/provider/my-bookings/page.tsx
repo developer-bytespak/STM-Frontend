@@ -1,17 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { OfficeBooking } from '@/types/office';
-import { mockOfficeBookings } from '@/data/mockOfficeData';
+import { bookingApi } from '@/api/officeBooking';
 import Badge from '@/components/ui/Badge';
 import BookingStatusIcon from '@/components/ui/BookingStatusIcon';
 import { formatPrice } from '@/lib/pricingCalculator';
+import { useAlert } from '@/hooks/useAlert';
 
 export default function ProviderMyBookingsPage() {
-  // In a real app, filter by current user/provider ID
-  const [bookings] = useState<OfficeBooking[]>(mockOfficeBookings);
+  const [bookings, setBookings] = useState<OfficeBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'active' | 'past'>('all');
+  const { showAlert } = useAlert();
+
+  // Fetch bookings from API
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await bookingApi.getMyBookings();
+        console.log('Bookings response:', response);
+        setBookings(response.bookings || []);
+      } catch (err: any) {
+        console.error('Error fetching bookings:', err);
+        setError(err.message || 'Failed to load bookings');
+        showAlert({
+          title: 'Error',
+          message: 'Failed to load your bookings. Please try again.',
+          type: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [showAlert]);
 
   const STATUS_COLORS = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -84,6 +112,42 @@ export default function ProviderMyBookingsPage() {
       console.log('Cancelling booking:', bookingId);
     }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your bookings...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md mx-auto">
+              <p className="font-semibold">Error Loading Bookings</p>
+              <p className="text-sm mt-1">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -280,7 +344,7 @@ export default function ProviderMyBookingsPage() {
                             <div>
                               <span className="text-gray-600">Duration: </span>
                               <span className="font-semibold text-gray-900">
-                                {booking.duration} {booking.durationType.replace('ly', '')}
+                                {booking.duration} {booking.durationType === 'daily' ? 'day' : booking.durationType.replace('ly', '')}
                                 {booking.duration > 1 ? 's' : ''}
                               </span>
                             </div>
