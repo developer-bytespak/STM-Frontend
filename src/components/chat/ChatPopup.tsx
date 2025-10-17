@@ -315,12 +315,12 @@ export default function ChatPopup() {
       <div className="fixed bottom-4 right-4 z-50">
         <button
           onClick={maximizeConversation}
-          className="bg-navy-600 text-white px-6 py-3 rounded-lg shadow-2xl hover:bg-navy-700 transition-colors flex items-center gap-3"
+          className="bg-navy-600 text-white px-4 sm:px-6 py-3 rounded-lg shadow-2xl hover:bg-navy-700 transition-colors flex items-center gap-2 sm:gap-3 cursor-pointer"
         >
-          <div className="w-8 h-8 bg-white text-navy-600 rounded-full flex items-center justify-center font-bold text-sm">
+          <div className="w-8 h-8 bg-white text-navy-600 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
             {otherPersonName.split(' ').map(n => n[0]).join('')}
           </div>
-          <div className="text-left">
+          <div className="text-left hidden sm:block">
             <p className="font-semibold text-sm">{otherPersonName}</p>
             <p className="text-xs text-navy-200">Click to open chat</p>
           </div>
@@ -332,7 +332,7 @@ export default function ChatPopup() {
   // Compact Minimized State - Still functional chat but smaller
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 w-80 h-[400px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col z-50">
+      <div className="fixed bottom-0 right-0 sm:bottom-4 sm:right-4 w-full sm:w-80 h-[450px] sm:h-[400px] bg-white sm:rounded-lg shadow-2xl border-t sm:border border-gray-200 flex flex-col z-50">
         {/* Header */}
         <div className="bg-navy-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -349,7 +349,7 @@ export default function ChatPopup() {
           <div className="flex items-center gap-1">
         <button
           onClick={maximizeConversation}
-              className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
               title="Maximize to full chat"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,7 +358,7 @@ export default function ChatPopup() {
             </button>
             <button
               onClick={closeConversation}
-              className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
               title="Close"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,8 +566,8 @@ export default function ChatPopup() {
 
   return (
     <>
-      {/* Chat Popup - Full Size */}
-      <div className="fixed bottom-4 right-4 w-[420px] h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col z-50">
+      {/* Chat Popup - Full Size - Responsive: full screen on mobile, popup on desktop */}
+      <div className="fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-4 w-full sm:w-[420px] h-full sm:h-[600px] bg-white sm:rounded-lg shadow-2xl border-t sm:border border-gray-200 flex flex-col z-50">
         {/* Header */}
         <div className="bg-navy-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -585,7 +585,7 @@ export default function ChatPopup() {
             {!activeConversation.lsmId && (
               <button
                 onClick={() => setShowLSMModal(true)}
-                className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+                className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
                 title="Add LSM to chat"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -596,7 +596,7 @@ export default function ChatPopup() {
             )}
             <button
               onClick={minimizeConversation}
-              className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
               title="Minimize chat (original)"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -605,7 +605,7 @@ export default function ChatPopup() {
             </button>
             <button
               onClick={minimizeToCompact}
-              className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
               title="Minimize to compact chat"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -614,7 +614,7 @@ export default function ChatPopup() {
             </button>
             <button
               onClick={closeConversation}
-              className="text-white hover:bg-navy-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-navy-700 p-2 rounded transition-colors cursor-pointer"
               title="Close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -714,7 +714,7 @@ export default function ChatPopup() {
                               <div className="flex gap-2 mt-3">
                                 <button
                                   onClick={() => handleViewFile(file)}
-                                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
+                                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                                   title="View file"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -725,7 +725,7 @@ export default function ChatPopup() {
                                 </button>
                                 <button
                                   onClick={() => handleDownloadFile(file)}
-                                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
+                                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                                   title="Download file"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -793,7 +793,7 @@ export default function ChatPopup() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-gray-500 hover:text-navy-600 p-2 rounded hover:bg-gray-100 transition-colors"
+              className="text-gray-500 hover:text-navy-600 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
               title="Attach files"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -810,7 +810,7 @@ export default function ChatPopup() {
             <button
               type="submit"
               disabled={!messageInput.trim() && selectedFiles.length === 0}
-              className="bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -823,7 +823,7 @@ export default function ChatPopup() {
       {/* Add LSM Modal */}
       {showLSMModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-md w-full mx-2 p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -872,7 +872,7 @@ export default function ChatPopup() {
             <div className="flex gap-3">
               <button
                 onClick={handleAddLSM}
-                className="flex-1 bg-navy-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-navy-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -884,7 +884,7 @@ export default function ChatPopup() {
                   setShowLSMModal(false);
                   setDisputeDescription(''); // Clear on cancel
                 }}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Cancel
               </button>

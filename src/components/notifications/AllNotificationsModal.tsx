@@ -268,7 +268,7 @@ export default function AllNotificationsModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-3xl w-full mx-2 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10 rounded-t-xl">
           <div>
@@ -287,8 +287,8 @@ export default function AllNotificationsModal({
         </div>
 
         {/* Filter Tabs */}
-        <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-          <div className="flex gap-2">
+        <div className="px-4 sm:px-6 py-3 border-b border-gray-200 bg-gray-50">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
