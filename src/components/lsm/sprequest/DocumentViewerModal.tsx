@@ -197,9 +197,32 @@ export default function DocumentViewerModal({
           <div className="mb-4">
             {loading && (
               <div className="flex items-center justify-center h-[400px]">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading document...</p>
+                <div className="w-full max-w-2xl space-y-4 animate-pulse">
+                  {/* Document Type Indicator */}
+                  <div className="flex justify-center">
+                    <div className="h-16 w-16 bg-gray-200 rounded-lg"></div>
+                  </div>
+                  
+                  {/* Loading Text */}
+                  <div className="text-center space-y-2">
+                    <div className="h-5 bg-gray-200 rounded w-48 mx-auto"></div>
+                    <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+                  </div>
+                  
+                  {/* Document Preview Skeleton */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                    <div className="h-32 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/6"></div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-200 h-2 rounded-full w-1/2 animate-pulse"></div>
+                  </div>
                 </div>
               </div>
             )}

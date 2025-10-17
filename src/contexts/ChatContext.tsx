@@ -84,6 +84,57 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // SOCKET.IO CONNECTION SETUP
   // ==========================================
 
+  // Load existing chats when user logs in
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    const loadExistingChats = async () => {
+      try {
+        console.log('📂 Loading existing chats for user:', user.name);
+        const chats = await chatApi.getUserChats(user.role as 'customer' | 'service_provider' | 'local_service_manager');
+        
+        // Convert backend chats to conversations (without loading messages yet)
+        const existingConversations: ChatConversation[] = chats.map(chat => {
+          // Determine user role
+          const isCustomer = user.role === 'customer';
+          const isProvider = user.role === 'service_provider';
+          const isLSM = user.role === 'local_service_manager';
+          
+          // Check if LSM has joined (not just invited)
+          const lsmId = chat.lsm_joined && chat.localServiceManager ? chat.localServiceManager.id : undefined;
+          const lsmName = chat.lsm_joined && chat.localServiceManager 
+            ? `${chat.localServiceManager.user.first_name} ${chat.localServiceManager.user.last_name}`
+            : undefined;
+          
+          return {
+            id: chat.id,
+            providerId: chat.provider?.id || 0,
+            providerName: chat.provider?.businessName || 
+                         (chat.provider?.user ? `${chat.provider.user.first_name} ${chat.provider.user.last_name}` : 'Provider'),
+            customerId: isProvider || isLSM ? (chat.customer ? 0 : user.id) : user.id,
+            customerName: chat.customer?.name || user.name,
+            jobId: chat.job?.id,
+            lsmId,
+            lsmName,
+            messages: [], // Will be loaded when chat is opened
+            isOpen: false,
+            isMinimized: false,
+            createdAt: new Date(chat.created_at),
+          };
+        });
+
+        setConversations(existingConversations);
+        console.log('✅ Loaded', existingConversations.length, 'existing chats');
+      } catch (error) {
+        console.error('❌ Failed to load existing chats:', error);
+      }
+    };
+
+    loadExistingChats();
+  }, [isAuthenticated, user]);
+
   // Initialize socket connection when user is authenticated
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -142,10 +193,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // You can add typing indicator UI here if needed
     });
 
+    // Listen for LSM joining chat
+    socketService.onLSMJoined((data) => {
+      console.log('🛡️ LSM joined chat:', data);
+      handleLSMJoined(data);
+    });
+
+    // Listen for generic user joins (fallback)
+    socketService.onUserJoined((data) => {
+      console.log('👤 User joined:', data);
+      if (data.userType === 'local_service_manager') {
+        handleLSMJoined({
+          chatId: data.chatId,
+          lsmId: data.userId,
+          lsmName: data.userName || 'Local Service Manager',
+          message: 'LSM joined the conversation'
+        });
+      }
+    });
+
     // Cleanup on unmount or user change
     return () => {
       socketService.offNewMessage();
       socketService.offUserTyping();
+      socketService.offLSMJoined();
+      socketService.offUserJoined();
       // Don't disconnect socket here - keep it alive for other components
     };
   }, [isAuthenticated, user]);
@@ -174,6 +246,56 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [activeConversation?.id, isSocketConnected]);
 
   // ==========================================
+  // HANDLE LSM JOINING
+  // ==========================================
+
+  const handleLSMJoined = (data: {
+    chatId: string;
+    lsmId: number;
+    lsmName: string;
+    message: string;
+  }) => {
+    console.log('🛡️ Processing LSM join:', data);
+
+    // Create system message
+    const systemMessage: Message = {
+      id: `lsm-join-${Date.now()}`,
+      senderId: 'system',
+      senderName: 'System',
+      senderRole: 'local_service_manager',
+      content: `${data.lsmName} (Local Service Manager) has joined the conversation`,
+      timestamp: new Date(),
+      type: 'text'
+    };
+
+    // Update conversations list
+    setConversations(prev =>
+      prev.map(conv =>
+        conv.id === data.chatId
+          ? { 
+              ...conv, 
+              lsmId: data.lsmId, 
+              lsmName: data.lsmName,
+              messages: [...conv.messages, systemMessage]
+            }
+          : conv
+      )
+    );
+
+    // Update active conversation if it's the same chat
+    setActiveConversation(prev =>
+      prev?.id === data.chatId
+        ? { 
+            ...prev, 
+            lsmId: data.lsmId, 
+            lsmName: data.lsmName,
+            messages: [...prev.messages, systemMessage]
+          }
+        : prev
+    );
+  };
+
+  // ==========================================
   // HANDLE INCOMING MESSAGES
   // ==========================================
 
@@ -188,14 +310,24 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     created_at: string;
   }) => {
     // Convert backend message to frontend Message format
+    const isFileMessage = messageData.message_type === 'document' || messageData.message_type === 'image';
+    
+    // For file messages, the 'message' field contains the file URL
     const newMessage: Message = {
       id: messageData.id,
       senderId: messageData.sender_id,
       senderName: messageData.sender_name || getSenderName(messageData.sender_id, messageData.sender_type),
       senderRole: messageData.sender_type,
-      content: messageData.message,
+      content: isFileMessage ? extractFileName(messageData.message) : messageData.message,
       timestamp: new Date(messageData.created_at),
-      type: messageData.message_type as 'text' | 'file',
+      type: isFileMessage ? 'file' : 'text',
+      // If it's a file message, parse the file URL and create file object
+      files: isFileMessage ? [{
+        name: extractFileName(messageData.message),
+        size: 0, // Size not available from backend
+        type: messageData.message_type === 'image' ? 'image/*' : 'application/*',
+        url: messageData.message, // The message content IS the file URL
+      }] : undefined,
     };
 
     // Update conversations list
@@ -213,6 +345,44 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         ? { ...prev, messages: [...prev.messages, newMessage] }
         : prev
     );
+  };
+
+  // Helper function to extract file name from URL
+  const extractFileName = (url: string): string => {
+    try {
+      // Check if it's a data URL (base64)
+      if (url.startsWith('data:')) {
+        // Extract MIME type from data URL
+        const mimeMatch = url.match(/^data:([^;]+);base64,/);
+        if (mimeMatch) {
+          const mimeType = mimeMatch[1];
+          // Generate filename based on MIME type
+          if (mimeType.startsWith('image/')) {
+            return `image.${mimeType.split('/')[1]}`;
+          } else if (mimeType === 'application/pdf') {
+            return 'document.pdf';
+          } else if (mimeType.includes('word')) {
+            return 'document.docx';
+          } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+            return 'spreadsheet.xlsx';
+          } else if (mimeType === 'text/plain') {
+            return 'text.txt';
+          } else {
+            return `file.${mimeType.split('/')[1] || 'bin'}`;
+          }
+        }
+        return 'attachment';
+      }
+      
+      // For regular URLs, extract filename from path
+      const parts = url.split('/');
+      const fileName = parts[parts.length - 1];
+      // Decode URL encoded filename
+      return decodeURIComponent(fileName);
+    } catch (error) {
+      console.error('Failed to extract filename from URL:', url);
+      return 'Attachment';
+    }
   };
 
   // Helper function to get sender name (you can enhance this to fetch from backend)
@@ -256,15 +426,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const response = await chatApi.getChatMessages(chatId);
       
       // Convert backend messages to frontend format
-      const messages: Message[] = response.messages.map(msg => ({
-        id: msg.id,
-        senderId: msg.sender_id,
-        senderName: msg.sender_name || getSenderName(msg.sender_id, msg.sender_type),
-        senderRole: msg.sender_type,
-        content: msg.message,
-        timestamp: new Date(msg.created_at),
-        type: msg.message_type as 'text' | 'file',
-      }));
+      const messages: Message[] = response.messages.map(msg => {
+        const isFileMessage = msg.message_type === 'document' || msg.message_type === 'image';
+        
+        return {
+          id: msg.id,
+          senderId: msg.sender_id,
+          senderName: msg.sender_name || getSenderName(msg.sender_id, msg.sender_type),
+          senderRole: msg.sender_type,
+          content: isFileMessage ? extractFileName(msg.message) : msg.message,
+          timestamp: new Date(msg.created_at),
+          type: isFileMessage ? 'file' : 'text',
+          // If it's a file message, parse the file URL and create file object
+          files: isFileMessage ? [{
+            name: extractFileName(msg.message),
+            size: 0, // Size not available from backend
+            type: msg.message_type === 'image' ? 'image/*' : 'application/*',
+            url: msg.message, // The message content IS the file URL
+          }] : undefined,
+        };
+      });
 
       // Update conversations with loaded messages
       setConversations(prev =>
@@ -497,7 +678,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // SEND MESSAGE
   // ==========================================
 
-  const sendMessage = (content: string, files?: File[]) => {
+  const sendMessage = async (content: string, files?: File[]) => {
     if (!activeConversation) {
       console.error('Cannot send message: No active conversation');
       return;
@@ -519,45 +700,123 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const customerId = user.id;
-    const customerName = user.name;
+    const userId = user.id;
+    const userName = user.name;
+    const userRole = user.role as 'customer' | 'service_provider' | 'local_service_manager';
 
-    // Handle file uploads (you'll need to implement file upload to server first)
+    // Handle file uploads
     if (files && files.length > 0) {
-      console.log('📎 File upload not yet implemented - sending as text for now');
-      // TODO: Upload files to server, get URLs, then send message with file URLs
-      // For now, just send as text message
-      
-      const fileMessage: Message = {
-        id: `temp-${Date.now()}`,
-        senderId: customerId,
-        senderName: customerName,
-        senderRole: 'customer',
-        content: content.trim() || 'Sent file(s)',
-        timestamp: new Date(),
-        type: 'file',
-        files: files.map(file => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          url: URL.createObjectURL(file),
-        })),
-      };
+      try {
+        console.log('📎 Uploading', files.length, 'file(s)...');
+        
+        // Show loading state - optimistically add message with uploading indicator
+        const uploadingMessage: Message = {
+          id: `temp-uploading-${Date.now()}`,
+          senderId: userId,
+          senderName: userName,
+          senderRole: userRole,
+          content: content.trim() || 'Uploading file(s)...',
+          timestamp: new Date(),
+          type: 'file',
+          files: files.map(file => ({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: '', // Will be replaced after upload
+          })),
+        };
 
-      // Optimistically add to UI
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === activeConversation.id
-            ? { ...conv, messages: [...conv.messages, fileMessage] }
-            : conv
-        )
-      );
+        // Add uploading message to UI
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === activeConversation.id
+              ? { ...conv, messages: [...conv.messages, uploadingMessage] }
+              : conv
+          )
+        );
 
-      setActiveConversation(prev =>
-        prev ? { ...prev, messages: [...prev.messages, fileMessage] } : null
-      );
+        setActiveConversation(prev =>
+          prev ? { ...prev, messages: [...prev.messages, uploadingMessage] } : null
+        );
 
-      // TODO: Implement actual file upload and sending via socket
+        // Upload files to server
+        const uploadResponse = await chatApi.uploadChatFiles(files);
+        console.log('✅ Files uploaded successfully:', uploadResponse.urls);
+
+        // Remove uploading message from UI
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === activeConversation.id
+              ? { ...conv, messages: conv.messages.filter(msg => msg.id !== uploadingMessage.id) }
+              : conv
+          )
+        );
+
+        setActiveConversation(prev =>
+          prev ? { ...prev, messages: prev.messages.filter(msg => msg.id !== uploadingMessage.id) } : null
+        );
+
+        // Create file message with actual file URLs
+        const fileUrls = uploadResponse.urls;
+        
+        // Send each file URL as a separate message via socket
+        // The backend expects message to be a string (the file URL)
+        for (let i = 0; i < fileUrls.length; i++) {
+          const fileUrl = fileUrls[i];
+          const file = files[i];
+          
+          // Create optimistic message for this file
+          const fileMessage: Message = {
+            id: `temp-file-${Date.now()}-${i}`,
+            senderId: userId,
+            senderName: userName,
+            senderRole: userRole,
+            content: content.trim() || file.name,
+            timestamp: new Date(),
+            type: 'file',
+            files: [{
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              url: fileUrl,
+            }],
+          };
+
+          // Add to UI
+          setConversations(prev =>
+            prev.map(conv =>
+              conv.id === activeConversation.id
+                ? { ...conv, messages: [...conv.messages, fileMessage] }
+                : conv
+            )
+          );
+
+          setActiveConversation(prev =>
+            prev ? { ...prev, messages: [...prev.messages, fileMessage] } : null
+          );
+
+          // Send via socket with the file URL as the message content
+          socketService.sendMessage(activeConversation.id, fileUrl, 'document');
+        }
+
+        console.log('✅ File message(s) sent successfully');
+      } catch (error: any) {
+        console.error('❌ Failed to upload files:', error);
+        alert(`Failed to upload files: ${error.message || 'Unknown error'}. Please try again.`);
+        
+        // Remove uploading message on error
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === activeConversation.id
+              ? { ...conv, messages: conv.messages.filter(msg => !msg.id.startsWith('temp-uploading-')) }
+              : conv
+          )
+        );
+
+        setActiveConversation(prev =>
+          prev ? { ...prev, messages: prev.messages.filter(msg => !msg.id.startsWith('temp-uploading-')) } : null
+        );
+      }
       return;
     }
 
@@ -568,9 +827,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Optimistically add message to UI
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
-        senderId: customerId,
-        senderName: customerName,
-        senderRole: 'customer',
+        senderId: userId,
+        senderName: userName,
+        senderRole: userRole,
         content: content.trim(),
         timestamp: new Date(),
         type: 'text',

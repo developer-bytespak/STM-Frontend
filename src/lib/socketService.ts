@@ -340,6 +340,54 @@ class SocketService {
       this.socket.off('messages_read');
     }
   }
+
+  // ==========================================
+  // LSM JOIN/LEAVE METHODS
+  // ==========================================
+
+  /**
+   * Listen for LSM joining chat
+   */
+  onLSMJoined(callback: (data: { 
+    chatId: string; 
+    lsmId: number; 
+    lsmName: string;
+    message: string;
+  }) => void) {
+    if (!this.socket) return;
+    this.socket.on('lsm_joined', callback);
+  }
+
+  /**
+   * Stop listening for LSM join events
+   */
+  offLSMJoined() {
+    if (this.socket) {
+      this.socket.off('lsm_joined');
+    }
+  }
+
+  /**
+   * Listen for user joined events (generic)
+   */
+  onUserJoined(callback: (data: { 
+    userId: number; 
+    chatId: string;
+    userType?: 'customer' | 'service_provider' | 'local_service_manager';
+    userName?: string;
+  }) => void) {
+    if (!this.socket) return;
+    this.socket.on('user_joined', callback);
+  }
+
+  /**
+   * Stop listening for user joined events
+   */
+  offUserJoined() {
+    if (this.socket) {
+      this.socket.off('user_joined');
+    }
+  }
 }
 
 // Export singleton instance

@@ -113,9 +113,72 @@ export default function LSMFeedback() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading providers...</p>
+          {/* Header Skeleton */}
+          <div className="text-center mb-8">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto animate-pulse"></div>
+          </div>
+
+          {/* Provider Selector Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-32 mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-full"></div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                  <div className="ml-4 flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-16"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rating Distribution Skeleton */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-40 mb-4"></div>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center">
+                  <div className="w-8 h-4 bg-gray-200 rounded"></div>
+                  <div className="flex-1 mx-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2"></div>
+                  </div>
+                  <div className="w-12 h-4 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews List Skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+                <div className="flex items-start mb-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                  <div className="ml-4 flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <div key={star} className="w-4 h-4 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

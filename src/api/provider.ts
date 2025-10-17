@@ -172,6 +172,7 @@ export interface Job {
   scheduledAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  chatId?: string | null; // Chat ID for opening conversations
 }
 
 export interface JobsResponse {

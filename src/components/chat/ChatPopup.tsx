@@ -21,6 +21,7 @@ export default function ChatPopup() {
   const { user } = useAuth();
   const [messageInput, setMessageInput] = useState('');
   const [showLSMModal, setShowLSMModal] = useState(false);
+  const [disputeDescription, setDisputeDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +34,22 @@ export default function ChatPopup() {
   if (!activeConversation) return null;
 
   const isMinimized = activeConversation.isMinimized;
+  
+  // Determine who the "other person" is based on current user's role
+  const isProvider = user?.role === 'service_provider';
+  const isCustomer = user?.role === 'customer';
+  const isLSM = user?.role === 'local_service_manager';
+  
+  // For LSM: show both customer and provider names
+  // For Customer/Provider: show the other party
+  const otherPersonName = isLSM 
+    ? `${activeConversation.customerName} ⟷ ${activeConversation.providerName}`
+    : isProvider 
+      ? activeConversation.customerName 
+      : activeConversation.providerName;
+  
+  const otherPersonRole = isLSM ? 'Dispute' : isProvider ? 'Customer' : 'Provider';
+  const otherPersonId = isProvider ? activeConversation.customerId : activeConversation.providerId;
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,35 +87,201 @@ export default function ChatPopup() {
       return;
     }
 
+    if (!disputeDescription.trim()) {
+      alert('Please provide a description of the dispute');
+      return;
+    }
+
     try {
       // File dispute through the API
+      // This automatically:
+      // 1. Creates a dispute record
+      // 2. Locates the LSM for the provider's region
+      // 3. Sends an invite notification to that LSM
+      // 4. Updates the chat with lsm_invited = true
       const result = await customerApi.fileDispute({
-        jobId: activeConversation.jobId
+        jobId: activeConversation.jobId,
+        description: disputeDescription.trim()
       });
 
-      // Add LSM to chat UI
-      addLSMToChat('lsm-1', 'Local Service Manager');
+      console.log('✅ Dispute filed successfully:', result);
       
-      alert(result.message || 'Dispute filed successfully. LSM has been notified and will join the conversation.');
+      // Show success message
+      alert(
+        result.message || 
+        'Dispute filed successfully. The Local Service Manager for your region has been notified and will join the conversation shortly.'
+      );
+      
       setShowLSMModal(false);
+      setDisputeDescription(''); // Clear the description
+      
+      // The LSM will appear in the chat automatically when they join via socket
+      // No need to call addLSMToChat here - wait for actual join event
     } catch (error: any) {
-      console.error('Failed to file dispute:', error);
+      console.error('❌ Failed to file dispute:', error);
       alert(error.message || 'Failed to file dispute. Please try again.');
-      setShowLSMModal(false);
     }
   };
 
   const handleViewFile = (file: {name: string, url: string, type: string}) => {
-    window.open(file.url, '_blank');
+    try {
+      // Check if it's a base64 data URL
+      if (file.url.startsWith('data:')) {
+        // Create a blob from the base64 data
+        const base64Data = file.url.split(',')[1];
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: file.type });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Open the blob URL in a new tab for viewing (not downloading)
+        const newWindow = window.open(blobUrl, '_blank');
+        
+        // If the file can't be displayed in browser, show a message
+        if (!newWindow) {
+          alert('Unable to open file in browser. Please try downloading it instead.');
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        
+        // Clean up the blob URL after a longer delay since user might be viewing
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+        }, 30000); // 30 seconds to allow viewing
+      } else {
+        // For regular URLs, open directly
+        window.open(file.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      alert('Unable to view this file. Please try downloading it instead.');
+    }
   };
 
   const handleDownloadFile = (file: {name: string, url: string, type: string}) => {
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Check if it's a base64 data URL
+      if (file.url.startsWith('data:')) {
+        // Create a blob from the base64 data
+        const base64Data = file.url.split(',')[1];
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: file.type });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Create download link with proper filename
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the blob URL after download
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
+      } else {
+        // For regular URLs, download directly
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Unable to download this file. Please try again.');
+    }
+  };
+
+  // Helper function to get file icon based on file type
+  const getFileIcon = (fileName: string, fileType: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    // Image files
+    if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+      return (
+        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    }
+    
+    // PDF files
+    if (fileType === 'application/pdf' || extension === 'pdf') {
+      return (
+        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    }
+    
+    // Word documents
+    if (fileType.includes('word') || ['doc', 'docx'].includes(extension || '')) {
+      return (
+        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    }
+    
+    // Excel files
+    if (fileType.includes('excel') || fileType.includes('spreadsheet') || ['xls', 'xlsx'].includes(extension || '')) {
+      return (
+        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    }
+    
+    // Text files
+    if (fileType === 'text/plain' || extension === 'txt') {
+      return (
+        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    }
+    
+    // Default file icon
+    return (
+      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+  };
+
+  // Get message background color based on sender role (for LSM view)
+  const getMessageColor = (senderRole: string, isOwnMessage: boolean | null) => {
+    if (isOwnMessage) {
+      return '#00a63e'; // Own messages stay green
+    }
+    
+    // For LSM viewing: different colors for customer vs provider
+    if (isLSM) {
+      if (senderRole === 'customer') {
+        return '#3b82f6'; // Blue for customer
+      } else if (senderRole === 'service_provider') {
+        return '#a855f7'; // Purple for provider
+      }
+    }
+    
+    // For customer/provider viewing: white background for other person
+    return undefined; // Will use default white/border styling
   };
 
   const formatMessageContent = (content: string) => {
@@ -135,10 +318,10 @@ export default function ChatPopup() {
           className="bg-navy-600 text-white px-6 py-3 rounded-lg shadow-2xl hover:bg-navy-700 transition-colors flex items-center gap-3"
         >
           <div className="w-8 h-8 bg-white text-navy-600 rounded-full flex items-center justify-center font-bold text-sm">
-            {activeConversation.providerName.split(' ').map(n => n[0]).join('')}
+            {otherPersonName.split(' ').map(n => n[0]).join('')}
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm">{activeConversation.providerName}</p>
+            <p className="font-semibold text-sm">{otherPersonName}</p>
             <p className="text-xs text-navy-200">Click to open chat</p>
           </div>
         </button>
@@ -154,32 +337,13 @@ export default function ChatPopup() {
         <div className="bg-navy-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white text-navy-600 rounded-full flex items-center justify-center font-bold text-xs">
-              {activeConversation.providerName.split(' ').map(n => n[0]).join('')}
+              {otherPersonName.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
-              <button
-                onClick={() => {
-                  // Extract service information from the first form-data message
-                  const formDataMessage = activeConversation.messages.find(msg => msg.type === 'form-data');
-                  const serviceType = formDataMessage?.formData?.serviceType || 'General Service';
-                  const category = 'Interior Cleaning'; // Default category - could be made dynamic
-                  const location = '75001 - Dallas, TX'; // Default location - could be made dynamic
-                  
-                  // Construct the full provider URL with parameters
-                  const params = new URLSearchParams({
-                    service: serviceType,
-                    category: category,
-                    location: location
-                  });
-                  
-                  window.open(`/providers/${activeConversation.providerId}?${params.toString()}`, '_blank');
-                }}
-                className="font-semibold text-sm hover:text-navy-200 transition-colors cursor-pointer text-left"
-                title="View business profile"
-              >
-                {activeConversation.providerName}
-              </button>
-              <p className="text-xs text-navy-200">Provider</p>
+              <div className="font-semibold text-sm text-left">
+                {otherPersonName}
+              </div>
+              <p className="text-xs text-navy-200">{otherPersonRole}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -258,11 +422,16 @@ export default function ChatPopup() {
                         ? 'text-white rounded-br-none px-3 py-2'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-3'
+                        : getMessageColor(message.senderRole, isOwnMessage)
+                        ? 'rounded-bl-none text-white px-3 py-2'
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-3 py-2'
                     }`}
-                    style={isOwnMessage || message.type === 'form-data'
-                      ? { backgroundColor: '#00a63e' } 
-                      : undefined
+                    style={
+                      isOwnMessage || message.type === 'form-data'
+                        ? { backgroundColor: '#00a63e' } 
+                        : getMessageColor(message.senderRole, isOwnMessage)
+                        ? { backgroundColor: getMessageColor(message.senderRole, isOwnMessage) }
+                        : undefined
                     }
                   >
                     {message.type === 'form-data' ? (
@@ -272,28 +441,22 @@ export default function ChatPopup() {
                     ) : message.type === 'file' && message.files ? (
                       <div>
                         {message.content !== 'Sent file(s)' && (
-                          <p className="text-xs mb-1 text-gray-900">{message.content}</p>
+                          <p className={`text-xs mb-1 ${getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                         )}
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {message.files.map((file, idx) => (
-                            <div key={idx} className="space-y-1">
-                              <div
-                                className={`flex items-center gap-1 p-1 rounded hover:opacity-80 transition-opacity ${
-                                  isOwnMessage ? 'bg-white border border-gray-200' : 'bg-gray-100'
-                                }`}
-                              >
-                                <svg className={`w-4 h-4 ${isOwnMessage ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <div className="flex-1 text-xs">
-                                  <p className={`font-medium truncate ${isOwnMessage ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
-                                  <p className={isOwnMessage ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
+                            <div key={idx} className="bg-white rounded border border-gray-200 p-2">
+                              <div className="flex items-center gap-2">
+                                {getFileIcon(file.name, file.type)}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-xs text-gray-900 truncate">{file.name}</p>
+                                  <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                                 </div>
                               </div>
-                              <div className="flex gap-2 justify-end">
+                              <div className="flex gap-1 mt-2">
                                 <button
                                   onClick={() => handleViewFile(file)}
-                                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
+                                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center justify-center gap-1"
                                   title="View file"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,7 +467,7 @@ export default function ChatPopup() {
                                 </button>
                                 <button
                                   onClick={() => handleDownloadFile(file)}
-                                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
+                                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center justify-center gap-1"
                                   title="Download file"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,7 +481,7 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -409,32 +572,13 @@ export default function ChatPopup() {
         <div className="bg-navy-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white text-navy-600 rounded-full flex items-center justify-center font-bold text-sm">
-              {activeConversation.providerName.split(' ').map(n => n[0]).join('')}
+              {otherPersonName.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
-              <button
-                onClick={() => {
-                  // Extract service information from the first form-data message
-                  const formDataMessage = activeConversation.messages.find(msg => msg.type === 'form-data');
-                  const serviceType = formDataMessage?.formData?.serviceType || 'General Service';
-                  const category = 'Interior Cleaning'; // Default category - could be made dynamic
-                  const location = '75001 - Dallas, TX'; // Default location - could be made dynamic
-                  
-                  // Construct the full provider URL with parameters
-                  const params = new URLSearchParams({
-                    service: serviceType,
-                    category: category,
-                    location: location
-                  });
-                  
-                  window.open(`/providers/${activeConversation.providerId}?${params.toString()}`, '_blank');
-                }}
-                className="font-semibold text-sm hover:text-navy-200 transition-colors cursor-pointer text-left"
-                title="View business profile"
-              >
-                {activeConversation.providerName}
-              </button>
-              <p className="text-xs text-navy-200">Provider</p>
+              <div className="font-semibold text-sm text-left">
+                {otherPersonName}
+              </div>
+              <p className="text-xs text-navy-200">{otherPersonRole}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -536,11 +680,16 @@ export default function ChatPopup() {
                         ? 'text-white rounded-br-none px-4 py-3'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-4'
+                        : getMessageColor(message.senderRole, isOwnMessage)
+                        ? 'rounded-bl-none text-white px-4 py-3'
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-4 py-3'
                     }`}
-                    style={isOwnMessage || message.type === 'form-data'
-                      ? { backgroundColor: '#00a63e' } 
-                      : undefined
+                    style={
+                      isOwnMessage || message.type === 'form-data'
+                        ? { backgroundColor: '#00a63e' } 
+                        : getMessageColor(message.senderRole, isOwnMessage)
+                        ? { backgroundColor: getMessageColor(message.senderRole, isOwnMessage) }
+                        : undefined
                     }
                   >
                     {message.type === 'form-data' ? (
@@ -550,28 +699,22 @@ export default function ChatPopup() {
                     ) : message.type === 'file' && message.files ? (
                       <div>
                         {message.content !== 'Sent file(s)' && (
-                          <p className="text-sm mb-2 text-gray-900">{message.content}</p>
+                          <p className={`text-sm mb-2 ${getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                         )}
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {message.files.map((file, idx) => (
-                            <div key={idx} className="space-y-2">
-                              <div
-                                className={`flex items-center gap-2 p-2 rounded hover:opacity-80 transition-opacity ${
-                                  isOwnMessage ? 'bg-white border border-gray-200' : 'bg-gray-100'
-                                }`}
-                              >
-                                <svg className={`w-5 h-5 ${isOwnMessage ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <div className="flex-1 text-xs">
-                                  <p className={`font-medium truncate ${isOwnMessage ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
-                                  <p className={isOwnMessage ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
+                            <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+                              <div className="flex items-center gap-3">
+                                {getFileIcon(file.name, file.type)}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900 truncate">{file.name}</p>
+                                  <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                                 </div>
                               </div>
-                              <div className="flex gap-2 justify-end">
+                              <div className="flex gap-2 mt-3">
                                 <button
                                   onClick={() => handleViewFile(file)}
-                                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
                                   title="View file"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -582,7 +725,7 @@ export default function ChatPopup() {
                                 </button>
                                 <button
                                   onClick={() => handleDownloadFile(file)}
-                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-center gap-2"
                                   title="Download file"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,7 +739,7 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -681,23 +824,69 @@ export default function ChatPopup() {
       {showLSMModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Raise Dispute</h3>
-            <p className="text-gray-600 mb-6">
-              Would you like to raise a dispute for this conversation? 
-              We recommend to add an LSM to help mediate and ensure quality service delivery.
-            </p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Add Local Service Manager</h3>
+            </div>
+            
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-700">
+                Filing a dispute will automatically invite the Local Service Manager (LSM) for your region to join this conversation.
+              </p>
+              
+              <div className="space-y-2">
+                <label htmlFor="dispute-description" className="block text-sm font-semibold text-gray-700">
+                  Describe the issue: <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="dispute-description"
+                  value={disputeDescription}
+                  onChange={(e) => setDisputeDescription(e.target.value)}
+                  placeholder="E.g., Work not completed according to agreement, poor quality, missed deadline..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 resize-none"
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-xs text-gray-500 text-right">
+                  {disputeDescription.length}/500 characters
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong className="font-semibold">What happens next:</strong>
+                </p>
+                <ul className="text-sm text-blue-700 mt-2 space-y-1 ml-4 list-disc">
+                  <li>The regional LSM will be notified</li>
+                  <li>They will review your dispute description</li>
+                  <li>LSM will join the chat to help mediate</li>
+                  <li>Both parties will work towards a resolution</li>
+                </ul>
+              </div>
+            </div>
+            
             <div className="flex gap-3">
               <button
                 onClick={handleAddLSM}
-                className="flex-1 bg-navy-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors"
+                className="flex-1 bg-navy-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors flex items-center justify-center gap-2"
               >
-                Add LSM
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                File Dispute & Add LSM
               </button>
               <button
-                onClick={() => setShowLSMModal(false)}
+                onClick={() => {
+                  setShowLSMModal(false);
+                  setDisputeDescription(''); // Clear on cancel
+                }}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
               >
-                Maybe Later
+                Cancel
               </button>
             </div>
           </div>

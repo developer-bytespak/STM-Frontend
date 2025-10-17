@@ -224,21 +224,22 @@ function ProviderDashboardContent() {
           </p>
         </Link>
 
-        <Link
-          href="/provider/earnings"
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden">
           <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Earnings</h3>
-          <p className="text-3xl font-bold text-green-600 mb-1">${summary.totalEarnings.toLocaleString()}</p>
-          <p className="text-gray-600 text-sm">
-            View payment history and manage billing
+          <div className="py-2">
+            <p className="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-2 rounded-lg inline-block">
+              Coming Soon
+            </p>
+          </div>
+          <p className="text-gray-500 text-sm mt-2">
+            Payment tracking feature will be available soon
           </p>
-        </Link>
+        </div>
 
         <Link
           href="/provider/activejobs"

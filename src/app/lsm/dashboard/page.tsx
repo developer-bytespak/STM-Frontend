@@ -68,7 +68,7 @@ export default function LSMDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-x``      <div className="flex-1 pt-6 pb-12">
+      <div className="flex-1 pt-6 pb-12">
         <div className="container mx-auto px-4">
         {/* Header */}
         <div className="bg-gradient-to-r from-navy-600 to-blue-600 rounded-2xl p-8 text-white mb-8">
@@ -82,6 +82,54 @@ x``      <div className="flex-1 pt-6 pb-12">
 
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {/* Chats Card */}
+          <Link href="/lsm/chats">
+            <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-500 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-green-100 rounded-lg p-3">
+                  <svg
+                    className="w-8 h-8 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                </div>
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Dispute Chats
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                View and manage active dispute conversations
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-green-600">
+                  {disputes?.pending || 0}
+                </span>
+                <span className="text-sm text-gray-500">Active</span>
+              </div>
+            </div>
+          </Link>
+
           {/* Requests Card */}
           <Link href="/lsm/sp-request" className="block h-full">
             <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col min-h-[180px]">

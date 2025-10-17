@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { providerApi, JobsResponse, JobDetailsResponse } from '@/api/provider';
 import TotalJobsCard from '@/components/provider/TotalJobsCard';
+import { useChat } from '@/contexts/ChatContext';
 
 export default function TotalJobsPage() {
+  const { openConversation } = useChat();
   const [jobs, setJobs] = useState<JobsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,19 @@ export default function TotalJobsPage() {
       console.error('Error fetching job details:', err);
       alert('Failed to load job details');
     }
+  };
+
+  const handleOpenChat = (chatId: string | null) => {
+    if (!chatId) {
+      alert('No chat available for this job. Chat is created when the job is created.');
+      return;
+    }
+    
+    // Close modal if open
+    setShowDetailsModal(false);
+    
+    // Open the chat
+    openConversation(chatId);
   };
 
   const handleMarkComplete = async (jobId: number) => {
@@ -419,7 +434,12 @@ export default function TotalJobsPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedJobs.map((job) => (
-                <TotalJobsCard key={job.id} job={job} onViewDetails={handleViewDetails} />
+                <TotalJobsCard 
+                  key={job.id} 
+                  job={job} 
+                  onViewDetails={handleViewDetails}
+                  onOpenChat={handleOpenChat}
+                />
               ))}
             </div>
 
@@ -568,34 +588,31 @@ export default function TotalJobsPage() {
                 )}
 
                 {/* Actions */}
-                <div className="border-t pt-4">
-                  <h3 className="font-medium text-gray-900 mb-2">Available Actions</h3>
-                  <div className="flex gap-3">
-                    {selectedJobDetails.actions.canMarkComplete && (
-                      <button 
-                        onClick={() => handleMarkComplete(selectedJobDetails.job.id)}
-                        disabled={isUpdating}
-                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        {isUpdating ? 'Updating...' : 'Mark Complete'}
-                      </button>
-                    )}
-                    {selectedJobDetails.actions.canMarkPayment && (
-                      <button 
-                        onClick={() => handleMarkPayment(selectedJobDetails.job.id)}
-                        disabled={isUpdating}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        {isUpdating ? 'Updating...' : 'Mark Payment'}
-                      </button>
-                    )}
-                    {selectedJobDetails.chatId && (
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-                        Open Chat
-                      </button>
-                    )}
+                {(selectedJobDetails.actions.canMarkComplete || selectedJobDetails.actions.canMarkPayment) && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-medium text-gray-900 mb-2">Available Actions</h3>
+                    <div className="flex gap-3">
+                      {selectedJobDetails.actions.canMarkComplete && (
+                        <button 
+                          onClick={() => handleMarkComplete(selectedJobDetails.job.id)}
+                          disabled={isUpdating}
+                          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isUpdating ? 'Updating...' : 'Mark Complete'}
+                        </button>
+                      )}
+                      {selectedJobDetails.actions.canMarkPayment && (
+                        <button 
+                          onClick={() => handleMarkPayment(selectedJobDetails.job.id)}
+                          disabled={isUpdating}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isUpdating ? 'Updating...' : 'Mark Payment'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
