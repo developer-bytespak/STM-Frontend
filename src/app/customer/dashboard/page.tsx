@@ -60,46 +60,46 @@ export default function CustomerDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px] hover:shadow-md transition-shadow cursor-pointer">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Total Jobs</span>
             <span className="text-2xl">📋</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.totalJobs || 0}</p>
-          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
             View all →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px] hover:shadow-md transition-shadow cursor-pointer">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">In Progress</span>
             <span className="text-2xl">🔵</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.jobs?.in_progress || 0}</p>
-          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
+          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
             View active →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px] hover:shadow-md transition-shadow cursor-pointer">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Total Spent</span>
             <span className="text-2xl">💰</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">${dashboard?.summary?.totalSpent || 0}</p>
-          <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
+          <Link href="/customer/payments" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
             View payments →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px]">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col min-h-[150px] hover:shadow-md transition-shadow cursor-pointer">
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-600 text-sm font-medium">Pending Feedback</span>
             <span className="text-2xl">⭐</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.summary?.pendingFeedback || 0}</p>
-          <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block">
+          <Link href="/customer/feedback" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
             Leave feedback →
           </Link>
         </div>

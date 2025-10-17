@@ -34,8 +34,14 @@ export default function AvailedJobsPage() {
       setLoading(true);
       setError(null);
       const allJobs = await customerApi.getJobs();
-      // Filter for completed and paid jobs
-      const completedJobs = allJobs.filter(job => job.status === 'completed' || job.status === 'paid');
+      // Filter for completed and paid jobs - include various possible status values
+      const completedJobs = allJobs.filter(job => 
+        job.status === 'completed' || 
+        job.status === 'paid' || 
+        job.status === 'completed_and_paid' ||
+        job.status === 'done' ||
+        job.completed_at !== null // Also include jobs that have a completed_at date
+      );
       setJobs(completedJobs);
     } catch (err: any) {
       console.error('Error fetching completed jobs:', err);
@@ -119,7 +125,7 @@ export default function AvailedJobsPage() {
         <button
           key="prev"
           onClick={() => handlePageChange(currentPage - 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 hover:text-gray-700"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
         >
           Previous
         </button>
@@ -132,7 +138,7 @@ export default function AvailedJobsPage() {
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-3 py-2 text-sm font-medium border-t border-b ${
+          className={`px-3 py-2 text-sm font-medium border-t border-b cursor-pointer ${
             i === currentPage
               ? 'text-blue-600 bg-blue-50 border-blue-300'
               : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50 hover:text-gray-700'
@@ -149,7 +155,7 @@ export default function AvailedJobsPage() {
         <button
           key="next"
           onClick={() => handlePageChange(currentPage + 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 hover:text-gray-700"
+          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
         >
           Next
         </button>
@@ -190,7 +196,7 @@ export default function AvailedJobsPage() {
             <p className="text-sm mt-1">{error}</p>
             <button
               onClick={fetchCompletedJobs}
-              className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+              className="mt-3 text-sm text-red-600 hover:text-red-800 underline cursor-pointer transition-colors"
             >
               Try Again
             </button>
@@ -205,7 +211,7 @@ export default function AvailedJobsPage() {
       <div className="container mx-auto px-4">
         {/* Back to Dashboard */}
         <div className="max-w-4xl mx-auto mb-4">
-          <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700 text-sm inline-flex items-center gap-1">
+          <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700 text-sm inline-flex items-center gap-1 cursor-pointer transition-colors">
             ← Back to Dashboard
           </Link>
         </div>
@@ -233,15 +239,12 @@ export default function AvailedJobsPage() {
                 {currentJobs.map((job) => (
                   <div
                     key={job.id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">{job.service.name}</h3>
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                            Completed
-                          </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
                           Provider: <span className="font-medium">{job.provider.businessName}</span>
@@ -263,7 +266,7 @@ export default function AvailedJobsPage() {
                       <div className="ml-4 flex flex-col gap-2">
                         <button
                           onClick={() => router.push(`/customer/bookings/${job.id}`)}
-                          className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium text-sm"
+                          className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium text-sm cursor-pointer"
                         >
                           View Details
                         </button>
@@ -272,7 +275,7 @@ export default function AvailedJobsPage() {
                             setSelectedJob(job);
                             setFeedbackData({ rating: 5, feedback: '', punctualityRating: 5, responseTime: 0 });
                           }}
-                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm"
+                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium text-sm cursor-pointer"
                         >
                           Leave Feedback
                         </button>
@@ -292,12 +295,12 @@ export default function AvailedJobsPage() {
               <p className="text-gray-500 mb-4">
                 When you complete services, they will appear here for feedback.
               </p>
-              <button
-                onClick={() => router.push('/customer/bookings')}
-                className="text-navy-600 hover:text-navy-700 font-medium"
-              >
-                View Your Bookings →
-              </button>
+            <button
+              onClick={() => router.push('/customer/bookings')}
+              className="text-navy-600 hover:text-navy-700 font-medium cursor-pointer transition-colors"
+            >
+              View Your Bookings →
+            </button>
             </div>
           )}
         </div>
@@ -350,7 +353,7 @@ export default function AvailedJobsPage() {
                         key={star}
                         type="button"
                         onClick={() => setFeedbackData({ ...feedbackData, rating: star })}
-                        className="text-4xl transition-transform hover:scale-110"
+                        className="text-4xl transition-transform hover:scale-110 cursor-pointer"
                       >
                         {star <= feedbackData.rating ? '⭐' : '☆'}
                       </button>
@@ -373,7 +376,7 @@ export default function AvailedJobsPage() {
                         key={star}
                         type="button"
                         onClick={() => setFeedbackData({ ...feedbackData, punctualityRating: star })}
-                        className="text-3xl transition-transform hover:scale-110"
+                        className="text-3xl transition-transform hover:scale-110 cursor-pointer"
                       >
                         {star <= feedbackData.punctualityRating ? '⭐' : '☆'}
                       </button>
@@ -396,7 +399,7 @@ export default function AvailedJobsPage() {
                       value={feedbackData.responseTime}
                       onChange={(e) => setFeedbackData({ ...feedbackData, responseTime: parseInt(e.target.value) || 0 })}
                       min="0"
-                      className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                      className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent cursor-pointer text-gray-900 placeholder:text-gray-500"
                       placeholder="0"
                     />
                     <span className="text-sm text-gray-600">minutes</span>
@@ -424,14 +427,14 @@ export default function AvailedJobsPage() {
                   <button
                     onClick={handleSubmitFeedback}
                     disabled={submitting}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 cursor-pointer"
                   >
                     {submitting ? 'Submitting...' : 'Submit Feedback'}
                   </button>
                   <button
                     onClick={() => setSelectedJob(null)}
                     disabled={submitting}
-                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
+                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>

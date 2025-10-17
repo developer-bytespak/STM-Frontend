@@ -260,7 +260,7 @@ export default function ServiceRequestForm({ onSubmit, loading }: ServiceRequest
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? 'Submitting...' : 'Submit Service Request'}
         </button>

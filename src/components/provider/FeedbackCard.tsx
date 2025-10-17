@@ -98,20 +98,8 @@ export default function FeedbackCard({ review, onViewDetails }: FeedbackCardProp
       
       {/* Comment */}
       {review.feedback && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-gray-700 leading-relaxed">&ldquo;{review.feedback}&rdquo;</p>
-        </div>
-      )}
-
-      {/* Actions */}
-      {onViewDetails && (
-        <div className="flex justify-end">
-          <button
-            onClick={() => onViewDetails(review.id)}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-          >
-            View Details →
-          </button>
         </div>
       )}
     </div>

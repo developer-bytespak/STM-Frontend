@@ -117,19 +117,19 @@ export default function ActiveJobsPage() {
         <div className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="py-6">
-              <div className="flex items-center mb-4">
-                <button
-                  onClick={() => window.history.back()}
-                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back
-                </button>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900">Active Jobs</h1>
-              <p className="mt-2 text-gray-600">View and manage all your active jobs</p>
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => window.history.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Active Jobs</h1>
+            <p className="mt-2 text-gray-600">View and manage all your active jobs</p>
             </div>
           </div>
         </div>
@@ -227,7 +227,7 @@ export default function ActiveJobsPage() {
             <div className="flex items-center mb-4">
               <button
                 onClick={() => window.history.back()}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -259,7 +259,7 @@ export default function ActiveJobsPage() {
       {jobs.length > 0 ? (
         <div className="grid gap-6">
           {jobs.map((job) => (
-            <div key={job.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div key={job.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{job.service}</h3>
@@ -337,7 +337,7 @@ export default function ActiveJobsPage() {
               <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button 
                   onClick={() => handleViewDetails(job.id)}
-                  className="flex-1 bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm font-medium"
+                  className="flex-1 bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm font-medium cursor-pointer"
                 >
                   View Details
                 </button>
@@ -345,14 +345,11 @@ export default function ActiveJobsPage() {
                   <button 
                     onClick={() => handleMarkComplete(job.id)}
                     disabled={isUpdating}
-                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isUpdating ? 'Updating...' : 'Mark Complete'}
                   </button>
                 )}
-                <button className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                  Contact Customer
-                </button>
               </div>
             </div>
           ))}
@@ -386,7 +383,7 @@ export default function ActiveJobsPage() {
                 <h2 className="text-xl font-bold text-gray-900">Job Details</h2>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -453,13 +450,13 @@ export default function ActiveJobsPage() {
                           setShowDetailsModal(false);
                         }}
                         disabled={isUpdating}
-                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {isUpdating ? 'Updating...' : 'Mark Complete'}
                       </button>
                     )}
                     {selectedJobDetails.chatId && (
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
                         Open Chat
                       </button>
                     )}

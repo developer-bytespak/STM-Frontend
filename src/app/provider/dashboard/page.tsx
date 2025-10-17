@@ -321,6 +321,7 @@ function ProviderDashboardContent() {
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       job.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      job.status === 'paid' ? 'bg-green-100 text-green-700' :
                       job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
                       job.status === 'new' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-gray-100 text-gray-700'
