@@ -108,10 +108,16 @@ export default function BookingModal({
           requiresInPersonVisit: false,
         });
 
-        const jobId = jobResponse.id;
+        // Backend returns: { job: { id: ... }, chat: { id: ... } }
+        const jobId = jobResponse.job?.id || jobResponse.id; // Handle both response formats
+        const chatId = jobResponse.chat?.id; // ✅ Get real chatId from backend
 
-        // ==================== CREATE CHAT WITH JOB ID ====================
-        createConversation(providerId, providerName, formData, jobId);
+        if (!chatId) {
+          throw new Error('Backend did not return chat ID. Please contact support.');
+        }
+
+        // ==================== CREATE CHAT WITH REAL CHAT ID ====================
+        createConversation(providerId, providerName, formData, jobId, chatId);
         
         // Close modal
         onClose();

@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
 import { useChat } from '@/contexts/ChatContext';
 import ChatPopup from '@/components/chat/ChatPopup';
 
 interface JobDetailsProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function JobDetails({ params }: JobDetailsProps) {
   const router = useRouter();
   const { createConversation } = useChat();
+  const resolvedParams = use(params);
   const [jobDetails, setJobDetails] = useState<JobDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
   });
   const [responseMessage, setResponseMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const jobId = parseInt(params.id);
+  const jobId = parseInt(resolvedParams.id);
 
   useEffect(() => {
     fetchJobDetails();
@@ -181,6 +182,12 @@ export default function JobDetails({ params }: JobDetailsProps) {
   const handleOpenChat = () => {
     if (!jobDetails) return;
     
+    // Check if chat exists
+    if (!jobDetails.chatId) {
+      alert('No chat available for this job. Chat is created when the job is created.');
+      return;
+    }
+    
     // Create conversation with job context
     const formData = {
       serviceType: jobDetails.job.service,
@@ -193,7 +200,8 @@ export default function JobDetails({ params }: JobDetailsProps) {
       `provider-${jobDetails.job.id}`, // providerId
       'You', // providerName (current user)
       formData,
-      jobDetails.job.id // jobId
+      jobDetails.job.id, // jobId
+      String(jobDetails.chatId) // ✅ chatId from backend
     );
   };
 

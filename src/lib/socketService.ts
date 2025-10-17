@@ -28,6 +28,13 @@ class SocketService {
       return this.socket;
     }
 
+    // If socket exists but disconnected, try to reconnect
+    if (this.socket && !this.socket.connected) {
+      console.log('🔄 Reconnecting existing socket...');
+      this.socket.connect();
+      return this.socket;
+    }
+
     this.isConnecting = true;
 
     try {
@@ -56,6 +63,9 @@ class SocketService {
         reconnectionDelayMax: 5000,
         reconnectionAttempts: this.maxReconnectAttempts,
         timeout: 10000,
+        // Add these for better debugging
+        autoConnect: true,
+        forceNew: false,
       });
 
       this.setupEventListeners();
@@ -67,6 +77,24 @@ class SocketService {
       this.isConnecting = false;
       return null;
     }
+  }
+
+  /**
+   * Ensure socket is connected, reconnect if needed
+   */
+  ensureConnected(): boolean {
+    if (!this.socket) {
+      console.log('🔌 No socket instance, creating new connection...');
+      this.connect();
+      return this.isConnected();
+    }
+
+    if (!this.socket.connected) {
+      console.log('🔄 Socket disconnected, attempting to reconnect...');
+      this.socket.connect();
+    }
+
+    return this.isConnected();
   }
 
   /**
@@ -109,6 +137,7 @@ class SocketService {
 
     // Backend error event
     this.socket.on('error', (data: { message: string }) => {
+      // eslint-disable-next-line no-console
       console.error('❌ Socket error from backend:', data.message);
     });
 
@@ -200,13 +229,14 @@ class SocketService {
     message: string,
     message_type: 'text' | 'image' | 'document' = 'text'
   ) {
-    if (!this.socket?.connected) {
+    // Ensure connection before sending
+    if (!this.ensureConnected()) {
       console.error('❌ Socket not connected - cannot send message');
       throw new Error('Socket not connected');
     }
 
     console.log('💬 Sending message to chat:', chatId);
-    this.socket.emit('send_message', {
+    this.socket!.emit('send_message', {
       chatId,
       message,
       message_type,
@@ -221,6 +251,7 @@ class SocketService {
     chatId: string;
     sender_type: 'customer' | 'service_provider' | 'local_service_manager';
     sender_id: number;
+    sender_name?: string;
     message: string;
     message_type: 'text' | 'image' | 'document';
     created_at: string;

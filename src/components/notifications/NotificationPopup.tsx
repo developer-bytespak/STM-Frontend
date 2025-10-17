@@ -6,6 +6,7 @@ import { getRelativeTime } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
 import { ROUTES } from '@/constants/routes';
 import AllNotificationsModal from './AllNotificationsModal';
+import { useChat } from '@/contexts/ChatContext';
 
 interface NotificationPopupProps {
   notifications: Notification[];
@@ -30,6 +31,7 @@ export default function NotificationPopup({
 }: NotificationPopupProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  const { openConversation } = useChat();
   const [showAllModal, setShowAllModal] = useState(false);
 
   // Close popup when clicking outside (but not on the bell)
@@ -248,6 +250,27 @@ export default function NotificationPopup({
     // Mark as read if unread
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
+    }
+
+    // Special handling for message notifications - extract chat_id from title
+    if (notification.type === 'message') {
+      // Try to extract chat_id from metadata first (if available)
+      let chatId = notification.metadata?.chat_id;
+      
+      // If not in metadata, try to parse from title format: "New Message [chat:uuid]"
+      if (!chatId && notification.title) {
+        const match = notification.title.match(/\[chat:([^\]]+)\]/);
+        if (match && match[1]) {
+          chatId = match[1];
+        }
+      }
+      
+      if (chatId) {
+        console.log('Opening chat:', chatId);
+        onClose(); // Close popup
+        openConversation(chatId);
+        return;
+      }
     }
 
     // Get redirect URL and navigate

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '@/contexts/ChatContext';
+import { useAuth } from '@/hooks/useAuth';
 import { customerApi } from '@/api/customer';
 
 export default function ChatPopup() {
@@ -13,8 +14,11 @@ export default function ChatPopup() {
     maximizeConversation,
     sendMessage, 
     addLSMToChat,
-    isPreviewMinimized
+    isPreviewMinimized,
+    isSocketConnected,
+    connectionError
   } = useChat();
+  const { user } = useAuth();
   const [messageInput, setMessageInput] = useState('');
   const [showLSMModal, setShowLSMModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -209,10 +213,22 @@ export default function ChatPopup() {
           </div>
         )}
 
+        {/* Connection Status Indicator - Compact */}
+        {!isSocketConnected && (
+          <div className="bg-red-50 px-3 py-1.5 border-b border-red-100">
+            <p className="text-xs text-red-700 flex items-center gap-1">
+              <svg className="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="font-semibold">Reconnecting...</span>
+            </p>
+          </div>
+        )}
+
         {/* Messages - Compact */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
           {activeConversation.messages.map((message) => {
-            const isCustomer = message.senderRole === 'customer';
+            const isOwnMessage = user && Number(message.senderId) === Number(user.id);
             const isSystem = message.senderId === 'system';
 
             if (isSystem) {
@@ -226,10 +242,10 @@ export default function ChatPopup() {
             }
 
             return (
-              <div key={message.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${isCustomer ? 'order-2 max-w-[85%]' : message.type === 'form-data' ? 'order-1 max-w-[95%]' : 'order-1 max-w-[85%]'}`}>
+              <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                <div className={`${isOwnMessage ? 'order-2 max-w-[85%]' : message.type === 'form-data' ? 'order-1 max-w-[95%]' : 'order-1 max-w-[85%]'}`}>
                   <div className="flex items-center gap-1 mb-1">
-                    {!isCustomer && (
+                    {!isOwnMessage && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
                     )}
                     {message.senderRole === 'local_service_manager' && (
@@ -238,13 +254,13 @@ export default function ChatPopup() {
                   </div>
                   <div 
                     className={`rounded-lg ${
-                      isCustomer
+                      isOwnMessage
                         ? 'text-white rounded-br-none px-3 py-2'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-3'
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-3 py-2'
                     }`}
-                    style={isCustomer || message.type === 'form-data'
+                    style={isOwnMessage || message.type === 'form-data'
                       ? { backgroundColor: '#00a63e' } 
                       : undefined
                     }
@@ -263,15 +279,15 @@ export default function ChatPopup() {
                             <div key={idx} className="space-y-1">
                               <div
                                 className={`flex items-center gap-1 p-1 rounded hover:opacity-80 transition-opacity ${
-                                  isCustomer ? 'bg-white border border-gray-200' : 'bg-gray-100'
+                                  isOwnMessage ? 'bg-white border border-gray-200' : 'bg-gray-100'
                                 }`}
                               >
-                                <svg className={`w-4 h-4 ${isCustomer ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-4 h-4 ${isOwnMessage ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 <div className="flex-1 text-xs">
-                                  <p className={`font-medium truncate ${isCustomer ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
-                                  <p className={isCustomer ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
+                                  <p className={`font-medium truncate ${isOwnMessage ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
+                                  <p className={isOwnMessage ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
                                 </div>
                               </div>
                               <div className="flex gap-2 justify-end">
@@ -302,7 +318,7 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isCustomer ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -473,10 +489,24 @@ export default function ChatPopup() {
           </div>
         )}
 
+        {/* Connection Status Indicator */}
+        {!isSocketConnected && (
+          <div className="bg-red-50 px-4 py-2 border-b border-red-100">
+            <p className="text-xs text-red-700 flex items-center gap-2">
+              <svg className="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="font-semibold">
+                {connectionError || 'Connection lost. Reconnecting...'}
+              </span>
+            </p>
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-gray-50">
           {activeConversation.messages.map((message) => {
-            const isCustomer = message.senderRole === 'customer';
+            const isOwnMessage = user && Number(message.senderId) === Number(user.id);
             const isSystem = message.senderId === 'system';
 
             if (isSystem) {
@@ -490,10 +520,10 @@ export default function ChatPopup() {
             }
 
             return (
-              <div key={message.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${isCustomer ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
+              <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                <div className={`${isOwnMessage ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    {!isCustomer && (
+                    {!isOwnMessage && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
                     )}
                     {message.senderRole === 'local_service_manager' && (
@@ -502,13 +532,13 @@ export default function ChatPopup() {
                   </div>
                   <div 
                     className={`rounded-lg ${
-                      isCustomer
+                      isOwnMessage
                         ? 'text-white rounded-br-none px-4 py-3'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-4'
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-4 py-3'
                     }`}
-                    style={isCustomer || message.type === 'form-data'
+                    style={isOwnMessage || message.type === 'form-data'
                       ? { backgroundColor: '#00a63e' } 
                       : undefined
                     }
@@ -527,15 +557,15 @@ export default function ChatPopup() {
                             <div key={idx} className="space-y-2">
                               <div
                                 className={`flex items-center gap-2 p-2 rounded hover:opacity-80 transition-opacity ${
-                                  isCustomer ? 'bg-white border border-gray-200' : 'bg-gray-100'
+                                  isOwnMessage ? 'bg-white border border-gray-200' : 'bg-gray-100'
                                 }`}
                               >
-                                <svg className={`w-5 h-5 ${isCustomer ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${isOwnMessage ? 'text-gray-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                                 <div className="flex-1 text-xs">
-                                  <p className={`font-medium truncate ${isCustomer ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
-                                  <p className={isCustomer ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
+                                  <p className={`font-medium truncate ${isOwnMessage ? 'text-gray-800' : 'text-gray-900'}`}>{file.name}</p>
+                                  <p className={isOwnMessage ? 'text-gray-500' : 'text-gray-600'}>{formatFileSize(file.size)}</p>
                                 </div>
                               </div>
                               <div className="flex gap-2 justify-end">
@@ -566,7 +596,7 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isCustomer ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
