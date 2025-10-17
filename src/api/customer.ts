@@ -105,7 +105,7 @@ export interface CustomerJobDetails {
 export interface CreateJobDto {
   serviceId: number;  // Required - numeric service ID
   providerId: string; // Required - provider ID as string (backend expects numeric string)
-  price?: number;     // Optional - customer's budget as number
+  customerBudget?: number; // Optional - customer's budget as number (backend expects customerBudget)
   location: string;  // Required - customer's address
   zipcode: string;   // Required - customer's zipcode
   answers: {         // Required - wrapped answers object

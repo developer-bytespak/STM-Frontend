@@ -221,7 +221,7 @@ export default function FeedbackPage() {
                     <div className="ml-4">
                       <button
                         onClick={() => handleSelectJob(job)}
-                        className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium"
+                        className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium cursor-pointer"
                       >
                         Leave Feedback
                       </button>
@@ -246,7 +246,7 @@ export default function FeedbackPage() {
                 <button
                   onClick={() => setSelectedJob(null)}
                   disabled={submitting}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -367,7 +367,7 @@ export default function FeedbackPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {submitting ? 'Submitting...' : 'Submit Feedback'}
                   </button>
@@ -375,7 +375,7 @@ export default function FeedbackPage() {
                     type="button"
                     onClick={() => setSelectedJob(null)}
                     disabled={submitting}
-                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors disabled:opacity-50"
+                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     Cancel
                   </button>

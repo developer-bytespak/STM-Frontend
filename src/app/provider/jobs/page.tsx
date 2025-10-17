@@ -29,13 +29,19 @@ export default function ProviderJobs() {
       
       // Get pending job requests for current provider
       const pendingJobs = await providerApi.getPendingJobs();
+      console.log('🔍 Pending Jobs from API:', pendingJobs);
       
       // Convert to JobDetailsResponse format for consistency
       const requests = await Promise.all(
         pendingJobs.map(async (job) => {
           try {
             // Get full details for each job
-            return await providerApi.getJobDetails(job.id);
+            const details = await providerApi.getJobDetails(job.id);
+            console.log('🔍 Job Details for Job ID:', job.id, {
+              jobPrice: details.job.price,
+              customerBudget: details.job.originalAnswers?.budget
+            });
+            return details;
           } catch (err) {
             console.error(`Failed to fetch details for job ${job.id}:`, err);
             return null;
@@ -160,7 +166,7 @@ export default function ProviderJobs() {
             <div className="flex items-center mb-4">
               <button
                 onClick={() => window.history.back()}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -238,7 +244,7 @@ export default function ProviderJobs() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 cursor-pointer"
             >
               <option value="all">All Status</option>
               <option value="new">New</option>
@@ -253,7 +259,7 @@ export default function ProviderJobs() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 cursor-pointer"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -330,7 +336,7 @@ export default function ProviderJobs() {
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={fetchJobRequests}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
             >
               Try Again
             </button>
@@ -371,7 +377,7 @@ export default function ProviderJobs() {
                   <button
                     onClick={goToPreviousPage}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Previous
                   </button>
@@ -385,10 +391,10 @@ export default function ProviderJobs() {
                         disabled={page === '...'}
                         className={`px-3 py-2 text-sm font-medium rounded-md ${
                           page === currentPage
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-blue-600 text-white cursor-pointer'
                             : page === '...'
                             ? 'text-gray-500 cursor-default'
-                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 cursor-pointer'
                         }`}
                       >
                         {page}
@@ -400,7 +406,7 @@ export default function ProviderJobs() {
                   <button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Next
                   </button>

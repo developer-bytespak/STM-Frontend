@@ -135,9 +135,8 @@ export default function CustomerBookings() {
               <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{job.service.name}</h3>
-                      {getStatusBadge(job.status)}
                     </div>
                     <p className="text-sm text-gray-600 mb-1">
                       Provider: <span className="font-medium">{job.provider.businessName}</span>

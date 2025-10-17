@@ -94,7 +94,7 @@ export default function BookingModal({
         const jobResponse = await customerApi.createJob({
           serviceId: serviceId,  // Numeric service ID (required)
           providerId: providerId,  // Provider ID as string (backend validates numeric string)
-          price: parseFloat(formData.budget) || undefined,  // Budget as number (top-level for backend)
+          customerBudget: parseFloat(formData.budget) || 0,  // Customer budget as number (backend expects customerBudget)
           location: formData.address || '',  // From form input
           zipcode: formData.zipcode || '',   // From form input
           answers: {                   // Wrapped answers object (required)

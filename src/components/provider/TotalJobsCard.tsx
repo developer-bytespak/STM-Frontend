@@ -70,7 +70,7 @@ export default function TotalJobsCard({ job, onViewDetails }: TotalJobsCardProps
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
       {/* Header with Job ID and Status */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -92,80 +92,73 @@ export default function TotalJobsCard({ job, onViewDetails }: TotalJobsCardProps
         </div>
       </div>
 
-      {/* Job Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Category</p>
-          <p className="text-sm font-medium text-gray-900">{job.category}</p>
+      {/* Content Area - grows to fill available space */}
+      <div className="flex-1">
+        {/* Job Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Category</p>
+            <p className="text-sm font-medium text-gray-900">{job.category}</p>
+          </div>
+          
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Customer</p>
+            <p className="text-sm font-medium text-gray-900">{job.customer.name}</p>
+          </div>
+          
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Price</p>
+            <p className="text-sm font-bold text-green-600">${job.price.toFixed(2)}</p>
+          </div>
+          
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Created</p>
+            <p className="text-sm font-medium text-gray-900">{formatDate(job.createdAt)}</p>
+          </div>
         </div>
-        
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Customer</p>
-          <p className="text-sm font-medium text-gray-900">{job.customer.name}</p>
-        </div>
-        
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Price</p>
-          <p className="text-sm font-bold text-green-600">${job.price.toFixed(2)}</p>
-        </div>
-        
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Created</p>
-          <p className="text-sm font-medium text-gray-900">{formatDate(job.createdAt)}</p>
+
+        {/* Additional Info - consistent spacing */}
+        <div className="space-y-4">
+          {job.scheduledAt && (
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Scheduled Date</p>
+              <p className="text-sm font-medium text-gray-900">{formatDate(job.scheduledAt)}</p>
+            </div>
+          )}
+
+          {getCorrectCompletedDate() && (
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Completed Date</p>
+              <p className="text-sm font-medium text-gray-900">
+                {formatDate(getCorrectCompletedDate()!)}
+                {!isValidDateOrder() && (
+                  <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                    ⚠️ Adjusted
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Customer Contact */}
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">Customer Contact</p>
+            <p className="text-sm text-gray-700 flex items-center">
+              <span className="mr-2">📞</span>
+              {job.customer.phone}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Additional Info */}
-      {job.scheduledAt && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-500 mb-1">Scheduled Date</p>
-          <p className="text-sm font-medium text-gray-900">{formatDate(job.scheduledAt)}</p>
-        </div>
-      )}
-
-      {getCorrectCompletedDate() && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-500 mb-1">Completed Date</p>
-          <p className="text-sm font-medium text-gray-900">
-            {formatDate(getCorrectCompletedDate()!)}
-            {!isValidDateOrder() && (
-              <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                ⚠️ Adjusted
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
-      {/* Customer Contact */}
-      <div className="pt-4 border-t border-gray-200 mb-4">
-        <p className="text-xs text-gray-500 mb-1">Customer Contact</p>
-        <p className="text-sm text-gray-700 flex items-center">
-          <span className="mr-2">📞</span>
-          {job.customer.phone}
-        </p>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="pt-4 border-t border-gray-200 flex gap-3">
+      {/* Footer Actions - always at bottom */}
+      <div className="pt-4 border-t border-gray-200 mt-4">
         <button 
           onClick={() => onViewDetails(job.id)}
-          className="flex-1 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
         >
           View Details
         </button>
-        
-        {job.status === 'completed' && job.paymentStatus === 'pending' && (
-          <button className="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-            Mark Payment
-          </button>
-        )}
-        
-        {job.status === 'in_progress' && (
-          <button className="flex-1 px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-            Mark Complete
-          </button>
-        )}
       </div>
     </div>
   );

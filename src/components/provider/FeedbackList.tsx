@@ -74,7 +74,7 @@ export default function FeedbackList({
               id="rating-filter"
               value={ratingFilter}
               onChange={(e) => onRatingFilterChange(e.target.value)}
-              className="block w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
             >
               <option value="all">All Ratings</option>
               <option value="5">5 Stars</option>
@@ -94,7 +94,7 @@ export default function FeedbackList({
               id="sort-by"
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
-              className="block w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -128,7 +128,7 @@ export default function FeedbackList({
                   <button
                     onClick={() => onPageChange?.(reviews.pagination.page - 1)}
                     disabled={reviews.pagination.page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Previous
                   </button>
@@ -148,7 +148,7 @@ export default function FeedbackList({
                           )}
                           <button
                             onClick={() => onPageChange?.(page)}
-                            className={`px-3 py-2 rounded-md text-sm font-medium ${
+                            className={`px-3 py-2 rounded-md text-sm font-medium cursor-pointer ${
                               page === reviews.pagination.page
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-700 hover:bg-gray-50'
@@ -163,7 +163,7 @@ export default function FeedbackList({
                   <button
                     onClick={() => onPageChange?.(reviews.pagination.page + 1)}
                     disabled={reviews.pagination.page === reviews.pagination.totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Next
                   </button>
