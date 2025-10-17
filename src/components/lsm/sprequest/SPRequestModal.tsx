@@ -71,18 +71,18 @@ export default function SPRequestModal({
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
         onClick={onBackdropClick}
       >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-2 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-gray-800">
               Provider Request Details - {request.businessName}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
+              className="text-gray-400 hover:text-gray-600 text-2xl cursor-pointer"
             >
               ×
             </button>
@@ -220,11 +220,11 @@ export default function SPRequestModal({
 
           {/* Action Buttons or Rejection Input */}
           {!showRejectInput ? (
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t">
               <button
                 onClick={() => setShowRejectInput(true)}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 ✗ Reject Provider
               </button>
@@ -264,7 +264,7 @@ export default function SPRequestModal({
                   disabled={isProcessing}
                 />
               </div>
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
                 <button
                   onClick={() => {
                     setShowRejectInput(false);
@@ -272,14 +272,14 @@ export default function SPRequestModal({
                     setError('');
                   }}
                   disabled={isProcessing}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={isProcessing}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isProcessing ? 'Rejecting...' : 'Confirm Rejection'}
                 </button>

@@ -193,10 +193,10 @@ export default function BookingModal({
   const serviceQuestions = getServiceSpecificQuestions();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full mx-2 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-navy-600 rounded-full flex items-center justify-center text-white font-bold">
               {mode === 'sp-quote' ? 'SP' : providerName.split(' ').map(n => n[0]).join('')}
@@ -212,7 +212,7 @@ export default function BookingModal({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,7 +221,7 @@ export default function BookingModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           {/* Service Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -426,7 +426,7 @@ export default function BookingModal({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting 
               ? 'Creating Job Request...' 

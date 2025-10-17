@@ -98,7 +98,7 @@ export default function ResultsDisplay({
           {/* Clear Search Button - Only shown after both service and location are selected */}
           <button
             onClick={onClear}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-black text-white text-xs sm:text-sm font-semibold hover:bg-gray-800 transition-colors w-full sm:w-auto"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-black text-white text-xs sm:text-sm font-semibold hover:bg-gray-800 transition-colors w-full sm:w-auto cursor-pointer"
           >
             Clear Search
           </button>

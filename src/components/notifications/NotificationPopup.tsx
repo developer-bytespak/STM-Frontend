@@ -319,7 +319,7 @@ export default function NotificationPopup({
   return (
     <div
       ref={popupRef}
-      className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[calc(100vh-120px)] flex flex-col"
+      className="absolute right-0 mt-2 w-screen sm:w-96 max-w-md bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[calc(100vh-120px)] flex flex-col"
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
@@ -335,7 +335,7 @@ export default function NotificationPopup({
           {unreadCount > 0 && (
             <button
               onClick={onMarkAllAsRead}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
             >
               Mark all read
             </button>
@@ -343,7 +343,7 @@ export default function NotificationPopup({
           {readCount > 0 && (
             <button
               onClick={onClearRead}
-              className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+              className="text-xs text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
             >
               Clear read
             </button>

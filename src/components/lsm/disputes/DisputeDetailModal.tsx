@@ -239,11 +239,11 @@ export default function DisputeDetailModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-2 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Dispute #{dispute.dispute.id}</h2>
             <span className={'inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusColor(dispute.dispute.status)}>
@@ -252,13 +252,13 @@ export default function DisputeDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-3xl leading-none"
+            className="text-gray-400 hover:text-gray-600 text-3xl leading-none cursor-pointer"
           >
             ×
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Dispute Summary */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6 border border-blue-200">
             <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -396,7 +396,7 @@ export default function DisputeDetailModal({
                     <div className="mt-4 pt-4 border-t border-gray-200 text-center">
                       <button
                         onClick={() => setShowFullHistory(!showFullHistory)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mx-auto"
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 mx-auto cursor-pointer"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           {showFullHistory ? (
@@ -423,12 +423,12 @@ export default function DisputeDetailModal({
 
           {/* Action Buttons */}
           {dispute.dispute.status !== 'resolved' && !showResolveForm && (
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
               {dispute.chatStatus && dispute.chatStatus.lsmInvited && !dispute.chatStatus.lsmJoined ? (
                 <button
                   onClick={handleJoinChat}
                   disabled={isProcessing}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isProcessing ? 'Joining...' : 'Join Chat'}
                 </button>
@@ -436,7 +436,7 @@ export default function DisputeDetailModal({
                 <button
                   onClick={handleOpenChat}
                   disabled={isProcessing}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -447,7 +447,7 @@ export default function DisputeDetailModal({
               <button
                 onClick={() => setShowResolveForm(true)}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Resolve Dispute
               </button>
@@ -475,7 +475,7 @@ export default function DisputeDetailModal({
                   These notes will be sent to both the customer and provider.
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     setShowResolveForm(false);
@@ -483,14 +483,14 @@ export default function DisputeDetailModal({
                     setError('');
                   }}
                   disabled={isProcessing}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleResolve}
                   disabled={isProcessing}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isProcessing ? 'Resolving...' : 'Confirm Resolution'}
                 </button>
