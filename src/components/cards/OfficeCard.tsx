@@ -60,9 +60,9 @@ const STATUS_COLORS = {
 
 export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, buttonText }: OfficeCardProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+    <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
         {/* Enhanced Image Section */}
-        <div className="relative h-48 bg-gradient-to-br from-slate-700 via-navy-600 to-blue-700">
+        <div className="relative h-32 sm:h-40 lg:h-48 bg-gradient-to-br from-slate-700 via-navy-600 to-blue-700">
         {office.images && office.images.length > 0 ? (
           <img 
             src={office.images[0]} 
@@ -82,40 +82,40 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
       </div>
 
       {/* Enhanced Content Section - Flex container to push buttons to bottom */}
-      <div className="p-4 flex flex-col flex-grow">
+      <div className="p-3 sm:p-4 flex flex-col flex-grow">
         {/* Title & Rating - Fixed height */}
-        <div className="flex items-start justify-between mb-3 min-h-[3.5rem]">
-          <div className="flex-1 pr-2">
-            <h3 className="text-base font-bold text-gray-900 mb-1 leading-tight">{office.name}</h3>
-            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+        <div className="flex items-start justify-between mb-2 sm:mb-3 min-h-[2.5rem] sm:min-h-[3.5rem]">
+          <div className="flex-1 pr-1 sm:pr-2">
+            <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1 leading-tight">{office.name}</h3>
+            <div className="flex items-center gap-1 sm:gap-1.5 text-xs text-gray-600">
               <LocationIcon />
               <span className="font-medium">{office.location.city}, {office.location.state}</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 bg-yellow-50 px-2.5 py-1 rounded-full flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-yellow-50 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full flex-shrink-0">
             <StarIcon />
             <span className="text-xs font-bold text-gray-900">{office.rating}</span>
-            <span className="text-xs text-gray-500">({office.reviews})</span>
+            <span className="text-xs text-gray-500 hidden sm:inline">({office.reviews})</span>
           </div>
         </div>
 
         {/* Status Badge - Moved down from image overlay */}
-        <div className="mb-3">
-          <Badge className={`${STATUS_COLORS[office.status]} border-0 shadow-sm`}>
+        <div className="mb-2 sm:mb-3">
+          <Badge className={`${STATUS_COLORS[office.status]} border-0 shadow-sm text-xs`}>
             {office.status.charAt(0).toUpperCase() + office.status.slice(1)}
           </Badge>
         </div>
 
         {/* Description - Fixed height */}
-        <div className="mb-3 min-h-[2.5rem]">
+        <div className="mb-2 sm:mb-3 min-h-[2rem] sm:min-h-[2.5rem]">
           <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{office.description}</p>
         </div>
 
         {/* Enhanced Details Grid - Fixed height */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-            <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded bg-blue-100 flex items-center justify-center">
               <CapacityIcon />
             </div>
             <div>
@@ -124,8 +124,8 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
-            <div className="w-6 h-6 rounded bg-purple-100 flex items-center justify-center">
+          <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 bg-purple-50 rounded-lg">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded bg-purple-100 flex items-center justify-center">
               <AreaIcon />
             </div>
             <div>
@@ -158,13 +158,13 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
         </div>
 
         {/* Enhanced Pricing - Fixed height */}
-        <div className="border-t border-gray-100 pt-3 mb-3 min-h-[3rem]">
+        <div className="border-t border-gray-100 pt-2 sm:pt-3 mb-2 sm:mb-3 min-h-[2.5rem] sm:min-h-[3rem]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 font-medium mb-1">Starting from</p>
+              <p className="text-xs text-gray-500 font-medium mb-0.5 sm:mb-1">Starting from</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-navy-600">
-                  ${office.pricing.hourly || office.pricing.daily}
+                <span className="text-sm sm:text-lg font-bold text-navy-600">
+                  ${Number(office.pricing.hourly || office.pricing.daily).toFixed(Number(office.pricing.hourly || office.pricing.daily) % 1 === 0 ? 0 : 2)}
                 </span>
                 <span className="text-xs text-gray-600 font-medium">
                   /{office.pricing.hourly ? 'hour' : 'day'}
@@ -173,7 +173,7 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
             </div>
             
             <div className="text-right">
-              <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded">
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-gray-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                 <CalendarIcon />
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Bookings</p>
@@ -185,19 +185,20 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
         </div>
 
         {/* Enhanced Actions - Always at bottom */}
-        <div className="flex gap-1.5 mt-auto pt-2">
+        <div className="flex gap-1 sm:gap-1.5 mt-auto pt-1 sm:pt-2">
           {onViewBookings && (
             <button
               onClick={() => onViewBookings(office.id)}
-              className="flex-1 px-2.5 py-1.5 bg-navy-50 text-navy-600 rounded hover:bg-navy-100 transition-all duration-200 text-xs font-semibold border border-navy-100 hover:border-navy-200"
+              className="flex-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-navy-50 text-navy-600 rounded hover:bg-navy-100 transition-all duration-200 text-xs font-semibold border border-navy-100 hover:border-navy-200"
             >
-              {buttonText || 'View Bookings'}
+              <span className="hidden sm:inline">{buttonText || 'View Bookings'}</span>
+              <span className="sm:hidden">View</span>
             </button>
           )}
           {onEdit && (
             <button
               onClick={() => onEdit(office)}
-              className="px-2.5 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-all duration-200 text-xs font-semibold border border-blue-100 hover:border-blue-200"
+              className="px-2 sm:px-2.5 py-1 sm:py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-all duration-200 text-xs font-semibold border border-blue-100 hover:border-blue-200"
             >
               Edit
             </button>
@@ -205,7 +206,7 @@ export default function OfficeCard({ office, onEdit, onDelete, onViewBookings, b
           {onDelete && (
             <button
               onClick={() => onDelete(office.id)}
-              className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all duration-200 text-xs font-semibold border border-red-100 hover:border-red-200"
+              className="px-2 sm:px-2.5 py-1 sm:py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-all duration-200 text-xs font-semibold border border-red-100 hover:border-red-200"
             >
               Delete
             </button>

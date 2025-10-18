@@ -52,11 +52,11 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
     location: {
       address: '',
       city: '',
-      state: 'FL',
+      state: '',
       zipCode: '',
     },
-    capacity: 1,
-    area: 100,
+    capacity: 0,
+    area: 0,
     pricing: {
       daily: 0,
     },
@@ -85,10 +85,19 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
       ? value.replace(/[^0-9.]/g, '')
       : value.replace(/[^0-9]/g, '');
     
-    // Convert to number
-    const numValue = isFloat ? parseFloat(numericValue) || 0 : parseInt(numericValue) || 0;
+    // If the value is empty, set to 0
+    if (numericValue === '') {
+      handleInputChange(field, 0);
+      return;
+    }
     
-    handleInputChange(field, numValue);
+    // Convert to number
+    const numValue = isFloat ? parseFloat(numericValue) : parseInt(numericValue);
+    
+    // Only update if it's a valid number
+    if (!isNaN(numValue)) {
+      handleInputChange(field, numValue);
+    }
   };
 
   // COMMENTED OUT - Amenities functionality
@@ -188,11 +197,11 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
       location: {
         address: '',
         city: '',
-        state: 'FL',
+        state: '',
         zipCode: '',
       },
-      capacity: 1,
-      area: 100,
+      capacity: 0,
+      area: 0,
       pricing: {
         daily: 0,
       },
@@ -299,31 +308,31 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} maxWidth="2xl" title="Create Office Space">
-      <div className="space-y-6">
-        <p className="text-sm text-gray-600 -mt-2 mb-4">Add a new office space to your listings</p>
+      <div className="space-y-4 sm:space-y-6">
+        <p className="text-xs sm:text-sm text-gray-600 -mt-2 mb-3 sm:mb-4">Add a new office space to your listings</p>
         
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mt-2">
+        <div className="flex items-center justify-center mt-1 sm:mt-2">
           {[1, 2, 3, 4, 5, 6].map((step) => (
             <div key={step} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+              <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full text-xs sm:text-sm ${
                 currentStep >= step ? 'bg-navy-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 {step}
               </div>
               {step < 6 && (
-                <div className={`h-1 w-12 ${
+                <div className={`h-0.5 sm:h-1 w-6 sm:w-8 lg:w-12 ${
                   currentStep > step ? 'bg-navy-600' : 'bg-gray-200'
                 }`} />
               )}
             </div>
           ))}
         </div>
-        <div className="flex justify-center mt-2 text-xs text-gray-600">
+        <div className="flex justify-center mt-1 sm:mt-2 text-xs text-gray-600">
           {['Basic Info', 'Images', 'Location', 'Details', 'Pricing', 'Availability'].map((label, index) => (
             <div key={label} className="flex items-center">
-              <span className="text-center w-10">{label}</span>
-              {index < 5 && <div className="w-12" />}
+              <span className="text-center w-6 sm:w-8 lg:w-10 text-xs">{label}</span>
+              {index < 5 && <div className="w-6 sm:w-8 lg:w-12" />}
             </div>
           ))}
         </div>
@@ -347,10 +356,10 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
 
         {/* Form Content */}
         {!showSuccess && (
-        <form onSubmit={handleFormSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-6">
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Input
                 label="Office Name"
                 value={formData.name}
@@ -358,50 +367,50 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 placeholder="e.g., Executive Private Office"
                 required
               />
-              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.name}</p>}
               
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">
                   Office Type
                 </label>
-                <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
+                <div className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-xs sm:text-sm">
                   Private Office (Fixed)
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Only private office type is supported</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Describe the office space..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none"
+                  rows={3}
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none text-xs sm:text-sm"
                   required
                 />
-                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                {errors.description && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.description}</p>}
               </div>
             </div>
           )}
 
           {/* Step 2: Images (moved from step 6) */}
           {currentStep === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Add Images (Optional)</h3>
-              <p className="text-sm text-gray-600">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Add Images (Optional)</h3>
+              <p className="text-xs sm:text-sm text-gray-600">
                 Upload images to showcase your office space. You can add images later.
               </p>
               
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 lg:p-8 text-center hover:border-gray-400 transition-colors">
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <div className="flex flex-col items-center">
-                    <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-gray-400 mb-2 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className="text-sm text-gray-600 mb-2">Add images to your office space</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Add images to your office space</p>
                     <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
                     <p className="text-xs text-blue-600 mt-1">Images will be stored permanently</p>
                   </div>
@@ -459,13 +468,13 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
 
               {/* Image Preview */}
               {formData.images && formData.images.length > 0 && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   {formData.images.map((image, index) => (
                     <div key={index} className="relative group">
                       <img
                         src={image}
                         alt={`Office ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
+                        className="w-full h-24 sm:h-32 object-cover rounded-lg"
                       />
                       <button
                         type="button"
@@ -473,7 +482,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                           const newImages = formData.images.filter((_, i) => i !== index);
                           handleInputChange('images', newImages);
                         }}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-red-500 text-white rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs sm:text-sm"
                       >
                         ×
                       </button>
@@ -486,7 +495,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
 
           {/* Step 3: Location (was step 2) */}
           {currentStep === 3 && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Input
                 label="Street Address"
                 value={formData.location.address}
@@ -495,7 +504,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 required
               />
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="City"
                   value={formData.location.city}
@@ -508,7 +517,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                   label="State"
                   value={formData.location.state}
                   onChange={(e) => handleInputChange('location.state', e.target.value)}
-                  placeholder="FL"
+                  placeholder="e.g., FL, CA, NY"
                   required
                 />
               </div>
@@ -518,12 +527,12 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 type="number"
                 value={formData.location.zipCode}
                 onChange={(e) => handleNumericInput('location.zipCode', e.target.value, false)}
-                placeholder="33131"
+                placeholder="e.g., 33131, 90210, 10001"
                 min={100}
                 max={99999}
                 required
               />
-              {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
+              {errors.zipCode && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.zipCode}</p>}
             </div>
           )}
 
@@ -536,8 +545,9 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 <Input
                   label="Capacity (people)"
                   type="number"
-                  value={formData.capacity}
+                  value={formData.capacity || ''}
                   onChange={(e) => handleNumericInput('capacity', e.target.value, false)}
+                  placeholder="e.g., 5, 10, 25"
                   min={1}
                   max={1000}
                   required
@@ -547,8 +557,9 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 <Input
                   label="Area (sq ft)"
                   type="number"
-                  value={formData.area}
+                  value={formData.area || ''}
                   onChange={(e) => handleNumericInput('area', e.target.value, false)}
+                  placeholder="e.g., 200, 500, 1000"
                   min={10}
                   max={100000}
                   required
@@ -605,8 +616,9 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 <Input
                   label="Daily Rate ($)"
                   type="number"
-                  value={formData.pricing.daily}
+                  value={formData.pricing.daily || ''}
                   onChange={(e) => handleNumericInput('pricing.daily', e.target.value, true)}
+                  placeholder="e.g., 50.00, 150.00, 300.00"
                   required
                   min={0.01}
                   max={10000}

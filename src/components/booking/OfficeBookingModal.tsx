@@ -105,10 +105,24 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!office || !startDate || !endDate) return;
+    console.log('=== BOOKING FORM SUBMISSION STARTED ===');
+    console.log('Office:', office);
+    console.log('Start Date:', startDate);
+    console.log('End Date:', endDate);
+    console.log('Unavailable Dates:', unavailableDates);
+    
+    if (!office || !startDate || !endDate) {
+      console.log('Missing required fields - office:', !!office, 'startDate:', !!startDate, 'endDate:', !!endDate);
+      return;
+    }
 
     // Check for unavailable dates before submitting
-    if (isDateUnavailable(startDate)) {
+    const startUnavailable = isDateUnavailable(startDate);
+    const endUnavailable = isDateUnavailable(endDate);
+    console.log('Date availability check - startUnavailable:', startUnavailable, 'endUnavailable:', endUnavailable);
+    
+    if (startUnavailable) {
+      console.log('Start date is unavailable, showing error');
       showAlert({
         title: 'Error',
         message: 'Start date is already booked. Please select a different date.',
@@ -117,7 +131,8 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
       return;
     }
     
-    if (isDateUnavailable(endDate)) {
+    if (endUnavailable) {
+      console.log('End date is unavailable, showing error');
       showAlert({
         title: 'Error',
         message: 'End date is already booked. Please select a different date.',
@@ -171,7 +186,9 @@ export default function OfficeBookingModal({ isOpen, onClose, office, onSuccess 
         specialRequests: specialRequests || undefined,
       };
       
+      console.log('Calling bookingApi.createBooking with data:', bookingData);
       await bookingApi.createBooking(bookingData);
+      console.log('Booking API call completed successfully');
       
       // Show success message
       setShowSuccess(true);

@@ -172,6 +172,28 @@ export const bookingApi = {
     const response = await apiClient.request<any>(`/provider/office-bookings/${id}`);
     return transformBooking(response);
   },
+
+  async cancelBooking(bookingId: string): Promise<OfficeBooking> {
+    console.log('Cancelling booking:', bookingId);
+    try {
+      const result = await apiClient.request<any>(`/provider/office-bookings/${bookingId}/cancel`, {
+        method: 'PUT',
+      });
+      console.log('Booking cancelled successfully:', result);
+      
+      // The backend returns { success: true, message: '...', booking: {...} }
+      // We need to transform the booking part, not the entire response
+      if (result.success && result.booking) {
+        return transformBooking(result.booking);
+      } else {
+        throw new Error('Invalid response format from cancel booking API');
+      }
+    } catch (error: any) {
+      console.error('Booking cancellation error:', error);
+      console.error('Error details:', error?.response || error?.message);
+      throw error;
+    }
+  },
 };
 
 // Admin booking API functions
@@ -241,30 +263,32 @@ export const transformOfficeSpace = (backendOffice: any): OfficeSpace => {
 };
 
 export const transformBooking = (backendBooking: any): OfficeBooking => {
+  console.log('Transforming booking data:', backendBooking);
+  
   return {
-    id: backendBooking.id,
-    officeId: backendBooking.officeSpaceId,
-    officeName: backendBooking.officeName,
-    providerId: backendBooking.providerId.toString(),
-    providerName: backendBooking.providerName,
-    providerEmail: backendBooking.providerEmail,
-    startDate: backendBooking.startDate,
-    endDate: backendBooking.endDate,
-    duration: backendBooking.duration,
-    durationType: backendBooking.durationType,
-    totalAmount: parseFloat(backendBooking.totalAmount),
-    status: backendBooking.status,
-    paymentStatus: backendBooking.paymentStatus,
-    paymentMethod: backendBooking.paymentMethod,
-    transactionId: backendBooking.transactionId,
-    specialRequests: backendBooking.specialRequests,
-    createdAt: backendBooking.createdAt,
-    updatedAt: backendBooking.updatedAt,
+    id: backendBooking.id || '',
+    officeId: backendBooking.officeSpaceId || '',
+    officeName: backendBooking.officeName || '',
+    providerId: backendBooking.providerId ? backendBooking.providerId.toString() : '',
+    providerName: backendBooking.providerName || '',
+    providerEmail: backendBooking.providerEmail || '',
+    startDate: backendBooking.startDate || '',
+    endDate: backendBooking.endDate || '',
+    duration: backendBooking.duration || 0,
+    durationType: backendBooking.durationType || 'daily',
+    totalAmount: backendBooking.totalAmount ? parseFloat(backendBooking.totalAmount) : 0,
+    status: backendBooking.status || 'pending',
+    paymentStatus: backendBooking.paymentStatus || 'pending',
+    paymentMethod: backendBooking.paymentMethod || '',
+    transactionId: backendBooking.transactionId || '',
+    specialRequests: backendBooking.specialRequests || '',
+    createdAt: backendBooking.createdAt || '',
+    updatedAt: backendBooking.updatedAt || '',
   };
 };
 
 // Transform frontend data to backend format
-export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto) => {
+export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto): CreateOfficeSpaceDto => {
   return {
     name: frontendData.name,
     description: frontendData.description,
@@ -277,9 +301,7 @@ export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto) =>
     },
     capacity: frontendData.capacity,
     area: frontendData.area,
-    pricing: {
-      daily: frontendData.pricing.daily,
-    },
+    pricing: frontendData.pricing, // Keep the pricing object structure
     availability: frontendData.availability,
     images: frontendData.images || [],
   };
@@ -293,7 +315,7 @@ export const transformUpdateOfficeData = (frontendData: UpdateOfficeSpaceDto) =>
   if (frontendData.capacity !== undefined) updateData.capacity = frontendData.capacity;
   if (frontendData.area !== undefined) updateData.area = frontendData.area;
   if (frontendData.pricing?.daily !== undefined) {
-    updateData.pricing = { daily: frontendData.pricing.daily };
+    updateData.dailyPrice = frontendData.pricing.daily; // Backend expects dailyPrice directly
   }
   if (frontendData.status !== undefined) updateData.status = frontendData.status;
   if (frontendData.availability !== undefined) updateData.availability = frontendData.availability;
