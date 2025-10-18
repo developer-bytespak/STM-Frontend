@@ -244,7 +244,19 @@ export default function EditOfficeModal({ isOpen, onClose, office, onSuccess }: 
                 label="Daily Rate ($)"
                 type="number"
                 value={formData.pricing?.daily || ''}
-                onChange={(e) => handleInputChange('pricing.daily', parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // If the value is empty, set to 0
+                  if (value === '') {
+                    handleInputChange('pricing.daily', 0);
+                    return;
+                  }
+                  // Parse as float but round to 2 decimal places
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue)) {
+                    handleInputChange('pricing.daily', Math.round(numValue * 100) / 100);
+                  }
+                }}
                 min={0}
                 step="0.01"
                 required
