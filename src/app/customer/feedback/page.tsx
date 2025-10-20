@@ -200,11 +200,11 @@ export default function FeedbackPage() {
                   key={job.jobId}
                   className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">{job.service}</h3>
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 w-fit">
                           Completed
                         </span>
                       </div>
@@ -218,10 +218,10 @@ export default function FeedbackPage() {
                         Service Cost: ${job.amount}
                       </p>
                     </div>
-                    <div className="ml-4">
+                    <div className="flex justify-end sm:ml-4 sm:justify-start">
                       <button
                         onClick={() => handleSelectJob(job)}
-                        className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium cursor-pointer"
+                        className="px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors font-medium cursor-pointer w-full sm:w-auto"
                       >
                         Leave Feedback
                       </button>

@@ -153,19 +153,19 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
               <>
                 <Link
                   href={`/login${returnUrl}`}
-                  className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2"
+                  className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2 cursor-pointer"
                 >
                   Login
                 </Link>
                 <Link
                   href={`/register${returnUrl}`}
-                  className="hidden sm:inline-block bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm"
+                  className="hidden sm:inline-block bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm cursor-pointer"
                 >
                   Sign Up
                 </Link>
                 <Link
                   href={`/provider/signup${returnUrl}`}
-                  className="hidden lg:inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  className="hidden lg:inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm cursor-pointer"
                 >
                   Become a Provider
                 </Link>
