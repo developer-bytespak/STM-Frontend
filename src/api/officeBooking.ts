@@ -288,7 +288,7 @@ export const transformBooking = (backendBooking: any): OfficeBooking => {
 };
 
 // Transform frontend data to backend format
-export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto): CreateOfficeSpaceDto => {
+export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto): any => {
   return {
     name: frontendData.name,
     description: frontendData.description,
@@ -301,7 +301,7 @@ export const transformCreateOfficeData = (frontendData: CreateOfficeSpaceDto): C
     },
     capacity: frontendData.capacity,
     area: frontendData.area,
-    pricing: frontendData.pricing, // Keep the pricing object structure
+    dailyPrice: frontendData.pricing?.daily || 0, // Ensure we always have a value, default to 0
     availability: frontendData.availability,
     images: frontendData.images || [],
   };
