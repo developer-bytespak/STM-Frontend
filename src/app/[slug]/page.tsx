@@ -193,13 +193,13 @@ function ProviderPageContent() {
       <AuthenticatedHeader />
       
       {/* Provider Header */}
-      <div className="bg-white border-b border-gray-200 mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="bg-white border-b border-gray-200 mb-6 sm:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <button
             onClick={() => router.push(backUrl)}
-            className="flex items-center text-navy-600 hover:text-navy-700 mb-4"
+            className="flex items-center text-navy-600 hover:text-navy-700 mb-3 sm:mb-4 text-sm sm:text-base"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             {searchedService && searchedLocation 
@@ -210,14 +210,14 @@ function ProviderPageContent() {
 
           {/* Inactive Service Warning */}
           {isSearchedServiceInactive && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
               <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <h3 className="font-semibold text-yellow-900 mb-1">Service Currently Unavailable</h3>
-                  <p className="text-sm text-yellow-800">
+                  <h3 className="font-semibold text-yellow-900 mb-1 text-sm sm:text-base">Service Currently Unavailable</h3>
+                  <p className="text-xs sm:text-sm text-yellow-800">
                     The service &quot;{searchedService}&quot; is currently inactive. Please check other available services below or contact the provider directly.
                   </p>
                 </div>
@@ -227,14 +227,14 @@ function ProviderPageContent() {
 
           {/* No Active Services Warning */}
           {hasNoActiveServices && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
               <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-orange-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <h3 className="font-semibold text-orange-900 mb-1">Provider Currently Unavailable</h3>
-                  <p className="text-sm text-orange-800">
+                  <h3 className="font-semibold text-orange-900 mb-1 text-sm sm:text-base">Provider Currently Unavailable</h3>
+                  <p className="text-xs sm:text-sm text-orange-800">
                     This provider is not currently accepting bookings. Please check back later or browse other providers.
                   </p>
                 </div>
@@ -242,22 +242,22 @@ function ProviderPageContent() {
             </div>
           )}
 
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0 mx-auto sm:mx-0">
               {provider.ownerName.split(' ').map(n => n[0]).join('')}
             </div>
 
             {/* Info */}
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <div className="flex-1 text-center sm:text-left w-full">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 {provider.businessName}
               </h1>
               {searchedServiceObj && (
-                <p className="text-lg text-gray-600 mb-3">{searchedServiceObj.category}</p>
+                <p className="text-base sm:text-lg text-gray-600 mb-3">{searchedServiceObj.category}</p>
               )}
               
-              <div className="flex items-center gap-6 text-sm">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-sm">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -294,7 +294,7 @@ function ProviderPageContent() {
                   existingConversation 
                     ? 'bg-blue-800 hover:bg-blue-900' 
                     : 'bg-navy-600 hover:bg-navy-700'
-                } text-white px-8 py-3 rounded-lg font-semibold transition-colors text-lg flex items-center gap-2`}
+                } text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-colors text-base sm:text-lg flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer`}
               >
                 {existingConversation ? (
                   <>
@@ -313,24 +313,24 @@ function ProviderPageContent() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-12 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
             {/* About */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">About</h2>
-              <p className="text-gray-700 leading-relaxed">{provider.description}</p>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">About</h2>
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{provider.description}</p>
             </div>
 
             {/* Services */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
                 Services Offered
               </h2>
               
               {sortedServices.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {sortedServices.map((service, index) => {
                     const isExactMatch = service.name === searchedService;
                     const isCategoryMatch = service.category === searchedCategory && !searchedService;
@@ -339,24 +339,24 @@ function ProviderPageContent() {
                     return (
                       <div 
                         key={service.id} 
-                        className={`border-b border-gray-200 pb-4 last:border-b-0 ${
-                          isSearched ? 'bg-blue-50 -mx-6 px-6 py-4 rounded-lg' : ''
+                        className={`border-b border-gray-200 pb-3 sm:pb-4 last:border-b-0 ${
+                          isSearched ? 'bg-blue-50 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 sm:py-4 rounded-lg' : ''
                         }`}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                        <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-2 sm:gap-0">
+                          <div className="flex-1 w-full sm:w-auto">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{service.name}</h3>
                               {isSearched && (
-                                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full whitespace-nowrap">
                                   {isExactMatch ? 'You searched for this' : 'Related to your search'}
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{service.category}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1">{service.category}</p>
                           </div>
                           {provider.priceRange && (
-                            <span className="text-navy-600 font-semibold">
+                            <span className="text-navy-600 font-semibold text-sm sm:text-base">
                               ${provider.priceRange.min} - ${provider.priceRange.max}
                             </span>
                           )}
@@ -372,11 +372,11 @@ function ProviderPageContent() {
 
             {/* Certifications */}
             {provider.certifications && provider.certifications.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Certifications</h2>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Certifications</h2>
                 <div className="flex flex-wrap gap-2">
                   {provider.certifications.map((cert, idx) => (
-                    <span key={idx} className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
+                    <span key={idx} className="bg-green-100 text-green-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
                       ✓ {cert}
                     </span>
                   ))}
@@ -386,22 +386,22 @@ function ProviderPageContent() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Quick Info */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Quick Info</h3>
-              <div className="space-y-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Quick Info</h3>
+              <div className="space-y-2 sm:space-y-3">
                 {provider.priceRange && (
                   <div>
-                    <p className="text-sm text-gray-500">Price Range</p>
-                    <p className="text-lg font-semibold text-navy-600">
+                    <p className="text-xs sm:text-sm text-gray-500">Price Range</p>
+                    <p className="text-base sm:text-lg font-semibold text-navy-600">
                       ${provider.priceRange.min} - ${provider.priceRange.max}
                     </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">Availability</p>
-                  <p className="text-lg font-semibold">
+                  <p className="text-xs sm:text-sm text-gray-500">Availability</p>
+                  <p className="text-base sm:text-lg font-semibold">
                     {provider.isAvailable && !hasNoActiveServices ? (
                       <span className="text-green-600">Available Now</span>
                     ) : (
@@ -414,13 +414,13 @@ function ProviderPageContent() {
 
             {/* Working Hours */}
             {provider.workingHours && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Working Hours</h3>
-                <div className="space-y-2">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Working Hours</h3>
+                <div className="space-y-1.5 sm:space-y-2">
                   {Object.entries(provider.workingHours).map(([day, schedule]) => (
-                    <div key={day} className="flex justify-between text-sm">
+                    <div key={day} className="flex justify-between text-xs sm:text-sm">
                       <span className="capitalize text-gray-600">{day}</span>
-                      <span className="text-gray-900">
+                      <span className="text-gray-900 text-right">
                         {schedule.isWorking 
                           ? `${schedule.startTime} - ${schedule.endTime}`
                           : 'Closed'
@@ -434,11 +434,11 @@ function ProviderPageContent() {
 
             {/* Contact CTA */}
             {!hasNoActiveServices && (
-              <div className="bg-navy-50 border-2 border-navy-200 rounded-lg p-6 text-center">
-                <h3 className="font-bold text-navy-900 mb-2">
+              <div className="bg-navy-50 border-2 border-navy-200 rounded-lg p-4 sm:p-6 text-center">
+                <h3 className="font-bold text-navy-900 mb-2 text-sm sm:text-base">
                   {existingConversation ? 'Continue your conversation' : 'Ready to get started?'}
                 </h3>
-                <p className="text-sm text-navy-700 mb-4">
+                <p className="text-xs sm:text-sm text-navy-700 mb-3 sm:mb-4">
                   {existingConversation 
                     ? `Continue chatting with ${provider.ownerName.split(' ')[0]}`
                     : `Book a service and chat with ${provider.ownerName.split(' ')[0]} directly`
@@ -450,11 +450,11 @@ function ProviderPageContent() {
                     existingConversation 
                       ? 'bg-blue-800 hover:bg-blue-900' 
                       : 'bg-navy-600 hover:bg-navy-700'
-                  } text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2`}
+                  } text-white py-2.5 sm:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer`}
                 >
                   {existingConversation ? (
                     <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                       Open Chat
@@ -488,37 +488,37 @@ function ProviderPageContent() {
       {/* Authentication Prompt Modal */}
       {showAuthPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6">
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Login Required</h3>
+              <p className="text-sm sm:text-base text-gray-600">
                 Please log in or sign up as a customer to book this service and start chatting with the provider.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <Link
                 href={`/login?returnUrl=${encodeURIComponent(fullReturnUrl)}`}
-                className="block w-full bg-navy-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors text-center"
+                className="block w-full bg-navy-600 text-white py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:bg-navy-700 transition-colors text-center text-sm sm:text-base"
               >
                 Log In
               </Link>
               
               <Link
                 href="/register"
-                className="block w-full bg-white border-2 border-navy-600 text-navy-600 py-3 px-4 rounded-lg font-semibold hover:bg-navy-50 transition-colors text-center"
+                className="block w-full bg-white border-2 border-navy-600 text-navy-600 py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:bg-navy-50 transition-colors text-center text-sm sm:text-base"
               >
                 Sign Up as Customer
               </Link>
 
               <button
                 onClick={() => setShowAuthPrompt(false)}
-                className="block w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                className="block w-full bg-gray-200 text-gray-700 py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
               >
                 Cancel
               </button>

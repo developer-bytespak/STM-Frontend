@@ -285,7 +285,7 @@ export default function BookingModal({
                   key={option}
                   type="button"
                   onClick={() => setFormData({ ...formData, urgency: option })}
-                  className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                  className={`px-4 py-3 rounded-lg border-2 font-medium transition-all cursor-pointer ${
                     formData.urgency === option
                       ? 'border-navy-600 bg-navy-50 text-navy-700'
                       : 'border-gray-300 text-gray-700 hover:border-navy-400'

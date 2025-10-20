@@ -238,7 +238,7 @@ export default function CitySearch({
           onClick={handleSearchClick}
           disabled={disabled}
           className={`absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-navy-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-md hover:bg-navy-700 transition-colors ${
-            disabled ? 'cursor-not-allowed opacity-50' : ''
+            disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}
         >
           Search
