@@ -120,6 +120,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
   const handleCreateOffice = async () => {
     console.log('Create office clicked, current step:', currentStep);
     console.log('Form data:', formData);
+    console.log('Pricing data:', formData.pricing);
     
     // Only submit if we're on the final step
     if (currentStep !== 6) {
@@ -143,6 +144,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
     try {
       const backendData = transformCreateOfficeData(formData);
       console.log('Transformed backend data:', backendData);
+      console.log('DailyPrice in backend data:', backendData.dailyPrice);
       
       // Call the API to create office
       const createdOffice = await officeSpaceApi.createOffice(backendData);
@@ -266,12 +268,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
         break;
 
       case 5: // Pricing (was step 4)
-        if (!formData.pricing.daily || formData.pricing.daily <= 0) {
-          stepErrors.daily = 'Daily rate must be greater than $0';
-        }
-        if (formData.pricing.daily > 10000) {
-          stepErrors.daily = 'Daily rate cannot exceed $10,000';
-        }
+        // Removed validation to prevent interference with form submission
         break;
 
       case 6: // Availability (was step 5)
@@ -616,7 +613,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                 <Input
                   label="Daily Rate ($)"
                   type="number"
-                  value={formData.pricing.daily || ''}
+                  value={formData.pricing?.daily || ''}
                   onChange={(e) => handleNumericInput('pricing.daily', e.target.value, true)}
                   placeholder="e.g., 50.00, 150.00, 300.00"
                   required
@@ -632,19 +629,22 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
           {/* Step 6: Availability (was step 5) */}
           {currentStep === 6 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Set Availability Schedule</h3>
-              <p className="text-sm text-gray-600">Configure when this office space is available for booking.</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Set Availability Schedule</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Configure when this office space is available for booking.</p>
               
-              <div className="space-y-4">
+              {/* Compact mobile-responsive layout */}
+              <div className="space-y-3">
                 {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
-                  <div key={day} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                    <div className="w-24">
-                      <label className="block text-sm font-medium text-gray-700 capitalize">
-                        {day}
+                  <div key={day} className="flex items-center gap-1 p-3 border border-gray-200 rounded-lg">
+                    {/* Day label - compact */}
+                    <div className="w-12 flex-shrink-0">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 capitalize">
+                        {day.slice(0, 3)}
                       </label>
-              </div>
+                    </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Availability checkbox - shifted left */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <input
                         type="checkbox"
                         checked={formData.availability[day as keyof typeof formData.availability].available}
@@ -659,12 +659,13 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                         }}
                         className="w-4 h-4 text-navy-600 border-gray-300 rounded focus:ring-navy-500"
                       />
-                      <span className="text-sm text-gray-600">Available</span>
-              </div>
+                      <span className="text-xs text-gray-600">Available</span>
+                    </div>
 
+                    {/* Time inputs - wider for full visibility */}
                     {formData.availability[day as keyof typeof formData.availability].available && (
-                      <div className="flex items-center gap-2">
-                        <Input
+                      <div className="flex items-center gap-1 flex-1">
+                        <input
                           type="time"
                           value={formData.availability[day as keyof typeof formData.availability].start}
                           onChange={(e) => {
@@ -674,10 +675,10 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                             };
                             handleInputChange(`availability.${day}`, newAvailability);
                           }}
-                          className="w-32"
+                          className="w-28 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-navy-500 focus:border-navy-500 focus:outline-none"
                         />
-                        <span className="text-gray-500">to</span>
-                <Input
+                        <span className="text-gray-500 text-xs">-</span>
+                        <input
                           type="time"
                           value={formData.availability[day as keyof typeof formData.availability].end}
                           onChange={(e) => {
@@ -687,7 +688,7 @@ export default function CreateOfficeModal({ isOpen, onClose, onSuccess }: Create
                             };
                             handleInputChange(`availability.${day}`, newAvailability);
                           }}
-                          className="w-32"
+                          className="w-28 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-navy-500 focus:border-navy-500 focus:outline-none"
                         />
                       </div>
                     )}

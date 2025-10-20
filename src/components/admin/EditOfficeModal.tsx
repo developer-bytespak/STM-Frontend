@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-// COMMENTED OUT - Amenities system
-// import AmenityIcon from '@/components/ui/AmenityIcon';
 import { OfficeSpace, OfficeStatus } from '@/types/office';
-import { officeSpaceApi, transformUpdateOfficeData } from '@/api/officeBooking';
+import { officeSpaceApi } from '@/api/officeBooking';
 import { useAlert } from '@/hooks/useAlert';
-// import { availableAmenities } from '@/data/mockOfficeData';
 
 interface EditOfficeModalProps {
   isOpen: boolean;
@@ -18,110 +15,135 @@ interface EditOfficeModalProps {
   onSuccess?: () => void;
 }
 
-const OFFICE_STATUS: { value: OfficeStatus; label: string }[] = [
-  { value: 'available', label: 'Available' },
-  { value: 'occupied', label: 'Occupied' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'booked', label: 'Booked' },
-];
-
 export default function EditOfficeModal({ isOpen, onClose, office, onSuccess }: EditOfficeModalProps) {
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [formData, setFormData] = useState<Partial<OfficeSpace>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { showAlert } = useAlert();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    status: 'available' as OfficeStatus,
+    description: '',
+    capacity: 0,
+    area: 0,
+    dailyRate: 0,
+  });
 
+  // Initialize form data when office changes
   useEffect(() => {
     if (office) {
       setFormData({
-        ...office,
-        amenities: office.amenities || [],
+        name: office.name || '',
+        status: (office.status || 'available') as OfficeStatus,
+        description: office.description || '',
+        capacity: office.capacity || 0,
+        area: office.area || 0,
+        dailyRate: office.pricing?.daily || 0,
       });
     }
   }, [office]);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
-    if (isOpen) {
-      setShowSuccess(false);
-    }
-  }, [isOpen]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsStatusDropdownOpen(false);
+      }
+    };
 
-  const handleClose = () => {
-    setShowSuccess(false);
-    onClose();
-  };
+    if (isStatusDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStatusDropdownOpen]);
 
   const handleInputChange = (field: string, value: any) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...(prev[parent as keyof OfficeSpace] as any),
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNumericInput = (field: string, value: string, isFloat: boolean = false) => {
+    const numericValue = isFloat 
+      ? value.replace(/[^0-9.]/g, '')
+      : value.replace(/[^0-9]/g, '');
+    
+    if (numericValue === '') {
+      handleInputChange(field, 0);
+      return;
+    }
+    
+    const numValue = isFloat ? parseFloat(numericValue) : parseInt(numericValue);
+    
+    if (!isNaN(numValue)) {
+      handleInputChange(field, numValue);
     }
   };
 
-  const toggleAmenity = (amenity: any) => {
-    setFormData(prev => {
-      const amenities = prev.amenities || [];
-      const hasAmenity = amenities.some(a => a.id === amenity.id);
-      
-      return {
-        ...prev,
-        amenities: hasAmenity
-          ? amenities.filter(a => a.id !== amenity.id)
-          : [...amenities, amenity],
-      };
-    });
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = 'Office name must be at least 2 characters';
+    }
+
+    if (!formData.description || formData.description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+    }
+
+    if (!formData.capacity || formData.capacity < 1) {
+      newErrors.capacity = 'Capacity must be at least 1 person';
+    }
+
+    if (!formData.area || formData.area < 10) {
+      newErrors.area = 'Area must be at least 10 sq ft';
+    }
+
+    if (!formData.dailyRate || formData.dailyRate < 0.01) {
+      newErrors.dailyRate = 'Daily rate must be at least $0.01';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!office?.id) return;
+  const handleSaveChanges = async () => {
+    if (!validateForm() || !office) {
+      return;
+    }
 
     setLoading(true);
 
     try {
-      console.log('Updating office space:', formData);
-      
-      // Transform the data to UpdateOfficeSpaceDto format first
-      const updateDto: any = {
-        ...formData,
-        amenities: formData.amenities?.map((a: any) => typeof a === 'string' ? a : a.name || a.id)
+      // Prepare update data
+      const updateData = {
+        name: formData.name,
+        status: formData.status,
+        description: formData.description,
+        capacity: formData.capacity,
+        area: formData.area,
+        pricing: {
+          daily: formData.dailyRate,
+        },
       };
+
+      // Call API to update office
+      await officeSpaceApi.updateOffice(office.id, updateData);
       
-      // Then transform for the backend
-      const backendData = transformUpdateOfficeData(updateDto);
-      console.log('Transformed backend data:', backendData);
-      
-      // Call the API to update office
-      const updatedOffice = await officeSpaceApi.updateOffice(office.id, backendData);
-      console.log('Office updated successfully:', updatedOffice);
-      
-      // Show success message
-      setShowSuccess(true);
       showAlert({
         title: 'Success',
         message: 'Office space updated successfully!',
         type: 'success'
       });
       
-      // Call success callback to refresh the list
       onSuccess?.();
-      
-      // Auto close after showing success message
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      onClose();
     } catch (error: any) {
       console.error('Error updating office space:', error);
       
-      // Better error handling
       let errorMessage = 'Failed to update office space. Please try again.';
       
       if (error?.response?.status === 401) {
@@ -144,213 +166,161 @@ export default function EditOfficeModal({ isOpen, onClose, office, onSuccess }: 
     }
   };
 
-  if (!office) return null;
+  const handleClose = () => {
+    setErrors({});
+    setIsStatusDropdownOpen(false);
+    onClose();
+  };
+
+  const statusOptions = [
+    { value: 'available', label: 'Available' },
+    { value: 'occupied', label: 'Occupied' },
+    { value: 'maintenance', label: 'Maintenance' },
+    { value: 'booked', label: 'Booked' },
+  ];
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="3xl" title="Edit Office Space">
-      <div className="space-y-6">
-        <p className="text-sm text-gray-600 -mt-2 mb-4">Update office space details</p>
-
-        {/* Success Message */}
-        {showSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-green-800">Office Space Updated Successfully!</h3>
-              <p className="text-sm text-green-700 mt-1">
-                Your changes to &ldquo;{formData.name}&rdquo; have been saved.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Form */}
-        {!showSuccess && (
-        <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto px-1 custom-scrollbar">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="lg" title="Edit Office Space">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Compact form layout optimized for mobile */}
+        <form className="space-y-4 sm:space-y-6">
+          {/* Update office space details section */}
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Update office space details:</h3>
             
             <Input
               label="Office Name"
-              value={formData.name || ''}
+              value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="e.g., Executive Private Office"
               required
             />
-
+            {errors.name && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.name}</p>}
+            
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">
                 Status
               </label>
-              <select
-                value={formData.status || 'available'}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none appearance-none bg-white"
-              >
-                {OFFICE_STATUS.map(status => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none text-xs sm:text-sm bg-white text-left flex items-center justify-between"
+                >
+                  <span>{statusOptions.find(option => option.value === formData.status)?.label}</span>
+                  <svg 
+                    className={`w-4 h-4 transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {isStatusDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {statusOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          handleInputChange('status', option.value as OfficeStatus);
+                          setIsStatusDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
+                          formData.status === option.value ? 'bg-navy-50 text-navy-700' : 'text-gray-900'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-900 mb-1 sm:mb-2">
                 Description
               </label>
               <textarea
-                value={formData.description || ''}
+                value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe the office space..."
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 focus:outline-none text-xs sm:text-sm"
+                required
               />
+              {errors.description && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.description}</p>}
             </div>
           </div>
 
-          {/* Capacity & Area */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Details</h3>
+          {/* Details section */}
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Details:</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <Input
                 label="Capacity (people)"
                 type="number"
                 value={formData.capacity || ''}
-                onChange={(e) => handleInputChange('capacity', parseInt(e.target.value))}
+                onChange={(e) => handleNumericInput('capacity', e.target.value, false)}
+                placeholder="e.g., 5, 10, 25"
                 min={1}
+                max={1000}
+                required
               />
+              {errors.capacity && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.capacity}</p>}
               
               <Input
                 label="Area (sq ft)"
                 type="number"
                 value={formData.area || ''}
-                onChange={(e) => handleInputChange('area', parseInt(e.target.value))}
-                min={1}
-              />
-            </div>
-          </div>
-
-          {/* SIMPLIFIED - Pricing (Daily Rate Only) */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Pricing</h3>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <Input
-                label="Daily Rate ($)"
-                type="number"
-                value={formData.pricing?.daily || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // If the value is empty, set to 0
-                  if (value === '') {
-                    handleInputChange('pricing.daily', 0);
-                    return;
-                  }
-                  // Parse as float but round to 2 decimal places
-                  const numValue = parseFloat(value);
-                  if (!isNaN(numValue)) {
-                    handleInputChange('pricing.daily', Math.round(numValue * 100) / 100);
-                  }
-                }}
-                min={0}
-                step="0.01"
+                onChange={(e) => handleNumericInput('area', e.target.value, false)}
+                placeholder="e.g., 200, 500, 1000"
+                min={10}
+                max={100000}
                 required
               />
+              {errors.area && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.area}</p>}
             </div>
-
-            {/* COMMENTED OUT - Complex pricing options */}
-            {/* <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Hourly Rate ($)"
-                type="number"
-                value={formData.pricing?.hourly || ''}
-                onChange={(e) => handleInputChange('pricing.hourly', parseFloat(e.target.value) || 0)}
-                min={0}
-                step="0.01"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Weekly Rate ($)"
-                type="number"
-                value={formData.pricing?.weekly || ''}
-                onChange={(e) => handleInputChange('pricing.weekly', parseFloat(e.target.value) || 0)}
-                min={0}
-                step="0.01"
-              />
-              
-              <Input
-                label="Monthly Rate ($)"
-                type="number"
-                value={formData.pricing?.monthly || ''}
-                onChange={(e) => handleInputChange('pricing.monthly', parseFloat(e.target.value) || 0)}
-                min={0}
-                step="0.01"
-              />
-            </div> */}
           </div>
 
-          {/* Amenities */}
-          {/* COMMENTED OUT - Amenities */}
-          {/* <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Amenities</h3>
+          {/* Pricing section */}
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Pricing:</h3>
             
-            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar border border-gray-300 rounded-lg p-3">
-                  {availableAmenities.map((amenity) => {
-                    const isSelected = (formData.amenities || []).some(a => a.id === amenity.id);
-                    
-                    return (
-                      <label key={amenity.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData(prev => ({
-                                ...prev,
-                                amenities: [...(prev.amenities || []), amenity]
-                              }));
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                amenities: (prev.amenities || []).filter(a => a.id !== amenity.id)
-                              }));
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 checked:bg-blue-600 checked:border-blue-600"
-                        />
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <AmenityIcon iconType={amenity.icon} className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">{amenity.name}</span>
-                      </label>
-                    );
-                  })}
-            </div>
-            <p className="text-sm text-gray-500">
-              Selected: {(formData.amenities || []).length} amenities
-            </p>
-          </div> */}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={loading}>
-              Save Changes
-            </Button>
+            <Input
+              label="Daily Rate ($)"
+              type="number"
+              value={formData.dailyRate || ''}
+              onChange={(e) => handleNumericInput('dailyRate', e.target.value, true)}
+              placeholder="e.g., 50.00, 150.00, 300.00"
+              required
+              min={0.01}
+              max={10000}
+              step="0.01"
+            />
+            {errors.dailyRate && <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.dailyRate}</p>}
           </div>
         </form>
-        )}
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <Button type="button" variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          
+          <Button 
+            type="button" 
+            loading={loading}
+            onClick={handleSaveChanges}
+          >
+            Save Changes
+          </Button>
+        </div>
       </div>
     </Modal>
   );
 }
-
