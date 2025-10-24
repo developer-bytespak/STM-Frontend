@@ -75,13 +75,15 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
 
           {/* Right Side - User Menu or Auth Buttons */}
           <div className="flex items-center space-x-2">
-            {/* Pricing Link - Always visible */}
-            <Link
-              href="/pricing"
-              className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2 hidden sm:inline-block"
-            >
-              Pricing
-            </Link>
+            {/* Pricing Link - Only visible for customers and service providers */}
+            {(userRole === 'customer' || userRole === 'service_provider' || !userRole) && (
+              <Link
+                href="/pricing"
+                className="text-gray-600 hover:text-navy-600 font-medium transition-colors text-sm px-3 py-2 hidden sm:inline-block"
+              >
+                Pricing
+              </Link>
+            )}
             
             {userRole && userName ? (
               <>

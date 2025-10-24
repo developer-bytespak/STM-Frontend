@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { authCookies } from '@/lib/cookies';
 import Link from 'next/link';
@@ -12,7 +12,12 @@ interface FormErrors {
   general?: string;
 }
 
-export default function LoginForm() {
+interface LoginFormProps {
+  autoFillEmail?: string;
+  autoFillPassword?: string;
+}
+
+export default function LoginForm({ autoFillEmail, autoFillPassword }: LoginFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -23,6 +28,19 @@ export default function LoginForm() {
   const { login } = useAuth();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
+
+  // Handle auto-fill props
+  useEffect(() => {
+    if (autoFillEmail || autoFillPassword) {
+      setFormData(prev => ({
+        ...prev,
+        email: autoFillEmail || prev.email,
+        password: autoFillPassword || prev.password,
+      }));
+      // Clear any existing errors when auto-filling
+      setErrors({});
+    }
+  }, [autoFillEmail, autoFillPassword]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -68,52 +86,7 @@ export default function LoginForm() {
     setErrors({});
 
     try {
-      // Check if this is a test account and bypass login
-      const testAccounts = {
-        'customer@test.com': { role: 'customer', name: 'Test Customer' },
-        'provider@test.com': { role: 'service_provider', name: 'Test Provider' },
-        'admin@test.com': { role: 'admin', name: 'Test Admin' },
-        'lsm@test.com': { role: 'local_service_manager', name: 'Test LSM' }
-      };
-
-      if (formData.email in testAccounts && formData.password === 'password123') {
-        // Bypass login for test accounts
-        const testUser = testAccounts[formData.email as keyof typeof testAccounts];
-        
-        // Create mock user data
-        const userData = {
-          id: 'test-user-id',
-          name: testUser.name,
-          email: formData.email,
-          role: testUser.role as 'customer' | 'service_provider' | 'local_service_manager' | 'admin'
-        };
-
-        // Store in cookies for persistence
-        authCookies.setUserData(userData);
-        
-        // If there's a returnUrl, redirect there
-        if (returnUrl) {
-          window.location.href = returnUrl;
-        } else {
-          // Role-based redirect: Admin/LSM go to dashboard, Customer/Provider go to homepage
-          if (testUser.role === 'admin' || testUser.role === 'local_service_manager') {
-            switch (testUser.role) {
-              case 'admin':
-                window.location.href = '/admin/dashboard';
-                break;
-              case 'local_service_manager':
-                window.location.href = '/lsm/dashboard';
-                break;
-            }
-          } else {
-            // Customer and Provider go to homepage
-            window.location.href = '/';
-          }
-        }
-        return;
-      }
-
-      // Regular login for non-test accounts
+      // Use backend API for authentication
       await login(formData.email, formData.password, returnUrl || undefined);
     } catch (error) {
       setErrors({
