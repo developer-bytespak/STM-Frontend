@@ -245,11 +245,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authCookies.setUserData(userData);
       
       // Role-based redirect logic
-      if (userData.role === 'admin' || userData.role === 'local_service_manager') {
-        // Admin/LSM: Always go to dashboard (ignore returnUrl for management users)
+      if (userData.role === 'admin' || userData.role === 'local_service_manager' || userData.role === 'service_provider') {
+        // Admin/LSM/Provider: Always go to dashboard (ignore returnUrl for management users)
         redirectBasedOnRole(userData.role);
       } else {
-        // Customer/Provider: Return to where they were, or homepage as fallback
+        // Customer: Return to where they were, or homepage as fallback
         if (returnUrl) {
           router.push(returnUrl);
         } else {
@@ -285,11 +285,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Only redirect if requested
       if (shouldRedirect) {
         // Role-based redirect logic
-        if (userData.role === 'admin' || userData.role === 'local_service_manager') {
-          // Admin/LSM: Always go to dashboard
+        if (userData.role === 'admin' || userData.role === 'local_service_manager' || userData.role === 'service_provider') {
+          // Admin/LSM/Provider: Always go to dashboard
           redirectBasedOnRole(userData.role);
         } else {
-          // Customer/Provider: Return to where they were, or homepage as fallback
+          // Customer: Return to where they were, or homepage as fallback
           if (returnUrl) {
             router.push(returnUrl);
           } else {
