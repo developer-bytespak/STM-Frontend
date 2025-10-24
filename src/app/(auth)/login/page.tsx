@@ -1,10 +1,18 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import LoginForm from '@/components/forms/LoginForm';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const [autoFillCredentials, setAutoFillCredentials] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+
+  const handleFillCredentials = (email: string, password: string) => {
+    setAutoFillCredentials({ email, password });
+  };
   return (
     <div className="flex items-center justify-center p-4 bg-gradient-to-br from-navy-50 to-white">
       <div className="w-full max-w-md">
@@ -37,19 +45,52 @@ export default function LoginPage() {
             </div>
           </div>
         }>
-          <LoginForm />
+          <LoginForm 
+            autoFillEmail={autoFillCredentials.email}
+            autoFillPassword={autoFillCredentials.password}
+          />
         </Suspense>
 
         {/* Test Accounts Info */}
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-xs font-semibold text-green-900 mb-2">🚀 Test Accounts (Bypass Login):</p>
-          <div className="space-y-1 text-xs text-green-800">
-            <p><strong>Customer:</strong> customer@test.com</p>
-            <p><strong>Provider:</strong> provider@test.com</p>
-            <p><strong>Admin:</strong> admin@test.com</p>
-            <p><strong>LSM:</strong> lsm@test.com</p>
-            <p className="mt-2"><strong>Password:</strong> password123</p>
-            <p className="mt-2 text-green-700 font-medium">✨ These accounts bypass backend login for testing!</p>
+          <p className="text-xs font-semibold text-green-900 mb-3">Test Accounts:</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-green-800"><strong>Customer:</strong> customer@test.com</span>
+              <button
+                onClick={() => handleFillCredentials('customer@test.com', 'Aq123456')}
+                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+              >
+                Fill
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-green-800"><strong>Provider:</strong> provider3@test.com</span>
+              <button
+                onClick={() => handleFillCredentials('provider3@test.com', 'Aq123456')}
+                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+              >
+                Fill
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-green-800"><strong>Admin:</strong> admin@gmail.com</span>
+              <button
+                onClick={() => handleFillCredentials('admin@gmail.com', 'Aq123456')}
+                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+              >
+                Fill
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-green-800"><strong>LSM:</strong> lsm2@test.com</span>
+              <button
+                onClick={() => handleFillCredentials('lsm2@test.com', 'Aq123456')}
+                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+              >
+                Fill
+              </button>
+            </div>
           </div>
         </div>
 
