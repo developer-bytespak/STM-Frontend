@@ -34,16 +34,24 @@ function ProviderDashboardContent() {
       } catch (err: any) {
         console.error('Failed to fetch dashboard:', err);
         
-        // Check if error is due to pending status
+        // Check if error is due to pending/rejected status
         if (err.message?.includes('pending') || err.message?.includes('not approved') || err.status === 403) {
-          setApprovalStatus('pending');
-          localStorage.setItem('approval_status', 'pending');
+          // Check if it's specifically rejected
+          if (err.message?.includes('rejected') || err.message?.includes('not approved')) {
+            setApprovalStatus('rejected');
+            localStorage.setItem('approval_status', 'rejected');
+          } else {
+            setApprovalStatus('pending');
+            localStorage.setItem('approval_status', 'pending');
+          }
         } else {
           // If dashboard exists in response despite error, provider might be approved
           // but there's a data issue - still show approved dashboard
           const urlStatus = searchParams.get('status');
           if (urlStatus === 'approved') {
             setApprovalStatus('approved');
+          } else if (urlStatus === 'rejected') {
+            setApprovalStatus('rejected');
           } else {
             setApprovalStatus('pending');
           }
@@ -90,6 +98,54 @@ function ProviderDashboardContent() {
             </div>
 
             <div className="space-y-3">
+              <Link
+                href="/login"
+                className="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-center"
+              >
+                Logout
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle rejected status - only allow self-marking if rejected by LSM, not admin
+  if (approvalStatus === 'rejected') {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">❌</span>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Application Rejected
+            </h1>
+            
+            <p className="text-gray-600 mb-6">
+              Your service provider application was not approved. Please contact support for more information.
+            </p>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <h3 className="font-medium text-red-900 mb-2">What to do next?</h3>
+              <ul className="text-sm text-red-800 space-y-1 text-left">
+                <li>• Contact support for rejection details</li>
+                <li>• Review your application requirements</li>
+                <li>• Submit a new application if eligible</li>
+                <li>• Wait for admin review and approval</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <Link
+                href="/contact"
+                className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center"
+              >
+                Contact Support
+              </Link>
               <Link
                 href="/login"
                 className="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-center"

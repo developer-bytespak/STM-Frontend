@@ -602,6 +602,20 @@ class ProviderApi {
     return response;
   }
 
+  /**
+   * Mark provider as available (reapply after rejection)
+   * Endpoint: POST /provider/mark-available
+   */
+  async markAsAvailable(): Promise<{ message: string; status: string }> {
+    const response = await apiClient.request<{ message: string; status: string }>('/provider/mark-available', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return response;
+  }
+
   // TODO: Add other provider API methods as backend endpoints are ready
 }
 
