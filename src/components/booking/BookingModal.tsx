@@ -62,9 +62,10 @@ export default function BookingModal({
     if (!formData.description.trim()) {
       newErrors.description = 'Please describe the service you need';
     }
-    if (!formData.budget.trim()) {
-      newErrors.budget = 'Please provide your budget';
-    }
+    // TODO: Re-enable budget validation when ready to make it required again
+    // if (!formData.budget.trim()) {
+    //   newErrors.budget = 'Please provide your budget';
+    // }
     if (mode === 'customer-booking') {
       if (!formData.address?.trim()) {
         newErrors.address = 'Please provide your address';
@@ -378,8 +379,9 @@ export default function BookingModal({
             />
           </div>
 
+          {/* TODO: Re-enable budget field when ready to make it required again */}
           {/* Budget */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               {mode === 'sp-quote' ? 'Your Quote Amount:' : 'What is your budget for this service?'}
               <span className="text-red-500 ml-1">*</span>
@@ -406,7 +408,7 @@ export default function BookingModal({
                 💡 You can modify the customer&apos;s requested budget and provide your professional quote
               </p>
             )}
-          </div>
+          </div> */}
 
           {/* Additional Details */}
           <div>

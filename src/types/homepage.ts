@@ -108,6 +108,7 @@ export interface ProviderDetail extends HomepageProvider {
   certifications?: string[];
   isAvailable?: boolean;
   reviews?: ProviderReview[];
+  websiteUrl?: string;
 }
 
 export interface WorkingDay {

@@ -55,6 +55,11 @@ export default function SPRequestModal({
       return;
     }
 
+    if (rejectionReason.trim().length < 10) {
+      setError('Rejection reason must be at least 10 characters long');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
     try {
@@ -100,6 +105,19 @@ export default function SPRequestModal({
                   <p className="text-gray-900"><span className="font-semibold text-gray-700">Phone:</span> <span className="font-medium">{request.user.phone}</span></p>
                   <p className="text-gray-900"><span className="font-semibold text-gray-700">Location:</span> <span className="font-medium">{request.location}</span></p>
                   <p className="text-gray-900"><span className="font-semibold text-gray-700">Experience:</span> <span className="font-medium">{request.experience} years ({request.experienceLevel})</span></p>
+                  {request.websiteUrl && (
+                    <p className="text-gray-900">
+                      <span className="font-semibold text-gray-700">Website:</span> 
+                      <a 
+                        href={request.websiteUrl.startsWith('http') ? request.websiteUrl : `https://${request.websiteUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-navy-600 hover:text-navy-700 underline ml-1"
+                      >
+                        {request.websiteUrl}
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -263,6 +281,17 @@ export default function SPRequestModal({
                   placeholder="Explain why this provider is being rejected..."
                   disabled={isProcessing}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${rejectionReason.trim().length < 10 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {rejectionReason.trim().length < 10 
+                      ? `${rejectionReason.trim().length}/10 characters (minimum required)`
+                      : `${rejectionReason.trim().length} characters`
+                    }
+                  </span>
+                  {rejectionReason.trim().length >= 10 && (
+                    <span className="text-xs text-green-600">✓ Valid</span>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-end">
                 <button
@@ -278,7 +307,7 @@ export default function SPRequestModal({
                 </button>
                 <button
                   onClick={handleReject}
-                  disabled={isProcessing}
+                  disabled={isProcessing || rejectionReason.trim().length < 10}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isProcessing ? 'Rejecting...' : 'Confirm Rejection'}

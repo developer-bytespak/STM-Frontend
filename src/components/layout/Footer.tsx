@@ -8,9 +8,9 @@ export default function Footer() {
           <div>
             <div className="flex items-center mb-4">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
-                <span className="text-navy-600 font-bold text-sm">CA</span>
+                <span className="text-navy-600 font-bold text-sm">SPS</span>
               </div>
-              <h3 className="text-xl font-bold">ConnectAgain</h3>
+              <h3 className="text-xl font-bold">ServiceProStars</h3>
             </div>
             <p className="text-gray-300">
               Connecting customers with trusted service providers.
@@ -47,7 +47,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-navy-700 mt-8 pt-8 text-center text-gray-300">
-          <p>&copy; 2025 ConnectAgain. All rights reserved.</p>
+          <p>&copy; 2025 ServiceProStars. All rights reserved.</p>
         </div>
       </div>
     </footer>

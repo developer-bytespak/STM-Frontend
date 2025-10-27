@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { customerApi, CustomerJobDetails } from '@/api/customer';
 import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
@@ -16,6 +17,7 @@ interface BookingDetailsProps {
 export default function BookingDetails({ params }: BookingDetailsProps) {
   const { openConversationByJobId } = useChat();
   const { showAlert, AlertComponent } = useAlert();
+  const router = useRouter();
   const resolvedParams = use(params);
   const jobId = parseInt(resolvedParams.id);
   
@@ -23,13 +25,15 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showReassignModal, setShowReassignModal] = useState(false);
+  // TODO: Re-enable cancel and reassign functionality when needed
+  // const [showCancelModal, setShowCancelModal] = useState(false);
+  // const [showReassignModal, setShowReassignModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [reassignReason, setReassignReason] = useState('');
-  const [newProviderId, setNewProviderId] = useState('');
+  // const [cancelReason, setCancelReason] = useState('');
+  // const [reassignReason, setReassignReason] = useState('');
+  // const [newProviderId, setNewProviderId] = useState('');
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [feedback, setFeedback] = useState({
     rating: 5,
     feedback: '',
@@ -55,46 +59,47 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     fetchJobDetails();
   }, [jobId]);
 
-  const handleCancelJob = async () => {
-    if (!cancelReason.trim()) {
-      showAlert({
-        title: 'Validation Error',
-        message: 'Please provide a reason for cancellation',
-        type: 'warning'
-      });
-      return;
-    }
+  // TODO: Re-enable cancel functionality when needed
+  // const handleCancelJob = async () => {
+  //   if (!cancelReason.trim()) {
+  //     showAlert({
+  //       title: 'Validation Error',
+  //       message: 'Please provide a reason for cancellation',
+  //       type: 'warning'
+  //     });
+  //     return;
+  //   }
 
-    try {
-      setActionLoading(true);
-      const result = await customerApi.performJobAction(jobId, {
-        action: 'cancel',
-        cancellationReason: cancelReason,
-      });
+  //   try {
+  //     setActionLoading(true);
+  //     const result = await customerApi.performJobAction(jobId, {
+  //       action: 'cancel',
+  //       cancellationReason: cancelReason,
+  //     });
       
-      const feeMessage = result.cancellationFee && result.cancellationFee > 0 
-        ? `\n\nCancellation fee: $${result.cancellationFee}` 
-        : '';
+  //     const feeMessage = result.cancellationFee && result.cancellationFee > 0 
+  //       ? `\n\nCancellation fee: $${result.cancellationFee}` 
+  //       : '';
       
-      showAlert({
-        title: 'Job Cancelled',
-        message: (result.message || 'Job cancelled successfully') + feeMessage,
-        type: 'success'
-      });
-      setShowCancelModal(false);
-      // Refresh job details
-      const data = await customerApi.getJobDetails(jobId);
-      setJobDetails(data);
-    } catch (err: any) {
-      showAlert({
-        title: 'Error',
-        message: err.message || 'Failed to cancel job',
-        type: 'error'
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  //     showAlert({
+  //       title: 'Job Cancelled',
+  //       message: (result.message || 'Job cancelled successfully') + feeMessage,
+  //       type: 'success'
+  //     });
+  //     setShowCancelModal(false);
+  //     // Refresh job details
+  //     const data = await customerApi.getJobDetails(jobId);
+  //     setJobDetails(data);
+  //   } catch (err: any) {
+  //     showAlert({
+  //       title: 'Error',
+  //       message: err.message || 'Failed to cancel job',
+  //       type: 'error'
+  //     });
+  //   } finally {
+  //     setActionLoading(false);
+  //   }
+  // };
 
   const handleApproveEdits = async () => {
     try {
@@ -148,42 +153,43 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     }
   };
 
-  const handleReassignJob = async () => {
-    if (!newProviderId.trim() || !reassignReason.trim()) {
-      showAlert({
-        title: 'Validation Error',
-        message: 'Please provide both provider ID and reason',
-        type: 'warning'
-      });
-      return;
-    }
+  // TODO: Re-enable reassign functionality when needed
+  // const handleReassignJob = async () => {
+  //   if (!newProviderId.trim() || !reassignReason.trim()) {
+  //     showAlert({
+  //       title: 'Validation Error',
+  //       message: 'Please provide both provider ID and reason',
+  //       type: 'warning'
+  //     });
+  //     return;
+  //   }
 
-    try {
-      setActionLoading(true);
-      await customerApi.reassignJob(jobId, {
-        newProviderId: parseInt(newProviderId),
-        reason: reassignReason,
-      });
+  //   try {
+  //     setActionLoading(true);
+  //     await customerApi.reassignJob(jobId, {
+  //       newProviderId: parseInt(newProviderId),
+  //       reason: reassignReason,
+  //     });
       
-      showAlert({
-        title: 'Success',
-        message: 'Job reassigned successfully',
-        type: 'success'
-      });
-      setShowReassignModal(false);
-      // Refresh job details
-      const data = await customerApi.getJobDetails(jobId);
-      setJobDetails(data);
-    } catch (err: any) {
-      showAlert({
-        title: 'Error',
-        message: err.message || 'Failed to reassign job',
-        type: 'error'
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  //     showAlert({
+  //       title: 'Success',
+  //       message: 'Job reassigned successfully',
+  //       type: 'success'
+  //     });
+  //     setShowReassignModal(false);
+  //     // Refresh job details
+  //     const data = await customerApi.getJobDetails(jobId);
+  //     setJobDetails(data);
+  //   } catch (err: any) {
+  //     showAlert({
+  //       title: 'Error',
+  //       message: err.message || 'Failed to reassign job',
+  //       type: 'error'
+  //     });
+  //   } finally {
+  //     setActionLoading(false);
+  //   }
+  // };
 
   const handleSubmitFeedback = async () => {
     if (!feedback.feedback.trim()) {
@@ -249,7 +255,9 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
     return (
       <div className="space-y-3">
-        {Object.entries(answers).map(([key, value]) => (
+        {Object.entries(answers)
+          .filter(([key]) => key !== 'budget') // TODO: Re-enable budget display when budget field is restored
+          .map(([key, value]) => (
           <div key={key} className="flex flex-col sm:flex-row sm:items-start border-b border-gray-100 pb-3 last:border-0">
             <div className="font-medium text-gray-700 sm:w-1/3 mb-1 sm:mb-0">
               {formatFieldName(key)}:
@@ -308,18 +316,18 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-5">
         <div>
           <div className="flex items-center gap-2 text-sm mb-2">
-            <Link href="/customer/dashboard" className="text-navy-600 hover:text-navy-700">
-              Dashboard
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link href="/customer/bookings" className="text-navy-600 hover:text-navy-700">
-              Bookings
-            </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-600">Job #{job.id}</span>
+            <button
+              onClick={() => router.back()}
+              className="flex items-center text-navy-600 hover:text-navy-700 transition-colors mr-2"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Job Details</h1>
           <p className="text-gray-600 mt-1">Job ID: #{job.id}</p>
@@ -468,7 +476,18 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             Open Chat
           </button>
 
-          {actions.canCancel && (
+          <button
+            onClick={() => setShowSupportModal(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            Customer Support
+          </button>
+
+          {/* TODO: Re-enable cancel functionality when needed */}
+          {/* {actions.canCancel && (
             <button
               onClick={() => setShowCancelModal(true)}
               disabled={actionLoading}
@@ -476,7 +495,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             >
               Cancel Job
             </button>
-          )}
+          )} */}
 
           {actions.canGiveFeedback && !feedbackSubmitted && (
             <button
@@ -497,7 +516,8 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             </div>
           )}
 
-          {(job.status === 'new' || job.status === 'rejected_by_sp') && (
+          {/* TODO: Re-enable reassign functionality when needed */}
+          {/* {(job.status === 'new' || job.status === 'rejected_by_sp') && (
             <button
               onClick={() => setShowReassignModal(true)}
               disabled={actionLoading}
@@ -505,12 +525,13 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             >
               Reassign to Other Provider
             </button>
-          )}
+          )} */}
         </div>
       </div>
 
+      {/* TODO: Re-enable cancel modal when needed */}
       {/* Cancel Modal */}
-      {showCancelModal && (
+      {/* {showCancelModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Job</h3>
@@ -543,10 +564,11 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
+      {/* TODO: Re-enable reassign modal when needed */}
       {/* Reassign Modal */}
-      {showReassignModal && (
+      {/* {showReassignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Reassign Job</h3>
@@ -592,6 +614,46 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )} */}
+
+      {/* Customer Support Modal */}
+      {showSupportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Customer Support</h3>
+              <button
+                onClick={() => setShowSupportModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="text-center py-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
+                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <p className="text-gray-600 mb-2">Need help? Call our support team:</p>
+              <a
+                href="tel:+18005551234"
+                className="text-3xl font-bold text-navy-600 hover:text-navy-700"
+              >
+                1-800-555-1234
+              </a>
+              <p className="text-sm text-gray-500 mt-4">Available 24/7</p>
+            </div>
+            <button
+              onClick={() => setShowSupportModal(false)}
+              className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium mt-4"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

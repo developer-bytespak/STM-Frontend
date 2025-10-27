@@ -13,7 +13,7 @@ function RegisterFormWrapper() {
             Create Your Account
           </h2>
           <p className="text-gray-600">
-            Join thousands of customers who trust ConnectAgain
+            Join thousands of customers who trust ServiceProStars
           </p>
         </div>
 

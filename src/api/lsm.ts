@@ -53,6 +53,7 @@ export interface PendingOnboardingResponse {
   experience: number;
   experienceLevel: string;
   location: string;
+  websiteUrl?: string;
   serviceAreas: string[];
   requestedServices: string[];
   documents: {

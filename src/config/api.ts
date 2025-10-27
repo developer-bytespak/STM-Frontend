@@ -56,6 +56,7 @@ export interface RegisterRequest {
   serviceType?: string;
   experienceLevel?: string;
   description?: string;
+  websiteUrl?: string;
   location?: string;
   zipCodes?: string[];
   minPrice?: number;

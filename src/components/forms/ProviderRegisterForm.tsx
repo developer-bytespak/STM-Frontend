@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
@@ -44,6 +44,7 @@ interface ServiceProviderFormData {
   businessName: string;
   description: string;
   area: string;
+  websiteUrl: string;
   services: ServiceData[];
   password: string;
   confirmPassword: string;
@@ -59,6 +60,7 @@ interface FormErrors {
   businessName?: string;
   area?: string;
   description?: string;
+  websiteUrl?: string;
   services?: { [key: string]: string };
   password?: string;
   confirmPassword?: string;
@@ -119,6 +121,7 @@ export default function ServiceProviderSignupPage() {
     businessName: '',
     description: '',
     area: '',
+    websiteUrl: '',
     services: [{
       id: '1',
       categoryType: '',
@@ -140,6 +143,24 @@ export default function ServiceProviderSignupPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Load form data from localStorage on component mount
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('provider-registration-form');
+    if (savedFormData) {
+      try {
+        const parsedData = JSON.parse(savedFormData);
+        setFormData(parsedData);
+      } catch (error) {
+        console.error('Error parsing saved form data:', error);
+      }
+    }
+  }, []);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('provider-registration-form', JSON.stringify(formData));
+  }, [formData]);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Get categories from services.ts
@@ -420,7 +441,7 @@ export default function ServiceProviderSignupPage() {
       if (!service.minPrice.trim()) {
         serviceErrors[`${serviceKey}.minPrice`] = 'Minimum price is required';
       } else {
-        const minPriceNum = parseInt(service.minPrice);
+        const minPriceNum = parseFloat(service.minPrice);
         if (isNaN(minPriceNum) || minPriceNum < 0) {
           serviceErrors[`${serviceKey}.minPrice`] = 'Please enter a valid minimum price';
         }
@@ -429,7 +450,7 @@ export default function ServiceProviderSignupPage() {
       if (!service.maxPrice.trim()) {
         serviceErrors[`${serviceKey}.maxPrice`] = 'Maximum price is required';
       } else {
-        const maxPriceNum = parseInt(service.maxPrice);
+        const maxPriceNum = parseFloat(service.maxPrice);
         if (isNaN(maxPriceNum) || maxPriceNum < 0) {
           serviceErrors[`${serviceKey}.maxPrice`] = 'Please enter a valid maximum price';
         }
@@ -437,8 +458,8 @@ export default function ServiceProviderSignupPage() {
       
       // Validate price range
       if (!serviceErrors[`${serviceKey}.minPrice`] && !serviceErrors[`${serviceKey}.maxPrice`]) {
-        const minPriceNum = parseInt(service.minPrice);
-        const maxPriceNum = parseInt(service.maxPrice);
+        const minPriceNum = parseFloat(service.minPrice);
+        const maxPriceNum = parseFloat(service.maxPrice);
         if (maxPriceNum < minPriceNum) {
           serviceErrors[`${serviceKey}.maxPrice`] = 'Maximum price must be greater than minimum price';
         }
@@ -447,6 +468,14 @@ export default function ServiceProviderSignupPage() {
 
     if (Object.keys(serviceErrors).length > 0) {
       newErrors.services = serviceErrors;
+    }
+
+    // Validate website URL if provided
+    if (formData.websiteUrl.trim()) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(formData.websiteUrl.trim())) {
+        newErrors.websiteUrl = 'Please enter a valid website URL (e.g., https://www.example.com)';
+      }
     }
 
     setErrors(newErrors);
@@ -545,6 +574,7 @@ export default function ServiceProviderSignupPage() {
         phone: sanitizeInput(formData.phone),
         businessName: sanitizeInput(formData.businessName),
         description: sanitizeInput(formData.description),
+        websiteUrl: sanitizeInput(formData.websiteUrl),
         services: formData.services.map(service => ({
           ...service,
           categoryType: sanitizeInput(service.categoryType),
@@ -600,9 +630,10 @@ export default function ServiceProviderSignupPage() {
         serviceType: primaryService.serviceType || undefined,
         experienceLevel: primaryService.experience || undefined,
         description: sanitizedData.description || undefined,
+        websiteUrl: sanitizedData.websiteUrl || undefined,
         zipCodes: cleanedZipCodes.length > 0 ? cleanedZipCodes : undefined, // ✅ Sends ["75001", "75002"] without location
-        minPrice: primaryService.minPrice ? parseInt(primaryService.minPrice) : undefined,
-        maxPrice: primaryService.maxPrice ? parseInt(primaryService.maxPrice) : undefined,
+        minPrice: primaryService.minPrice ? parseFloat(primaryService.minPrice) : undefined,
+        maxPrice: primaryService.maxPrice ? parseFloat(primaryService.maxPrice) : undefined,
         acceptedTerms: formData.acceptedTerms || undefined,
       };
 
@@ -637,6 +668,9 @@ export default function ServiceProviderSignupPage() {
 
       // Move to success screen
       setCurrentStep('success');
+      
+      // Clear saved form data from localStorage on successful registration
+      localStorage.removeItem('provider-registration-form');
 
     } catch (error) {
       if (error instanceof ApiError) {
@@ -644,7 +678,10 @@ export default function ServiceProviderSignupPage() {
         
         // Handle specific field errors
         if (error.status === 409) {
-          setErrors({ email: errorMessage });
+          setErrors({ 
+            general: 'This email is already registered. Please use a different email or try logging in instead.',
+            email: 'Email already exists'
+          });
         } else if (error.status === 400 && error.data?.message?.includes('price')) {
           setErrors({ general: 'Please check your pricing information and try again.' });
         } else {
@@ -1378,6 +1415,31 @@ export default function ServiceProviderSignupPage() {
                         <p className="text-red-500 text-xs mt-1">{errors.description}</p>
                       )}
                     </div>
+
+                    {/* Website URL Field */}
+                    <div>
+                      <label htmlFor="websiteUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                        Website URL <span className="text-gray-500">(Optional)</span>
+                      </label>
+                      <input
+                        type="url"
+                        id="websiteUrl"
+                        value={formData.websiteUrl}
+                        onChange={(e) => handleInputChange('websiteUrl', e.target.value)}
+                        className={`
+                          w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
+                          focus:outline-none focus:ring-2 focus:ring-navy-500 focus:text-gray-900
+                          ${errors.websiteUrl ? 'border-red-500' : 'border-gray-300'}
+                        `}
+                        placeholder="https://www.yourwebsite.com"
+                      />
+                      {errors.websiteUrl && (
+                        <p className="text-red-500 text-xs mt-1">{errors.websiteUrl}</p>
+                      )}
+                      <p className="text-gray-500 text-xs mt-1">
+                        Include your business website to help customers learn more about your services
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -1508,6 +1570,21 @@ export default function ServiceProviderSignupPage() {
                               ? `(${formData.areaCode}) ${formData.phone}` 
                               : formData.phone}
                           </div>
+                          {formData.websiteUrl && (
+                            <>
+                              <div className="text-gray-600">Website:</div>
+                              <div className="text-gray-900">
+                                <a 
+                                  href={formData.websiteUrl.startsWith('http') ? formData.websiteUrl : `https://${formData.websiteUrl}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-navy-600 hover:text-navy-700 underline"
+                                >
+                                  {formData.websiteUrl}
+                                </a>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -1526,7 +1603,9 @@ export default function ServiceProviderSignupPage() {
                                 <div className="text-gray-600">Zip Codes:</div>
                                 <div className="text-gray-900">{service.zipCodes.filter(z => z.zipCode.trim()).map(z => z.zipCode).join(', ')}</div>
                                 <div className="text-gray-600">Price Range:</div>
-                                <div className="text-gray-900">${service.minPrice} - ${service.maxPrice}</div>
+                                <div className="text-gray-900">
+                                  ${service.minPrice ? parseFloat(service.minPrice) : '0'} - ${service.maxPrice ? parseFloat(service.maxPrice) : '0'}
+                                </div>
                               </div>
                             </div>
                           ))}

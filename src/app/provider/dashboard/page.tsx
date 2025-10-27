@@ -226,19 +226,19 @@ function ProviderDashboardContent() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {pendingActions.newJobRequests > 0 && (
-              <Link href="/provider/jobs?status=new" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
+              <Link href="/provider/jobs" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
                 <p className="text-2xl font-bold text-navy-600">{pendingActions.newJobRequests}</p>
                 <p className="text-sm text-gray-600">New Job Requests</p>
               </Link>
             )}
             {pendingActions.jobsToComplete > 0 && (
-              <Link href="/provider/jobs?status=in_progress" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
+              <Link href="/provider/jobs" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
                 <p className="text-2xl font-bold text-blue-600">{pendingActions.jobsToComplete}</p>
                 <p className="text-sm text-gray-600">Jobs to Complete</p>
               </Link>
             )}
             {pendingActions.paymentsToMark > 0 && (
-              <Link href="/provider/jobs?status=completed" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
+              <Link href="/provider/jobs" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
                 <p className="text-2xl font-bold text-green-600">{pendingActions.paymentsToMark}</p>
                 <p className="text-sm text-gray-600">Payments to Mark</p>
               </Link>
