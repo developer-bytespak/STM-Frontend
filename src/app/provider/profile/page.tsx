@@ -114,13 +114,24 @@ export default function ProviderProfile() {
 
   // Set initial status from API data
   useEffect(() => {
-    if (apiProfileData?.status?.current) {
-      setCurrentStatus(apiProfileData.status.current as 'active' | 'inactive');
+    // Use isActive for business availability, not status.current (which is approval status)
+    if (apiProfileData?.status?.isActive !== undefined) {
+      setCurrentStatus(apiProfileData.status.isActive ? 'active' : 'inactive');
     }
   }, [apiProfileData]);
 
+  // Check if provider is approved (not pending or rejected)
+  // status.current is 'pending', 'active', 'inactive', 'banned', or 'rejected' from the backend
+  const providerApprovalStatus = apiProfileData?.status?.current;
+  const isApproved = providerApprovalStatus === 'active';
+  const canEdit = isApproved;
+
   // Handle availability toggle confirmation
   const handleAvailabilityToggle = () => {
+    if (!canEdit) {
+      setErrorMessage('Your account is pending approval. You cannot change availability until approved by LSM.');
+      return;
+    }
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     setPendingStatus(newStatus);
     setShowAvailabilityModal(true);
@@ -373,6 +384,10 @@ export default function ProviderProfile() {
   }, [isAuthenticated, user, router, isLoading]);
 
   const handleEdit = () => {
+    if (!canEdit) {
+      setErrorMessage('Your account is pending approval. You cannot edit your profile until approved by LSM.');
+      return;
+    }
     setIsEditing(true);
     setErrors({});
     setSuccessMessage('');
@@ -418,6 +433,12 @@ export default function ProviderProfile() {
   };
 
   const handleSave = async () => {
+    if (!canEdit) {
+      setErrorMessage('Your account is pending approval. You cannot edit your profile until approved by LSM.');
+      setIsEditing(false);
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsSaving(true);
@@ -509,80 +530,118 @@ export default function ProviderProfile() {
   }
 
   return (
-    <div className="py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your service provider information</p>
+        <div className="mb-4 sm:mb-8">
+          <button
+            onClick={() => router.push('/provider/dashboard')}
+            className="mb-3 sm:mb-4 text-navy-600 hover:text-navy-700 text-sm sm:text-base"
+          >
+            ← Back to Dashboard
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Profile</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Manage your service provider information</p>
         </div>
 
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mb-4 sm:mb-6 bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-green-800 font-medium">{successMessage}</span>
+            <span className="text-sm sm:text-base text-green-800 font-medium">{successMessage}</span>
           </div>
         )}
 
         {/* Error Message */}
         {errorMessage && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+          <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <span className="text-red-800 font-medium">{errorMessage}</span>
+            <span className="text-sm sm:text-base text-red-800 font-medium">{errorMessage}</span>
           </div>
         )}
 
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           {/* Card Header */}
-          <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Service Provider Information</h2>
+          <div className="border-b border-gray-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Service Provider Information</h2>
               <p className="text-sm text-gray-500 mt-1">Update your business and personal details</p>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Availability Toggle Button */}
-              <button
-                onClick={handleAvailabilityToggle}
-                disabled={isTogglingAvailability || isEditing}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
-                  currentStatus === 'active'
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <div className={`w-2 h-2 rounded-full ${
-                  currentStatus === 'active' ? 'bg-green-600' : 'bg-gray-600'
-                }`}></div>
-                {isTogglingAvailability ? 'Updating...' : currentStatus === 'active' ? 'Available' : 'Unavailable'}
-              </button>
-              
-              {/* Edit Profile Button */}
-              {!isEditing && (
-                <button
-                  onClick={handleEdit}
-                  className="flex items-center gap-2 px-4 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit Profile
-                </button>
-              )}
-            </div>
+             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+               {/* Show Approval Status or Availability Toggle */}
+               {!canEdit ? (
+                 // Show approval status when not approved
+                 <span className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base ${
+                   providerApprovalStatus === 'pending'
+                     ? 'bg-yellow-100 text-yellow-700'
+                     : providerApprovalStatus === 'rejected'
+                     ? 'bg-red-100 text-red-700'
+                     : 'bg-gray-100 text-gray-700'
+                 }`}>
+                   <div className={`w-2 h-2 rounded-full ${
+                     providerApprovalStatus === 'pending'
+                       ? 'bg-yellow-600'
+                       : providerApprovalStatus === 'rejected'
+                       ? 'bg-red-600'
+                       : 'bg-gray-600'
+                   }`}></div>
+                   {providerApprovalStatus === 'pending' 
+                     ? 'Pending Approval' 
+                     : providerApprovalStatus === 'rejected'
+                     ? 'Rejected'
+                     : 'Not Active'}
+                 </span>
+               ) : (
+                 // Show availability toggle when approved
+                 <button
+                   onClick={handleAvailabilityToggle}
+                   disabled={isTogglingAvailability || isEditing}
+                   className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors font-medium text-sm sm:text-base ${
+                     currentStatus === 'active'
+                       ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                   } disabled:opacity-50 disabled:cursor-not-allowed`}
+                 >
+                   <div className={`w-2 h-2 rounded-full ${
+                     currentStatus === 'active' ? 'bg-green-600' : 'bg-gray-600'
+                   }`}></div>
+                   {isTogglingAvailability ? 'Updating...' : currentStatus === 'active' ? 'Available' : 'Unavailable'}
+                 </button>
+               )}
+               
+               {/* Edit Profile Button */}
+               {!isEditing && (
+                 <button
+                   onClick={handleEdit}
+                   disabled={!canEdit}
+                   className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap ${
+                     canEdit 
+                       ? 'bg-navy-600 text-white hover:bg-navy-700' 
+                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                   }`}
+                   title={!canEdit ? 'Your account is pending approval. You cannot edit your profile until approved by LSM.' : ''}
+                 >
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                   </svg>
+                   <span className="hidden sm:inline">Edit Profile</span>
+                   <span className="sm:hidden">Edit</span>
+                 </button>
+               )}
+             </div>
           </div>
 
           {/* Card Body */}
-          <div className="px-6 py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
             <div className="space-y-6">
               {/* Avatar Section */}
-              <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-3xl">
+              <div className="flex items-center gap-4 sm:gap-6 pb-4 sm:pb-6 border-b border-gray-200">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-3xl flex-shrink-0">
                   {profileData.firstName && profileData.lastName 
                     ? `${profileData.firstName[0].toUpperCase()}${profileData.lastName[0].toUpperCase()}`
                     : profileData.firstName
@@ -590,23 +649,23 @@ export default function ProviderProfile() {
                     : 'P'
                   }
                 </div>
-                <div>
-                  <h3 className="text-2xl font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 break-words">
                     {profileData.firstName} {profileData.lastName}
                   </h3>
-                  <p className="text-gray-600">{profileData.email}</p>
+                  <p className="text-sm sm:text-base text-gray-600 break-words">{profileData.email}</p>
                   {profileData.businessName && (
-                    <p className="text-blue-600 font-medium">{profileData.businessName}</p>
+                    <p className="text-sm sm:text-base text-blue-600 font-medium break-words">{profileData.businessName}</p>
                   )}
                 </div>
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Basic Information */}
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <h4 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Basic Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {/* First Name */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -713,11 +772,11 @@ export default function ProviderProfile() {
                 {/* Services Section */}
                 {isEditing && (
                   <div>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {editData.services.map((service, serviceIndex) => (
-                        <div key={service.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                          <div className="flex items-center justify-between mb-4">
-                            <h5 className="font-medium text-gray-900">Service {serviceIndex + 1}</h5>
+                        <div key={service.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                            <h5 className="font-medium text-gray-900 text-sm sm:text-base">Service {serviceIndex + 1}</h5>
                             {editData.services.length > 1 && (
                               <button
                                 type="button"
@@ -731,7 +790,7 @@ export default function ProviderProfile() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                             {/* Category Type */}
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -952,18 +1011,18 @@ export default function ProviderProfile() {
 
               {/* Action Buttons */}
               {isEditing && (
-                <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-200">
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="flex-1 bg-navy-600 text-white py-3 rounded-lg font-semibold hover:bg-navy-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 bg-navy-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-navy-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
                     onClick={handleCancel}
                     disabled={isSaving}
-                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gray-200 text-gray-700 py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     Cancel
                   </button>
@@ -973,22 +1032,32 @@ export default function ProviderProfile() {
           </div>
         </div>
 
-        {/* Account Info */}
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-gray-900">Account Type</h3>
-              <p className="text-sm text-gray-600 mt-1">Service Provider Account</p>
-            </div>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              currentStatus === 'active' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              {currentStatus === 'active' ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-        </div>
+         {/* Account Info */}
+         <div className="mt-4 sm:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+           <div className="flex items-center justify-between">
+             <div>
+               <h3 className="text-sm font-medium text-gray-900">Account Type</h3>
+               <p className="text-sm text-gray-600 mt-1">Service Provider Account</p>
+             </div>
+             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+               providerApprovalStatus === 'active' 
+                 ? 'bg-green-100 text-green-800' 
+                 : providerApprovalStatus === 'pending'
+                 ? 'bg-yellow-100 text-yellow-800'
+                 : providerApprovalStatus === 'rejected'
+                 ? 'bg-red-100 text-red-800'
+                 : 'bg-gray-100 text-gray-800'
+             }`}>
+               {providerApprovalStatus === 'active' 
+                 ? 'Active' 
+                 : providerApprovalStatus === 'pending'
+                 ? 'Pending Approval'
+                 : providerApprovalStatus === 'rejected'
+                 ? 'Rejected'
+                 : 'Inactive'}
+             </span>
+           </div>
+         </div>
       </div>
 
       {/* Availability Confirmation Modal */}

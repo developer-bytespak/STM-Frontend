@@ -11,6 +11,7 @@ import { SERVICES, getGranularServices } from '@/data/services';
 import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 import { COUNTRY_CODES, validatePhoneForCountry, formatPhoneWithCountry } from '@/data/countryCodes';
 import { getAreaCodesByCountry } from '@/data/areaCodes';
+import { authCookies } from '@/lib/cookies';
 
 interface DocumentData {
   file: File | null;
@@ -73,7 +74,7 @@ type SignupStep = 'form' | 'success';
 
 export default function ServiceProviderSignupPage() {
   const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/';
+  const returnUrl = searchParams.get('returnUrl') || '/provider/dashboard?status=pending';
   const planId = searchParams.get('planId');
   
   // Get plan information from plan ID
@@ -647,23 +648,43 @@ export default function ServiceProviderSignupPage() {
       localStorage.setItem('user_role', user.role);
       localStorage.setItem('user_id', user.id.toString());
       localStorage.setItem('approval_status', 'pending');
+      
+      // Store user data in cookies for useAuth hook to pick up
+      const userData = {
+        id: user.id,
+        name: `${sanitizedData.firstName} ${sanitizedData.lastName}`,
+        email: user.email,
+        role: user.role
+      };
+      authCookies.setUserData(userData);
+      authCookies.setAccessToken(accessToken);
+      if (refreshToken) {
+        authCookies.setRefreshToken(refreshToken);
+      }
 
       // ==================== UPLOAD DOCUMENTS (if any) ====================
       const documentsWithFiles = formData.documents.filter(doc => doc.file);
+      console.log(`[SP REGISTRATION] Attempting to upload ${documentsWithFiles.length} document(s)`);
       
       if (documentsWithFiles.length > 0) {
         try {
-          for (const doc of documentsWithFiles) {
-            await uploadDocument(
+          for (let i = 0; i < documentsWithFiles.length; i++) {
+            const doc = documentsWithFiles[i];
+            console.log(`[SP REGISTRATION] Uploading document ${i + 1}/${documentsWithFiles.length}: ${doc.file?.name}`);
+            const uploadResult = await uploadDocument(
               doc.file!,
               sanitizeInput(doc.description),
               accessToken
             );
+            console.log(`[SP REGISTRATION] Document ${i + 1} uploaded successfully, id: ${uploadResult.id}`);
           }
+          console.log(`[SP REGISTRATION] All documents uploaded successfully`);
         } catch (uploadError) {
-          console.error('Document upload failed:', uploadError);
+          console.error('[SP REGISTRATION] Document upload failed:', uploadError);
           // Don't fail the entire registration, just log the error
         }
+      } else {
+        console.log('[SP REGISTRATION] No documents to upload');
       }
 
       // Move to success screen

@@ -270,6 +270,7 @@ export interface BusinessInfo {
 
 export interface ProfileStatus {
   current: string;
+  isActive: boolean; // Business availability toggle
   canDeactivate: boolean;
   activeJobsCount: number;
   warnings: number;
