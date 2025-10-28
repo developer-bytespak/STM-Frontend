@@ -249,26 +249,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Admin/LSM: Always go to dashboard (ignore returnUrl for management users)
         redirectBasedOnRole(userData.role);
       } else if (userData.role === 'service_provider') {
-        // Service Provider: Check status before redirecting
-        try {
-          // Try to fetch provider profile to check status
-          const { providerApi } = await import('@/api/provider');
-          const profile = await providerApi.getProfile();
-          
-          // Check if provider status is active
-          if (profile.status.current === 'active') {
-            // Provider is active - go to dashboard
-            redirectBasedOnRole(userData.role);
-          } else {
-            // Provider is pending/rejected - show popup and redirect to login
-            alert('Your request is under review. Please wait for approval before accessing the dashboard.');
-            router.push('/login');
-          }
-        } catch (error) {
-          // If profile fetch fails, provider is likely pending/rejected
-          alert('Your request is under review. Please wait for approval before accessing the dashboard.');
-          router.push('/login');
-        }
+        // Service Provider: Always allow login, dashboard will handle status
+        redirectBasedOnRole(userData.role);
       } else {
         // Customer: Return to where they were, or homepage as fallback
         if (returnUrl) {
@@ -310,26 +292,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Admin/LSM: Always go to dashboard
           redirectBasedOnRole(userData.role);
         } else if (userData.role === 'service_provider') {
-          // Service Provider: Check status before redirecting
-          try {
-            // Try to fetch provider profile to check status
-            const { providerApi } = await import('@/api/provider');
-            const profile = await providerApi.getProfile();
-            
-            // Check if provider status is active
-            if (profile.status.current === 'active') {
-              // Provider is active - go to dashboard
-              redirectBasedOnRole(userData.role);
-            } else {
-              // Provider is pending/rejected - show popup and redirect to login
-              alert('Your request is under review. Please wait for approval before accessing the dashboard.');
-              router.push('/login');
-            }
-          } catch (error) {
-            // If profile fetch fails, provider is likely pending/rejected
-            alert('Your request is under review. Please wait for approval before accessing the dashboard.');
-            router.push('/login');
-          }
+          // Service Provider: Always allow login, dashboard will handle status
+          redirectBasedOnRole(userData.role);
         } else {
           // Customer: Return to where they were, or homepage as fallback
           if (returnUrl) {
