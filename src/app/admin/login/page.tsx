@@ -200,7 +200,7 @@ export default function AdminLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-red-900 mb-2">
-            ConnectAgain
+            ServiceProStars
           </h1>
           <p className="text-gray-600">Admin Portal</p>
         </div>
@@ -237,7 +237,7 @@ export default function AdminLoginPage() {
                       focus:outline-none focus:ring-2 focus:ring-red-500
                       ${errors.email ? 'border-red-500' : 'border-gray-300'}
                     `}
-                    placeholder="admin@connectagain.com"
+                    placeholder="admin@serviceprostars.com"
                   />
                   {errors.email && (
                     <p className="text-red-500 text-xs mt-1">{errors.email}</p>

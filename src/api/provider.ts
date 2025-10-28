@@ -265,6 +265,7 @@ export interface BusinessInfo {
   maxPrice: number | null;
   experience: number;
   experienceLevel: string;
+  websiteUrl?: string;
 }
 
 export interface ProfileStatus {
@@ -327,6 +328,7 @@ export interface UpdateProfileDto {
   max_price?: number;
   experience?: number;
   service_areas?: string[];
+  websiteUrl?: string;
 }
 
 export interface UpdateProfileResponse {
@@ -526,13 +528,14 @@ class ProviderApi {
 
   /**
    * Get all pending job requests for current provider
-   * Endpoint: GET /provider/pending-jobs
+   * Endpoint: GET /provider/jobs (with optional status filter)
    */
-  async getPendingJobs(): Promise<any[]> {
-    const response = await apiClient.request<any[]>('/provider/pending-jobs', {
+  async getPendingJobs(status?: string): Promise<any[]> {
+    const url = status ? `/provider/jobs?status=${status}` : '/provider/jobs';
+    const response = await apiClient.request<{data: any[]}>(url, {
       method: 'GET'
     });
-    return response;
+    return response.data;
   }
 
   /**

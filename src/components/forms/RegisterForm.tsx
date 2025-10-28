@@ -220,7 +220,7 @@ export default function RegisterForm() {
       {isSuccess ? (
         <SuccessScreen
           title="Account Created Successfully!"
-          message="You're all set! Welcome to ConnectAgain."
+          message="You're all set! Welcome to ServiceProStars."
           redirectTo={returnUrl || '/'}
           redirectDelay={2000}
         />

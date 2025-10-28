@@ -283,6 +283,21 @@ function ProviderPageContent() {
                     </span>
                   </div>
                 )}
+                {provider.websiteUrl && (
+                  <div className="flex items-center text-gray-600">
+                    <a 
+                      href={provider.websiteUrl.startsWith('http') ? provider.websiteUrl : `https://${provider.websiteUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-navy-600 hover:text-navy-700 transition-colors flex items-center"
+                    >
+                      <span>Visit Our Website</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 

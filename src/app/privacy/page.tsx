@@ -95,7 +95,7 @@ export default function PrivacyPage() {
             </p>
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <p className="text-gray-700">
-                <strong>Email:</strong> privacy@connectagain.com<br />
+                <strong>Email:</strong> privacy@serviceprostars.com<br />
                 <strong>Phone:</strong> 1-800-SERVICE-1<br />
                 <strong>Address:</strong> 123 Service Street, Tech City, TC 12345
               </p>

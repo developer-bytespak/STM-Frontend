@@ -271,6 +271,7 @@ class HomepageApi {
           certifications: provider.certifications,
           isAvailable: provider.isAvailable ?? true,
           reviews: provider.reviews,
+          websiteUrl: provider.websiteUrl,
         };
       }
 

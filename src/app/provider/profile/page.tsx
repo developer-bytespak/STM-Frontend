@@ -31,6 +31,7 @@ interface ProviderProfile {
   phone: string;
   businessName: string;
   description: string;
+  websiteUrl: string;
   services: ServiceData[];
   documents: DocumentData[];
 }
@@ -57,6 +58,7 @@ export default function ProviderProfile() {
     phone: '',
     businessName: '',
     description: '',
+    websiteUrl: '',
     services: [{
       id: '1',
       categoryType: '',
@@ -80,6 +82,7 @@ export default function ProviderProfile() {
     phone: '',
     businessName: '',
     description: '',
+    websiteUrl: '',
     services: [{
       id: '1',
       categoryType: '',
@@ -296,6 +299,7 @@ export default function ProviderProfile() {
           phone: apiData.user.phone || '',
           businessName: apiData.business.businessName || '',
           description: apiData.business.description || '',
+          websiteUrl: apiData.business.websiteUrl || '',
           services: apiData.services.map((service, index) => ({
             id: service.id.toString(),
             categoryType: service.category || '',
@@ -335,6 +339,7 @@ export default function ProviderProfile() {
                 phone: providerData.phone || '',
                 businessName: providerData.businessName || '',
                 description: providerData.description || '',
+                websiteUrl: providerData.websiteUrl || '',
                 services: providerData.services || [{
                   id: '1',
                   categoryType: '',
@@ -400,6 +405,14 @@ export default function ProviderProfile() {
       newErrors.businessName = 'Business name is required';
     }
 
+    // Validate website URL if provided
+    if (editData.websiteUrl.trim()) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(editData.websiteUrl.trim())) {
+        newErrors.websiteUrl = 'Please enter a valid website URL (e.g., https://www.example.com)';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -418,6 +431,7 @@ export default function ProviderProfile() {
         phone: editData.phone,
         business_name: editData.businessName,
         description: editData.description,
+        websiteUrl: editData.websiteUrl,
         location: apiProfileData?.business.location || '',
         min_price: editData.services[0]?.minPrice ? parseFloat(editData.services[0].minPrice) : undefined,
         max_price: editData.services[0]?.maxPrice ? parseFloat(editData.services[0].maxPrice) : undefined,
@@ -874,6 +888,44 @@ export default function ProviderProfile() {
                     />
                   ) : (
                     <p className="px-4 py-2 text-gray-900 whitespace-pre-line">{profileData.description || 'No description provided'}</p>
+                  )}
+                </div>
+
+                {/* Website URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Website URL <span className="text-gray-500">(Optional)</span>
+                  </label>
+                  {isEditing ? (
+                    <div>
+                      <input
+                        type="url"
+                        value={editData.websiteUrl}
+                        onChange={(e) => setEditData({ ...editData, websiteUrl: e.target.value })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
+                          errors.websiteUrl ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="https://www.yourwebsite.com"
+                      />
+                      {errors.websiteUrl && (
+                        <p className="text-red-500 text-sm mt-1">{errors.websiteUrl}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-2 text-gray-900">
+                      {profileData.websiteUrl ? (
+                        <a 
+                          href={profileData.websiteUrl.startsWith('http') ? profileData.websiteUrl : `https://${profileData.websiteUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-navy-600 hover:text-navy-700 underline"
+                        >
+                          {profileData.websiteUrl}
+                        </a>
+                      ) : (
+                        'No website provided'
+                      )}
+                    </div>
                   )}
                 </div>
 

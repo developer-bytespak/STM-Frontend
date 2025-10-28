@@ -8,13 +8,18 @@ import { useAuth } from '@/hooks/useAuth';
 export default function ProviderJobs() {
   const { user } = useAuth();
   
+  // Debug: Log user info
+  console.log('🔍 Current user:', user);
+  console.log('🔍 User role:', user?.role);
+  console.log('🔍 User ID:', user?.id);
+  
   // State for data
   const [jobRequests, setJobRequests] = useState<JobDetailsResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for filters
-  const [statusFilter, setStatusFilter] = useState('new');
+  // State for filters - default to 'all' instead of 'new'
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   
@@ -28,35 +33,74 @@ export default function ProviderJobs() {
       setError(null);
       
       // Get pending job requests for current provider
-      const pendingJobs = await providerApi.getPendingJobs();
-      console.log('🔍 Pending Jobs from API:', pendingJobs);
+      const pendingJobs = await providerApi.getPendingJobs(statusFilter === 'all' ? undefined : statusFilter);
+      console.log('🔍 Fetching jobs with status filter:', statusFilter);
+      console.log('🔍 All Jobs from API:', pendingJobs);
+      console.log('🔍 Jobs count:', pendingJobs.length);
       
-      // Convert to JobDetailsResponse format for consistency
-      const requests = await Promise.all(
-        pendingJobs.map(async (job) => {
-          try {
-            // Get full details for each job
-            const details = await providerApi.getJobDetails(job.id);
-            console.log('🔍 Job Details for Job ID:', job.id, {
-              jobPrice: details.job.price,
-              customerBudget: details.job.originalAnswers?.budget
-            });
-            return details;
-          } catch (err) {
-            console.error(`Failed to fetch details for job ${job.id}:`, err);
-            return null;
-          }
-        })
-      );
+      // Debug: Show all jobs regardless of status for now
+      if (pendingJobs.length === 0) {
+        console.log('⚠️ No jobs returned from API - this might indicate:');
+        console.log('1. Provider has no jobs assigned');
+        console.log('2. Authentication issue');
+        console.log('3. Backend error');
+        console.log('4. Database connection issue');
+      }
       
-      // Filter out null results
-      const validRequests = requests.filter(
-        (request): request is JobDetailsResponse => request !== null
-      );
+      // Convert simplified jobs to JobDetailsResponse format for consistency
+      const requests = pendingJobs.map((job) => ({
+        job: {
+          id: job.id,
+          service: job.service,
+          category: job.category,
+          status: job.status,
+          price: job.price,
+          originalAnswers: {}, // Not available in simplified format
+          editedAnswers: {}, // Not available in simplified format
+          spAccepted: false, // Default value
+          pendingApproval: false, // Default value
+          location: 'Location not specified', // Not available in simplified format
+          description: `${job.service} service request`, // Basic description from service name
+          urgency: '', // Not available in simplified format
+          dimensions: '', // Not available in simplified format
+          additionalDetails: '', // Not available in simplified format
+          budget: '', // Not available in simplified format
+          preferredDate: job.scheduledAt || null,
+          requiresInPersonVisit: false,
+          scheduledAt: job.scheduledAt,
+          completedAt: job.completedAt,
+          createdAt: job.createdAt,
+          updatedAt: job.createdAt, // Use createdAt as fallback
+          responseDeadline: null,
+          paidAt: null
+        },
+        customer: {
+          name: job.customer.name,
+          phone: job.customer.phone,
+          address: 'Address not specified' // Not available in simplified format
+        },
+        payment: job.paymentStatus ? {
+          amount: job.price,
+          method: 'pending',
+          status: job.paymentStatus,
+          markedAt: null,
+          notes: null
+        } : null,
+        chatId: job.chatId,
+        actions: {
+          canMarkComplete: job.status === 'in_progress',
+          canMarkPayment: job.status === 'completed'
+        }
+      }));
       
-      setJobRequests(validRequests);
+      setJobRequests(requests);
     } catch (err: any) {
       console.error('Failed to fetch job requests:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.status,
+        response: err.response
+      });
       setError(err.message || 'Failed to load customer job requests');
       setJobRequests([]);
     } finally {
@@ -66,7 +110,7 @@ export default function ProviderJobs() {
 
   useEffect(() => {
     fetchJobRequests();
-  }, []);
+  }, [statusFilter]); // Refetch when status filter changes
 
   // Filter and sort requests
   const filteredRequests = useMemo(() => {
@@ -160,22 +204,22 @@ export default function ProviderJobs() {
   return (
     <div>
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white shadow rounded-lg mx-8">
+        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
           <div className="py-6">
-            <div className="flex items-center mb-4">
+            <div className="flex items-center mb-2">
               <button
                 onClick={() => window.history.back()}
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
               </button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Customer Job Requests</h1>
-            <p className="mt-2 text-gray-600">Review and respond to new customer service requests</p>
+            <h1 className="text-2xl font-bold text-gray-900">Customer Job Requests</h1>
+            <p className="mt-1 text-gray-600">Review and respond to new customer service requests</p>
           </div>
         </div>
       </div>
@@ -183,42 +227,42 @@ export default function ProviderJobs() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                   <span className="text-2xl">📬</span>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-2">
                 <p className="text-sm font-medium text-gray-500">New Customer Requests</p>
                 <p className="text-3xl font-bold text-yellow-600">{newRequestsCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <span className="text-2xl">✅</span>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-2">
                 <p className="text-sm font-medium text-gray-500">Accepted Jobs</p>
                 <p className="text-3xl font-bold text-green-600">{acceptedCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-2xl">📊</span>
                 </div>
               </div>
-              <div className="ml-4">
+              <div className="ml-2">
                 <p className="text-sm font-medium text-gray-500">Total Requests</p>
                 <p className="text-3xl font-bold text-blue-600">{totalRequests}</p>
               </div>
