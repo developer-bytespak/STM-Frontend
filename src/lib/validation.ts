@@ -80,15 +80,11 @@ export const validatePhone = (phone: string): ValidationResult => {
 
   // Remove spaces, dashes, and parentheses for validation
   const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-  
-  // Debug logging
-  console.log('Phone validation - Input:', phone, 'Cleaned:', cleanPhone, 'Length:', cleanPhone.length);
 
   // Check for E.164 format: +1234567890 (international format)
   // E.164 allows 7-15 digits total (including country code)
   const e164Regex = /^\+[1-9]\d{6,14}$/;
   if (e164Regex.test(cleanPhone)) {
-    console.log('Phone validation - E.164 format matched');
     return { valid: true };
   }
 
@@ -97,7 +93,6 @@ export const validatePhone = (phone: string): ValidationResult => {
   // American format: 10 digits (no country code) or 11 digits (with 1 country code)
   const americanRegex = /^1?[2-9]\d{2}[2-9]\d{6}$/;
   if (americanRegex.test(cleanPhone)) {
-    console.log('Phone validation - American format matched');
     return { valid: true };
   }
 
@@ -106,12 +101,9 @@ export const validatePhone = (phone: string): ValidationResult => {
   if (cleanPhone.startsWith('+1') && cleanPhone.length === 12) {
     const withoutPlus = cleanPhone.substring(1); // Remove the +
     if (/^1[2-9]\d{2}[2-9]\d{6}$/.test(withoutPlus)) {
-      console.log('Phone validation - +1 American format matched');
       return { valid: true };
     }
   }
-
-  console.log('Phone validation - No format matched');
   return { 
     valid: false, 
     error: 'Please enter a valid phone number (e.g., (555) 123-4567 or +1234567890)' 
@@ -197,38 +189,27 @@ export const formatPhoneNumber = (phone: string): string => {
  * Format phone number to E.164 format for backend API
  */
 export const formatPhoneToE164 = (phone: string): string => {
-  console.log('formatPhoneToE164 - Input:', phone);
-  
   // If already in E.164 format (starts with +), validate and return
   if (phone.startsWith('+')) {
     const digits = phone.replace(/\D/g, '');
-    const result = `+${digits}`;
-    console.log('formatPhoneToE164 - E.164 format, result:', result);
-    return result;
+    return `+${digits}`;
   }
   
   // Remove all non-digit characters
   const digits = phone.replace(/\D/g, '');
-  console.log('formatPhoneToE164 - Digits only:', digits, 'Length:', digits.length);
   
   // If it starts with 1 (US country code), add +
   if (digits.startsWith('1') && digits.length === 11) {
-    const result = `+${digits}`;
-    console.log('formatPhoneToE164 - US with country code, result:', result);
-    return result;
+    return `+${digits}`;
   }
   
   // If it's 10 digits (US number without country code), add +1
   if (digits.length === 10) {
-    const result = `+1${digits}`;
-    console.log('formatPhoneToE164 - US without country code, result:', result);
-    return result;
+    return `+1${digits}`;
   }
   
   // For any other international format, add + if not present
-  const result = `+${digits}`;
-  console.log('formatPhoneToE164 - Other format, result:', result);
-  return result;
+  return `+${digits}`;
 };
 
 
