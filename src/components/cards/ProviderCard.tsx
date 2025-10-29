@@ -19,6 +19,8 @@ interface ProviderCardProps {
     };
     hourlyRate?: number;
     image?: string; // Optional image URL
+    logoUrl?: string;
+    bannerUrl?: string;
   };
   onCallNow?: () => void;
   onGetEstimate?: () => void;
@@ -51,23 +53,20 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
         {/* Left: Thumbnail/Image Placeholder */}
         <div className="flex-shrink-0 w-full sm:w-auto">
           <div className="w-full h-[160px] sm:w-[200px] sm:h-[140px] bg-gradient-to-br from-cyan-400 via-blue-400 to-blue-500 rounded-lg overflow-hidden relative shadow-sm">
-            {/* Background Image */}
-            {provider.image && (
+            {/* Background Image - Prefer bannerUrl, fallback to image, then gradient */}
+            {provider.bannerUrl ? (
+              <img 
+                src={provider.bannerUrl} 
+                alt={provider.businessName || 'Provider'} 
+                className="w-full h-full object-cover"
+              />
+            ) : provider.image ? (
               <img 
                 src={provider.image} 
                 alt={provider.businessName || 'Provider'} 
                 className="w-full h-full object-cover"
               />
-            )}
-            
-            {/* Play Button Overlay */}
-            {/* <div className="absolute inset-0 flex items-center justify-center">
-              <button className="flex items-center justify-center w-14 h-14 bg-white rounded-full hover:scale-110 transition-transform shadow-lg">
-                <svg className="w-6 h-6 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                </svg>
-              </button>
-            </div> */}
+            ) : null}
           </div>
         </div>
 
@@ -155,10 +154,20 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
 
           {/* Right: Badge and Rating - visible only on desktop */}
           <div className="hidden sm:flex flex-col items-center justify-center gap-2 flex-shrink-0 min-w-[100px]">
-            {/* On Top Badge */}
-            <div className="bg-gray-50 text-gray-700 text-xs font-semibold px-4 py-1.5 rounded border border-gray-200">
-              logo
-            </div>
+            {/* Logo */}
+            {provider.logoUrl ? (
+              <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
+                <img 
+                  src={provider.logoUrl} 
+                  alt={`${provider.businessName || 'Provider'} logo`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="bg-gray-50 text-gray-700 text-xs font-semibold px-4 py-1.5 rounded border border-gray-200">
+                logo
+              </div>
+            )}
             
             {/* Rating */}
             <div className="text-5xl font-bold text-blue-600">

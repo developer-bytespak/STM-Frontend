@@ -68,6 +68,8 @@ interface BackendProviderSearchResult {
       name: string;
       category: string;
     }>;
+    logoUrl?: string;
+    bannerUrl?: string;
   }>;
   count: number;
   service: {
@@ -101,6 +103,8 @@ function transformProvider(backend: BackendProviderSearchResult['providers'][0])
     },
     services: backend.services,
     serviceAreas: backend.serviceAreas,
+    logoUrl: backend.logoUrl,
+    bannerUrl: backend.bannerUrl,
   };
 }
 
@@ -209,9 +213,13 @@ class HomepageApi {
 
       // Unwrap backend response
       if (response.success && response.data) {
+        console.log('Homepage search response:', response.data);
+        console.log('First provider data:', response.data.providers[0]);
         // Transform providers to homepage format
+        const transformedProviders = response.data.providers.map(transformProvider);
+        console.log('Transformed first provider:', transformedProviders[0]);
         return {
-          providers: response.data.providers.map(transformProvider),
+          providers: transformedProviders,
           count: response.data.count,
           service: response.data.service,
           location: response.data.location,
@@ -272,6 +280,9 @@ class HomepageApi {
           isAvailable: provider.isAvailable ?? true,
           reviews: provider.reviews,
           websiteUrl: provider.websiteUrl,
+          logoUrl: provider.logoUrl,
+          bannerUrl: provider.bannerUrl,
+          galleryImages: provider.galleryImages || [],
         };
       }
 

@@ -12,6 +12,8 @@ import { homepageApi } from '@/api/homepage';
 import { extractProviderIdFromSlug } from '@/lib/slug';
 import type { ProviderDetail, ProviderService } from '@/types/homepage';
 import ProviderProfileSkeleton from '@/components/ui/ProviderProfileSkeleton';
+import ServiceImageViewer from '@/components/gallery/ServiceImageViewer';
+import ServiceImageCard from '@/components/gallery/ServiceImageCard';
 
 function ProviderPageContent() {
   const params = useParams();
@@ -26,6 +28,8 @@ function ProviderPageContent() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [backUrl, setBackUrl] = useState('/');
+  const [showGalleryViewer, setShowGalleryViewer] = useState(false);
+  const [galleryImageIndex, setGalleryImageIndex] = useState(0);
 
   const slug = params.slug as string;
   const searchedService = searchParams.get('service');
@@ -192,6 +196,31 @@ function ProviderPageContent() {
       {/* Header */}
       <AuthenticatedHeader />
       
+      {/* Banner Image */}
+      {provider.bannerUrl && (
+        <div className="relative h-64 sm:h-80 overflow-hidden bg-gray-200" style={{ 
+          width: '100vw', 
+          position: 'relative',
+          left: '50%',
+          right: '50%',
+          marginLeft: '-50vw',
+          marginRight: '-50vw'
+        }}>
+          <img
+            src={provider.bannerUrl}
+            alt={`${provider.businessName} banner`}
+            className="w-full h-full object-cover object-center"
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'cover', 
+              objectPosition: 'center',
+              display: 'block'
+            }}
+          />
+        </div>
+      )}
+
       {/* Provider Header */}
       <div className="bg-white border-b border-gray-200 mb-6 sm:mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -243,10 +272,21 @@ function ProviderPageContent() {
           )}
 
           <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-            {/* Avatar */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0 mx-auto sm:mx-0">
-              {provider.ownerName.split(' ').map(n => n[0]).join('')}
-            </div>
+            {/* Avatar/Logo */}
+            {provider.logoUrl ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-white shadow-lg flex-shrink-0 mx-auto sm:mx-0 bg-gray-200">
+                <img 
+                  src={provider.logoUrl} 
+                  alt={`${provider.businessName} logo`}
+                  className="w-full h-full object-cover object-center"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0 mx-auto sm:mx-0">
+                {provider.ownerName.split(' ').map(n => n[0]).join('')}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex-1 text-center sm:text-left w-full">
@@ -384,6 +424,28 @@ function ProviderPageContent() {
                 <p className="text-gray-500">No services currently available</p>
               )}
             </div>
+
+            {/* Service Images */}
+            {provider.galleryImages && provider.galleryImages.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Service Images</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {provider.galleryImages
+                    .sort((a, b) => a.order - b.order)
+                    .map((image, index) => (
+                      <ServiceImageCard
+                        key={image.id}
+                        image={image}
+                        index={index}
+                        onClick={(index) => {
+                          setGalleryImageIndex(index);
+                          setShowGalleryViewer(true);
+                        }}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* Certifications */}
             {provider.certifications && provider.certifications.length > 0 && (
@@ -540,6 +602,16 @@ function ProviderPageContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Service Image Viewer Modal */}
+      {provider && provider.galleryImages && provider.galleryImages.length > 0 && (
+        <ServiceImageViewer
+          images={provider.galleryImages}
+          isOpen={showGalleryViewer}
+          onClose={() => setShowGalleryViewer(false)}
+          initialIndex={galleryImageIndex}
+        />
       )}
     </div>
   );

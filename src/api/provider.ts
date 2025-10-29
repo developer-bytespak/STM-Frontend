@@ -308,6 +308,17 @@ export interface ProfileStatistics {
   rating: number;
 }
 
+export interface ProviderImages {
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  galleryImages: Array<{
+    id: string;
+    url: string;
+    caption?: string;
+    order: number;
+  }>;
+}
+
 export interface ProfileData {
   user: UserInfo;
   business: BusinessInfo;
@@ -316,6 +327,7 @@ export interface ProfileData {
   serviceAreas: ServiceArea[];
   documents: DocumentsInfo;
   statistics: ProfileStatistics;
+  images?: ProviderImages;
 }
 
 export interface UpdateProfileDto {
@@ -620,7 +632,95 @@ class ProviderApi {
     return response;
   }
 
-  // TODO: Add other provider API methods as backend endpoints are ready
+  /**
+   * Get provider images
+   * Endpoint: GET /provider/images
+   */
+  async getImages(): Promise<ProviderImages> {
+    const response = await apiClient.request<ProviderImages>('/provider/images', {
+      method: 'GET'
+    });
+    return response;
+  }
+
+  /**
+   * Upload logo image
+   * Endpoint: POST /provider/images/logo
+   */
+  async uploadLogo(file: File): Promise<{ logoUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.upload<{ logoUrl: string }>('/provider/images/logo', formData);
+    return response;
+  }
+
+  /**
+   * Upload banner image
+   * Endpoint: POST /provider/images/banner
+   */
+  async uploadBanner(file: File): Promise<{ bannerUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.upload<{ bannerUrl: string }>('/provider/images/banner', formData);
+    return response;
+  }
+
+  /**
+   * Upload gallery image
+   * Endpoint: POST /provider/images/gallery
+   */
+  async uploadGalleryImage(file: File, caption?: string): Promise<{
+    image: {
+      id: string;
+      url: string;
+      caption?: string;
+      order: number;
+    };
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (caption) {
+      formData.append('caption', caption);
+    }
+
+    const response = await apiClient.upload<{
+      image: {
+        id: string;
+        url: string;
+        caption?: string;
+        order: number;
+      };
+    }>('/provider/images/gallery', formData);
+    return response;
+  }
+
+  /**
+   * Delete gallery image
+   * Endpoint: DELETE /provider/images/gallery/:imageId
+   */
+  async deleteGalleryImage(imageId: string): Promise<{ success: boolean }> {
+    const response = await apiClient.request<{ success: boolean }>(`/provider/images/gallery/${imageId}`, {
+      method: 'DELETE'
+    });
+    return response;
+  }
+
+  /**
+   * Reorder gallery images
+   * Endpoint: PUT /provider/images/gallery/reorder
+   */
+  async reorderGalleryImages(imageIds: string[]): Promise<{ success: boolean }> {
+    const response = await apiClient.request<{ success: boolean }>('/provider/images/gallery/reorder', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ imageIds })
+    });
+    return response;
+  }
 }
 
 // Export singleton instance
