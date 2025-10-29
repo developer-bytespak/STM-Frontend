@@ -94,7 +94,7 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
               </div>
               {/* Rating - visible only on mobile */}
               <div className="sm:hidden text-3xl font-bold text-blue-600">
-                {provider.rating || '5.0'}
+                {provider.rating !== undefined ? provider.rating.toFixed(1) : '0.0'}
               </div>
             </div>
             
@@ -109,11 +109,11 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
             <ul className="space-y-1 text-xs sm:text-sm text-gray-800 mb-3 sm:mb-4">
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0"></span>
-                <span>{provider.experience || '5+'} in Business</span>
+                <span>{provider.experience !== undefined ? provider.experience : '0'} in Business</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0"></span>
-                <span>Google Rating {provider.rating || '5.0'} ({provider.reviewCount || 0} Reviews)</span>
+                <span>Google Rating {provider.rating !== undefined ? provider.rating.toFixed(1) : '0.0'} ({provider.reviewCount !== undefined ? provider.reviewCount : 0} Reviews)</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0"></span>
@@ -162,7 +162,7 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
             
             {/* Rating */}
             <div className="text-5xl font-bold text-blue-600">
-              {provider.rating || '5.0'}
+              {provider.rating !== undefined ? provider.rating.toFixed(1) : '0.0'}
             </div>
           </div>
         </div>
