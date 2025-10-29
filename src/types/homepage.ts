@@ -50,6 +50,8 @@ export interface HomepageProvider {
   };
   services: ProviderService[];
   serviceAreas: string[];
+  logoUrl?: string;
+  bannerUrl?: string;
 }
 
 export interface ProviderService {
@@ -88,6 +90,13 @@ export interface ProviderFilters {
  * Detailed provider information for provider detail page
  * Includes all information from HomepageProvider plus additional fields
  */
+export interface ServiceImage {
+  id: string;
+  url: string;
+  caption?: string;
+  order: number;
+}
+
 export interface ProviderDetail extends HomepageProvider {
   email?: string;
   address?: {
@@ -109,6 +118,7 @@ export interface ProviderDetail extends HomepageProvider {
   isAvailable?: boolean;
   reviews?: ProviderReview[];
   websiteUrl?: string;
+  galleryImages?: ServiceImage[];
 }
 
 export interface WorkingDay {

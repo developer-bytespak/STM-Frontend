@@ -56,6 +56,8 @@ function transformProviderForCard(provider: HomepageProvider, searchedService?: 
       state,
     },
     hourlyRate: provider.priceRange.min, // Using min price as hourly rate
+    logoUrl: provider.logoUrl, // Map logoUrl from HomepageProvider
+    bannerUrl: provider.bannerUrl, // Map bannerUrl from HomepageProvider
   };
 }
 
