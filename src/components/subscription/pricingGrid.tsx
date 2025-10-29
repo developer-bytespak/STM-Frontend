@@ -225,13 +225,17 @@ const serviceProviderPlans: Plan[] = [
 ];
 
 // Main Pricing Plans Component
-const PricingPlans: React.FC = () => {
+const PricingPlans: React.FC<{ initialUserType?: 'customer' | 'provider' | null }> = ({ initialUserType }) => {
   const { user, isAuthenticated } = useAuth();
   const [viewType, setViewType] = React.useState<'customer' | 'provider'>('customer');
   
-  // Determine which pricing to show based on user role
+  // Determine which pricing to show based on user role or initialUserType
   React.useEffect(() => {
-    if (isAuthenticated && user) {
+    if (initialUserType) {
+      // If userType is provided via URL parameter, use that
+      setViewType(initialUserType);
+    } else if (isAuthenticated && user) {
+      // If user is logged in, show their role's pricing
       if (user.role === 'customer') {
         setViewType('customer');
       } else if (user.role === 'service_provider') {
@@ -239,10 +243,10 @@ const PricingPlans: React.FC = () => {
       }
       // For admin and lsm roles, default to customer view
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, initialUserType]);
   
-  // Show toggle only if user is not logged in or has admin/lsm role
-  const showToggle = !isAuthenticated || (user?.role === 'admin' || user?.role === 'local_service_manager');
+  // Show toggle only if user is not logged in, has admin/lsm role, or no initialUserType is provided
+  const showToggle = (!isAuthenticated || (user?.role === 'admin' || user?.role === 'local_service_manager')) && !initialUserType;
   
   return (
     <div className="relative">

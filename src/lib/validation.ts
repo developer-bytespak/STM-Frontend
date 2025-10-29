@@ -82,17 +82,28 @@ export const validatePhone = (phone: string): ValidationResult => {
   const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
 
   // Check for E.164 format: +1234567890 (international format)
+  // E.164 allows 7-15 digits total (including country code)
   const e164Regex = /^\+[1-9]\d{6,14}$/;
   if (e164Regex.test(cleanPhone)) {
     return { valid: true };
   }
 
   // Check for American format: (XXX) XXX-XXXX or XXX-XXX-XXXX or XXXXXXXXXX
-  const americanRegex = /^1?[0-9]{10}$/;
+  // This handles both 10-digit and 11-digit (with country code) formats
+  // American format: 10 digits (no country code) or 11 digits (with 1 country code)
+  const americanRegex = /^1?[2-9]\d{2}[2-9]\d{6}$/;
   if (americanRegex.test(cleanPhone)) {
     return { valid: true };
   }
 
+  // Additional check for American numbers that might have been formatted with +1
+  // If it starts with +1 and has 11 digits after, it's a valid US number
+  if (cleanPhone.startsWith('+1') && cleanPhone.length === 12) {
+    const withoutPlus = cleanPhone.substring(1); // Remove the +
+    if (/^1[2-9]\d{2}[2-9]\d{6}$/.test(withoutPlus)) {
+      return { valid: true };
+    }
+  }
   return { 
     valid: false, 
     error: 'Please enter a valid phone number (e.g., (555) 123-4567 or +1234567890)' 

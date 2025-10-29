@@ -114,16 +114,29 @@ export default function ProviderProfile() {
 
   // Set initial status from API data
   useEffect(() => {
-    // Use isActive for business availability, not status.current (which is approval status)
-    if (apiProfileData?.status?.isActive !== undefined) {
-      setCurrentStatus(apiProfileData.status.isActive ? 'active' : 'inactive');
+    // Use status.current for availability - this is the actual account status
+    if (apiProfileData?.status?.current) {
+      const accountStatus = apiProfileData.status.current;
+      console.log('Profile data loaded - Account status:', accountStatus, 'isActive:', apiProfileData.status.isActive);
+      if (accountStatus === 'active' || accountStatus === 'inactive') {
+        setCurrentStatus(accountStatus);
+        console.log('Setting current status to:', accountStatus);
+      }
     }
   }, [apiProfileData]);
+
+  // Refresh status when component mounts to ensure we have the latest data
+  useEffect(() => {
+    if (profileLoaded && apiProfileData?.status?.current && 
+        (apiProfileData.status.current === 'active' || apiProfileData.status.current === 'inactive')) {
+      refreshStatus();
+    }
+  }, [profileLoaded, apiProfileData?.status?.current]);
 
   // Check if provider is approved (not pending or rejected)
   // status.current is 'pending', 'active', 'inactive', 'banned', or 'rejected' from the backend
   const providerApprovalStatus = apiProfileData?.status?.current;
-  const isApproved = providerApprovalStatus === 'active';
+  const isApproved = providerApprovalStatus === 'active' || providerApprovalStatus === 'inactive';
   const canEdit = isApproved;
 
   // Handle availability toggle confirmation
@@ -147,10 +160,24 @@ export default function ProviderProfile() {
     
     try {
       const response = await providerApi.setAvailability(pendingStatus);
+      
+      // Update local state immediately
       setCurrentStatus(pendingStatus);
+      
+      // Update the API profile data to reflect the change
+      if (apiProfileData) {
+        setApiProfileData({
+          ...apiProfileData,
+          status: {
+            ...apiProfileData.status,
+            current: pendingStatus
+          }
+        });
+      }
+      
       setSuccessMessage(response.message);
       
-      // Reload profile to get updated data
+      // Reload profile to get updated data from backend
       const updatedProfile = await providerApi.getProfile();
       setApiProfileData(updatedProfile);
       
@@ -158,6 +185,24 @@ export default function ProviderProfile() {
     } catch (error: any) {
       console.error('Failed to update availability:', error);
       setErrorMessage(error.message || 'Failed to update availability. Please try again.');
+      
+      // If the error indicates the user is already in the target state, 
+      // refresh the profile data to get the correct current status
+      if (error.message?.includes('already') || error.message?.includes('inactive') || error.message?.includes('active')) {
+        try {
+          const refreshedProfile = await providerApi.getProfile();
+          setApiProfileData(refreshedProfile);
+          // Update current status based on the refreshed data
+          if (refreshedProfile?.status?.current) {
+            const accountStatus = refreshedProfile.status.current;
+            if (accountStatus === 'active' || accountStatus === 'inactive') {
+              setCurrentStatus(accountStatus);
+            }
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh profile data:', refreshError);
+        }
+      }
     } finally {
       setIsTogglingAvailability(false);
       setPendingStatus(null);
@@ -168,6 +213,25 @@ export default function ProviderProfile() {
   const cancelAvailabilityChange = () => {
     setShowAvailabilityModal(false);
     setPendingStatus(null);
+  };
+
+  // Refresh status from backend
+  const refreshStatus = async () => {
+    try {
+      const refreshedProfile = await providerApi.getProfile();
+      setApiProfileData(refreshedProfile);
+      if (refreshedProfile?.status?.current) {
+        const accountStatus = refreshedProfile.status.current;
+        if (accountStatus === 'active' || accountStatus === 'inactive') {
+          setCurrentStatus(accountStatus);
+        }
+      }
+      setSuccessMessage('Status refreshed successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Failed to refresh status:', error);
+      setErrorMessage('Failed to refresh status. Please try again.');
+    }
   };
 
   // Helper functions for managing multiple services
@@ -330,6 +394,14 @@ export default function ProviderProfile() {
         setProfileData(profile);
         setEditData(profile);
         setProfileLoaded(true);
+        
+        // Set the current status based on API data
+        if (apiData?.status?.current) {
+          const accountStatus = apiData.status.current;
+          if (accountStatus === 'active' || accountStatus === 'inactive') {
+            setCurrentStatus(accountStatus);
+          }
+        }
         
       } catch (error: any) {
         console.error('Failed to load profile from API:', error);
@@ -611,6 +683,20 @@ export default function ProviderProfile() {
                      currentStatus === 'active' ? 'bg-green-600' : 'bg-gray-600'
                    }`}></div>
                    {isTogglingAvailability ? 'Updating...' : currentStatus === 'active' ? 'Available' : 'Unavailable'}
+                 </button>
+               )}
+               
+               {/* Refresh Status Button */}
+               {canEdit && (
+                 <button
+                   onClick={refreshStatus}
+                   className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap bg-blue-100 text-blue-700 hover:bg-blue-200"
+                   title="Refresh status from server"
+                 >
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                   </svg>
+                   Refresh
                  </button>
                )}
                

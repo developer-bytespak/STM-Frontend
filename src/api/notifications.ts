@@ -17,7 +17,8 @@ export type NotificationType =
   | 'approval' 
   | 'dispute'
   | 'booking'
-  | 'provider_request';
+  | 'provider_request'
+  | 'feedback';
 
 export type RecipientType = 'customer' | 'provider' | 'service_provider' | 'lsm' | 'local_service_manager' | 'admin';
 

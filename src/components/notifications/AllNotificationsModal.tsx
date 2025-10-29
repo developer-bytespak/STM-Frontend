@@ -141,27 +141,103 @@ export default function AllNotificationsModal({
     switch (type) {
       case 'job':
         if (isCustomer) {
-          return metadata?.booking_id 
-            ? ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id)
-            : ROUTES.CUSTOMER.BOOKINGS;
+          // For customers, redirect to bookings or specific booking with filtering
+          if (metadata?.booking_id) {
+            return ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id);
+          }
+          // Check title for specific job status to add filters
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=in_progress`;
+          } else if (titleLower.includes('dispute')) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=disputed`;
+          }
+          return ROUTES.CUSTOMER.BOOKINGS;
         } else if (isProvider) {
-          return metadata?.job_id 
-            ? ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id)
-            : ROUTES.PROVIDER.JOBS;
+          // For providers, redirect to jobs or specific job with proper filtering
+          if (metadata?.job_id) {
+            return ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id);
+          }
+          // Check title for specific job status to add filters
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.PROVIDER.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.PROVIDER.JOBS}?status=in_progress`;
+          } else if (titleLower.includes('dispute')) {
+            return `${ROUTES.PROVIDER.JOBS}?status=disputed`;
+          }
+          return ROUTES.PROVIDER.JOBS;
         } else if (isLSM) {
+          // For LSM, redirect to jobs with filtering
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.LSM.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.LSM.JOBS}?status=in_progress`;
+          } else if (titleLower.includes('dispute')) {
+            return `${ROUTES.LSM.JOBS}?status=disputed`;
+          }
           return ROUTES.LSM.JOBS;
+        } else if (isAdmin) {
+          // For Admin, redirect to jobs with filtering
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.ADMIN.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.ADMIN.JOBS}?status=in_progress`;
+          } else if (titleLower.includes('dispute')) {
+            return `${ROUTES.ADMIN.JOBS}?status=disputed`;
+          }
+          return ROUTES.ADMIN.JOBS;
         }
         return null;
 
       case 'booking':
         if (isCustomer) {
-          return metadata?.booking_id 
-            ? ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id)
-            : ROUTES.CUSTOMER.BOOKINGS;
+          // For customers, redirect to specific booking or bookings list with filtering
+          if (metadata?.booking_id) {
+            return ROUTES.CUSTOMER.BOOKING_DETAILS(metadata.booking_id);
+          }
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=in_progress`;
+          }
+          return ROUTES.CUSTOMER.BOOKINGS;
         } else if (isProvider) {
-          return metadata?.job_id 
-            ? ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id)
-            : ROUTES.PROVIDER.JOBS;
+          // For providers, redirect to specific job or jobs list with filtering
+          if (metadata?.job_id) {
+            return ROUTES.PROVIDER.JOB_DETAILS(metadata.job_id);
+          }
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.PROVIDER.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.PROVIDER.JOBS}?status=in_progress`;
+          }
+          return ROUTES.PROVIDER.JOBS;
+        } else if (isLSM) {
+          // For LSM, redirect to jobs with filtering
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.LSM.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.LSM.JOBS}?status=in_progress`;
+          }
+          return ROUTES.LSM.JOBS;
+        } else if (isAdmin) {
+          // For Admin, redirect to jobs with filtering
+          const titleLower = title.toLowerCase();
+          if (titleLower.includes('new') || titleLower.includes('request')) {
+            return `${ROUTES.ADMIN.JOBS}?status=new`;
+          } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
+            return `${ROUTES.ADMIN.JOBS}?status=in_progress`;
+          }
+          return ROUTES.ADMIN.JOBS;
         }
         return null;
 
@@ -176,12 +252,15 @@ export default function AllNotificationsModal({
         return null;
 
       case 'message':
+        // For message notifications, redirect to dashboard (chat will open via context)
         if (isCustomer) {
           return ROUTES.CUSTOMER.DASHBOARD;
         } else if (isProvider) {
           return ROUTES.PROVIDER.DASHBOARD;
         } else if (isLSM) {
           return ROUTES.LSM.DASHBOARD;
+        } else if (isAdmin) {
+          return ROUTES.ADMIN.DASHBOARD;
         }
         return null;
 
@@ -193,6 +272,9 @@ export default function AllNotificationsModal({
           return '/lsm/sp-request';
         } else if (isAdmin) {
           return ROUTES.ADMIN.PROVIDERS;
+        } else if (isCustomer) {
+          // Customer might get approval notifications for their bookings
+          return ROUTES.CUSTOMER.BOOKINGS;
         }
         return null;
 
@@ -201,10 +283,17 @@ export default function AllNotificationsModal({
           return '/lsm/disputes';
         } else if (isAdmin) {
           return ROUTES.ADMIN.JOBS;
+        } else if (isCustomer) {
+          // Customer involved in dispute should see their bookings
+          return ROUTES.CUSTOMER.BOOKINGS;
+        } else if (isProvider) {
+          // Provider involved in dispute should see their jobs
+          return ROUTES.PROVIDER.JOBS;
         }
         return null;
 
       case 'system':
+        // Check title/message for context-specific redirects
         const titleLower = title.toLowerCase();
         
         // Dispute related notifications
@@ -213,6 +302,10 @@ export default function AllNotificationsModal({
             return '/lsm/disputes'; // Dispute management page
           } else if (isAdmin) {
             return ROUTES.ADMIN.JOBS;
+          } else if (isProvider) {
+            return `${ROUTES.PROVIDER.JOBS}?status=disputed`; // Provider jobs with dispute filter
+          } else if (isCustomer) {
+            return `${ROUTES.CUSTOMER.BOOKINGS}?status=disputed`; // Customer bookings with dispute filter
           }
         }
         
@@ -225,21 +318,107 @@ export default function AllNotificationsModal({
           }
         }
         
+        // Provider registration related
         if (titleLower.includes('provider') && titleLower.includes('registration')) {
           if (isLSM) {
-            return '/lsm/sp-request';
+            return '/lsm/sp-request'; // Provider requests page
           } else if (isAdmin) {
             return ROUTES.ADMIN.PROVIDERS;
+          } else if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer might be interested in new providers
           }
         }
         
-        if (titleLower.includes('approved') || titleLower.includes('rejected')) {
+        // Customer registration related
+        if (titleLower.includes('customer') && titleLower.includes('registration')) {
+          if (isAdmin) {
+            return ROUTES.ADMIN.USERS;
+          } else if (isLSM) {
+            return ROUTES.LSM.DASHBOARD; // LSM might want to see new customers
+          }
+        }
+        
+        // LSM related notifications
+        if (titleLower.includes('lsm') || titleLower.includes('local service manager')) {
+          if (isAdmin) {
+            return ROUTES.ADMIN.USERS; // Admin manages LSMs
+          } else if (isProvider) {
+            return ROUTES.PROVIDER.DASHBOARD; // Provider might need to contact LSM
+          } else if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer might need to contact LSM
+          }
+        }
+        
+        // Provider approval/status related
+        if (titleLower.includes('approved') || titleLower.includes('rejected') || 
+            titleLower.includes('activated') || titleLower.includes('suspended') || 
+            titleLower.includes('banned')) {
           if (isProvider) {
             return ROUTES.PROVIDER.PROFILE;
+          } else if (isLSM) {
+            return '/lsm/sp-request'; // LSM manages provider approvals
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.PROVIDERS; // Admin manages provider status
+          } else if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer might be affected by provider status changes
+          }
+        }
+        
+        // Document verification related
+        if (titleLower.includes('document') || titleLower.includes('verification')) {
+          if (isProvider) {
+            return ROUTES.PROVIDER.PROFILE; // Documents are managed in profile
+          } else if (isLSM) {
+            return '/lsm/sp-request'; // LSM verifies provider documents
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.PROVIDERS; // Admin can see document status
+          }
+        }
+        
+        // Service request related
+        if (titleLower.includes('service request') || titleLower.includes('service added')) {
+          if (isProvider) {
+            return ROUTES.PROVIDER.PROFILE;
+          } else if (isLSM) {
+            return '/lsm/sp-request'; // LSM manages service requests
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.PROVIDERS; // Admin can see service requests
+          } else if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer might be interested in new services
+          }
+        }
+        
+        // Payment related system notifications
+        if (titleLower.includes('payment') || titleLower.includes('billing') || titleLower.includes('invoice')) {
+          if (isCustomer) {
+            return ROUTES.CUSTOMER.PAYMENTS;
+          } else if (isProvider) {
+            return ROUTES.PROVIDER.EARNINGS;
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.FINANCES;
+          } else if (isLSM) {
+            return ROUTES.LSM.DASHBOARD; // LSM might need to see payment issues
+          }
+        }
+        
+        // Office booking related notifications
+        if (titleLower.includes('office') || titleLower.includes('booking') || titleLower.includes('space')) {
+          if (isProvider) {
+            return ROUTES.PROVIDER.OFFICE_BOOKING;
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.OFFICES;
+          } else if (isCustomer) {
+            return ROUTES.CUSTOMER.DASHBOARD; // Customer might be interested in office bookings
           }
         }
 
         // For system notifications that don't match specific patterns, don't redirect
+        return null;
+
+      case 'feedback':
+        if (isProvider) {
+          return ROUTES.PROVIDER.FEEDBACK; // Use existing feedback page
+        }
         return null;
 
       default:

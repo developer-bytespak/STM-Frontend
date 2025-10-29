@@ -160,13 +160,13 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                   Login
                 </Link>
                 <Link
-                  href={`/register${returnUrl}`}
+                  href="/pricing?userType=customer"
                   className="hidden sm:inline-block bg-navy-600 text-white px-4 py-2 rounded-lg hover:bg-navy-700 transition-colors text-sm cursor-pointer"
                 >
                   Sign Up
                 </Link>
                 <Link
-                  href={`/provider/signup${returnUrl}`}
+                  href="/pricing?userType=provider"
                   className="hidden lg:inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm cursor-pointer"
                 >
                   Become a Provider
@@ -247,14 +247,14 @@ export default function Header({ userRole, userName, onLogout }: HeaderProps) {
                 View Pricing Plans
               </Link>
               <Link
-                href={`/register${returnUrl}`}
+                href="/pricing?userType=customer"
                 className="block w-full text-center bg-navy-600 text-white px-4 py-3 rounded-lg hover:bg-navy-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign Up as Customer
               </Link>
                 <Link
-                href={`/provider/signup${returnUrl}`}
+                href="/pricing?userType=provider"
                 className="block w-full text-center bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
