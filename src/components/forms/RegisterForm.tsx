@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { validateEmail, validatePassword, validatePhone, validateZipCode, getPasswordStrength, sanitizeInput, formatPhoneNumber } from '@/lib/validation';
+import { validateEmail, validatePassword, validatePhone, validateZipCode, getPasswordStrength, sanitizeInput, formatPhoneToE164 } from '@/lib/validation';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { lookupZipCodePlace } from '@/lib/zipCodeLookup';
 
@@ -39,6 +39,7 @@ interface FormErrors {
 
 export default function RegisterForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const returnUrl = searchParams.get('returnUrl');
   const planId = searchParams.get('planId');
   
@@ -97,6 +98,13 @@ export default function RegisterForm() {
   const [placeOptions, setPlaceOptions] = useState<{ city: string; state: string }[]>([]);
 
   const passwordStrength = getPasswordStrength(formData.password);
+
+  // Redirect to pricing if no planId is provided
+  useEffect(() => {
+    if (!planId) {
+      router.push('/pricing?userType=customer');
+    }
+  }, [planId, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -197,7 +205,7 @@ export default function RegisterForm() {
         password: formData.password,
         firstName: sanitizeInput(formData.firstName.trim()),
         lastName: sanitizeInput(formData.lastName.trim()),
-        phoneNumber: formatPhoneNumber(sanitizeInput(formData.phone)),
+        phoneNumber: formatPhoneToE164(sanitizeInput(formData.phone)),
         role: 'CUSTOMER',
         region: sanitizeInput(formData.state.trim()),
         address: sanitizeInput(formData.address.trim()),
@@ -672,7 +680,7 @@ export default function RegisterForm() {
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-600">
           Want to provide services?{' '}
-          <Link href="/provider/signup" className="text-green-600 hover:text-green-500 font-medium">
+          <Link href="/pricing?userType=provider" className="text-green-600 hover:text-green-500 font-medium">
             Sign up as a service provider
           </Link>
         </p>

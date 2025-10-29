@@ -43,11 +43,7 @@ export const ROUTES = {
     EARNINGS: '/provider/earnings',
     OFFICE_BOOKING: '/provider/office-booking',
     PROFILE: '/provider/profile',
-    SETTINGS: '/provider/settings',
-    VERIFICATION: '/provider/verification',
-    PORTFOLIO: '/provider/portfolio',
-    REVIEWS: '/provider/reviews',
-    AVAILABILITY: '/provider/availability',
+    FEEDBACK: '/provider/feedback',
   },
   
   // Admin routes
@@ -182,7 +178,7 @@ export const PROTECTED_ROUTES = {
     ROUTES.PROVIDER.EARNINGS,
     ROUTES.PROVIDER.OFFICE_BOOKING,
     ROUTES.PROVIDER.PROFILE,
-    ROUTES.PROVIDER.SETTINGS,
+    ROUTES.PROVIDER.FEEDBACK,
   ],
   ADMIN: [
     ROUTES.ADMIN.DASHBOARD,

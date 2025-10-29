@@ -20,7 +20,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">For Customers</h4>
             <ul className="space-y-2 text-gray-300">
-              <li><Link href="/register" className="hover:text-white transition-colors">Sign Up</Link></li>
+              <li><Link href="/pricing?userType=customer" className="hover:text-white transition-colors">Sign Up</Link></li>
               <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
               <li><Link href="/" className="hover:text-white transition-colors">Find Providers</Link></li>
             </ul>
@@ -29,7 +29,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">For Providers</h4>
             <ul className="space-y-2 text-gray-300">
-              <li><Link href="/provider/signup" className="hover:text-white transition-colors">Join as Provider</Link></li>
+              <li><Link href="/pricing?userType=provider" className="hover:text-white transition-colors">Join as Provider</Link></li>
               <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
               <li><Link href="/provider/dashboard" className="hover:text-white transition-colors">Provider Dashboard</Link></li>
             </ul>

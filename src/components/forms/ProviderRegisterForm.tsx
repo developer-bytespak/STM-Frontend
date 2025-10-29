@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SuccessScreen } from '@/components/auth/SuccessScreen';
 import { validateEmail, validatePassword, validatePhone, getPasswordStrength, sanitizeInput, formatPhoneToE164 } from '@/lib/validation';
@@ -74,6 +74,7 @@ type SignupStep = 'form' | 'success';
 
 export default function ServiceProviderSignupPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const returnUrl = searchParams.get('returnUrl') || '/provider/dashboard?status=pending';
   const planId = searchParams.get('planId');
   
@@ -143,6 +144,13 @@ export default function ServiceProviderSignupPage() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+
+  // Redirect to pricing if no planId is provided
+  useEffect(() => {
+    if (!planId) {
+      router.push('/pricing?userType=provider');
+    }
+  }, [planId, router]);
   const [showPassword, setShowPassword] = useState(false);
 
   // Load form data from localStorage on component mount
