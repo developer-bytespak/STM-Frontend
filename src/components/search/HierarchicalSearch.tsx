@@ -153,13 +153,10 @@ export default function HierarchicalSearch({ onClear }: HierarchicalSearchProps)
     });
   };
 
-  // Handle call now
+  // Handle call now - Now handled directly by ProviderCard component
   const handleCallNow = () => {
-    showAlert({
-      title: 'Coming Soon',
-      message: 'Direct calling feature is currently under development. This feature will be available soon!',
-      type: 'info'
-    });
+    // Voice calling is now handled directly by the VoiceCallModal in ProviderCard
+    // No need to show "Coming Soon" alert anymore
   };
 
   // Scroll to results when they appear
