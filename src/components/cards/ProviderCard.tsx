@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
+import VoiceCallModal from '@/components/call/VoiceCallModal';
 
 interface ProviderCardProps {
   provider: {
@@ -29,6 +33,7 @@ interface ProviderCardProps {
 }
 
 export default function ProviderCard({ provider, onCallNow, onGetEstimate, index = 0, searchParams }: ProviderCardProps) {
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   // Determine star color based on rating
   const getStarColor = (rating: number = 0) => {
     if (rating >= 5.0) return 'text-yellow-500'; // Bright yellow for perfect rating
@@ -43,8 +48,26 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
     ? `${baseUrl}?${searchParams}`
     : baseUrl;
 
+  // Handle voice call
+  const handleVoiceCall = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsCallModalOpen(true);
+    // Also call the onCallNow callback if provided
+    onCallNow?.();
+  };
+
   return (
-    <Link href={providerUrl}>
+    <>
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        isOpen={isCallModalOpen}
+        onClose={() => setIsCallModalOpen(false)}
+        providerName={provider.businessName || `${provider.firstName} ${provider.lastName}`}
+        //providerId={provider.id}
+      />
+
+      <Link href={providerUrl}>
       <div
         className="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all overflow-hidden animate-fade-in w-full max-w-4xl mx-auto cursor-pointer"
         style={{ animationDelay: `${index * 100}ms` }}
@@ -140,7 +163,7 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onCallNow?.();
+                  handleVoiceCall(e);
                 }}
                 className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -178,5 +201,6 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
       </div>
       </div>
     </Link>
+    </>
   );
 }
