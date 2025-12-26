@@ -112,24 +112,49 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
     );
   };
 
+  // Helper: Find services matching a keyword (for clarification when multiple matches exist)
+  const findMatchingServices = (keyword: string): ServiceInfo[] => {
+    const keywordLower = keyword.toLowerCase();
+    return services.filter((service) => {
+      const serviceLower = service.name.toLowerCase();
+      return (
+        serviceLower.includes(keywordLower) ||
+        keywordLower.includes(serviceLower.split(/\s+/)[0])
+      );
+    });
+  };
+
   // Helper: Extract data from user messages with proper priority
   const extractDataFromMessages = (newMessage: string): Partial<CollectedData> => {
     const extracted: Partial<CollectedData> = {};
     const text = newMessage.toLowerCase();
 
     // 1. Check for service mentions first (using dynamic services list)
+    // Also match partial keywords (e.g., "cleaning" matches "House Cleaning")
+    let foundService = false;
     services.forEach((service) => {
-      if (text.includes(service.name.toLowerCase())) {
+      const serviceLower = service.name.toLowerCase();
+      if (text.includes(serviceLower) || serviceLower.includes(text.split(/\s+/)[0])) {
         extracted.service = service.name;
+        foundService = true;
       }
     });
 
     // Fallback: if services list is empty or service not found, try common keywords
-    if (!extracted.service) {
-      const commonServices = ['plumbing', 'electrical', 'cleaning', 'painting', 'hvac', 'landscaping', 'roofing', 'flooring'];
-      commonServices.forEach((svc) => {
-        if (text.includes(svc)) {
-          extracted.service = svc.charAt(0).toUpperCase() + svc.slice(1);
+    if (!foundService) {
+      const commonServices = [
+        { keyword: 'plumbing', display: 'Plumbing' },
+        { keyword: 'electrical', display: 'Electrical' },
+        { keyword: 'cleaning', display: 'Cleaning' },
+        { keyword: 'painting', display: 'Painting' },
+        { keyword: 'hvac', display: 'HVAC' },
+        { keyword: 'landscaping', display: 'Landscaping' },
+        { keyword: 'roofing', display: 'Roofing' },
+        { keyword: 'flooring', display: 'Flooring' },
+      ];
+      commonServices.forEach(({ keyword, display }) => {
+        if (text.includes(keyword)) {
+          extracted.service = display;
         }
       });
     }
@@ -143,20 +168,35 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       foundZipcode = true;
     }
 
-    // 3. Extract budget ONLY if it has currency indicators or context words
+    // 3. Extract budget with multiple formats
     // Don't extract as budget if it looks like a zipcode
     if (!foundZipcode) {
-      // Pattern: "$X", "X dollars", "budget of X", "costs X", etc.
-      const budgetWithCurrency = newMessage.match(/\$\s*\d+(?:\.\d{2})?/);
-      if (budgetWithCurrency) {
-        extracted.budget = budgetWithCurrency[0];
+      // Pattern: "$X", "X dollars", "X$", "budget of X", "costs X", etc.
+      let budgetMatch = null;
+      
+      // Try "$200" format
+      budgetMatch = newMessage.match(/\$\s*(\d+(?:\.\d{2})?)/);
+      if (budgetMatch) {
+        extracted.budget = '$' + budgetMatch[1];
       } else {
-        // Look for budget with context words
-        const budgetWithContext = newMessage.match(
-          /(?:budget|cost|price|maximum|max|around|spend)\s*(?:is|of|around)?\s*(\$?\d+(?:\.\d{2})?)/i
-        );
-        if (budgetWithContext) {
-          extracted.budget = budgetWithContext[1];
+        // Try "200$" format (dollar sign after number)
+        budgetMatch = newMessage.match(/(\d+(?:\.\d{2})?)\s*\$/);
+        if (budgetMatch) {
+          extracted.budget = budgetMatch[1] + '$';
+        } else {
+          // Try "X dollars" format
+          budgetMatch = newMessage.match(/(\d+(?:\.\d{2})?)\s*dollars/i);
+          if (budgetMatch) {
+            extracted.budget = '$' + budgetMatch[1];
+          } else {
+            // Look for budget with context words
+            budgetMatch = newMessage.match(
+              /(?:budget|cost|price|maximum|max|around|spend)\s*(?:is|of|around)?\s*(\$?\d+(?:\.\d{2})?)/i
+            );
+            if (budgetMatch) {
+              extracted.budget = budgetMatch[1].startsWith('$') ? budgetMatch[1] : '$' + budgetMatch[1];
+            }
+          }
         }
       }
     }
@@ -201,6 +241,12 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       'preference',
       'need',
       'want',
+      'bathroom',
+      'kitchen',
+      'bedroom',
+      'living',
+      'yard',
+      'garden',
     ];
 
     // Only process user messages (senderType === 'user')
@@ -217,30 +263,23 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         if (!allData.requirements) {
           const msgLower = msg.message.toLowerCase();
           const msgLength = msg.message.length;
+          const msgText = msg.message;
 
           // Check if user explicitly answered "no requirements"
           if (msgLower.includes('no requirement') || msgLower.includes('no preference') || msgLower.includes('no special')) {
             allData.requirements = 'No special requirements';
           }
-          // Check if message contains requirement keywords (and isn't just a service/zipcode/budget)
+          // If message is NOT just a service/zipcode/budget and contains requirement keywords
           else if (
-            msgLength > 30 &&
-            !services.some((s) => msg.message.toLowerCase() === s.name.toLowerCase()) &&
-            !msg.message.match(/^\d{5}$/) &&
-            !msg.message.match(/^\$?\d+/) &&
+            msgLength > 15 &&
+            !services.some((s) => msgText.toLowerCase().trim() === s.name.toLowerCase()) &&
+            !msgText.match(/^\d{5}$/) &&
+            !msgText.match(/^\d+\$?$/) &&
+            !msgText.match(/^\$?\d+$/) &&
             requirementKeywords.some((kw) => msgLower.includes(kw))
           ) {
-            allData.requirements = msg.message;
-          }
-          // Or if it's a longer response after we've collected service/zipcode/budget
-          else if (
-            msgLength > 30 &&
-            allData.service &&
-            allData.zipcode &&
-            allData.budget &&
-            !services.some((s) => msg.message.toLowerCase() === s.name.toLowerCase())
-          ) {
-            allData.requirements = msg.message;
+            // This is likely a requirements message
+            allData.requirements = msgText;
           }
         }
       }
@@ -266,6 +305,14 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showRecommendations]);
+
+  // Auto-extract data from all messages whenever messages change
+  useEffect(() => {
+    if (messages.length > 0 && session) {
+      const extracted = extractDataFromAllMessages(messages);
+      setCollectedData(extracted);
+    }
+  }, [messages, services]);
 
   const loadActiveSession = async () => {
     try {
@@ -375,6 +422,37 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
 
     // Extract data from this message
     const newData = extractDataFromMessages(text);
+    
+    // Check if user mentioned a broad service keyword that matches multiple specific services
+    const keywordMatch = text.toLowerCase().match(/\b(cleaning|plumbing|electrical|hvac|painting|landscaping|roofing|flooring)\b/);
+    if (keywordMatch && !collectedData.service) {
+      const keyword = keywordMatch[0];
+      const matchingServices = findMatchingServices(keyword);
+      
+      // If multiple services match this keyword, ask for clarification
+      if (matchingServices.length > 1) {
+        const userMessage: AiChatMessage = {
+          id: `temp-${Date.now()}`,
+          senderType: 'user',
+          message: text,
+          createdAt: new Date().toISOString(),
+        };
+
+        const clarificationMessage = `I found multiple ${keyword} services available:\n\n${matchingServices.map((s, i) => `${i + 1}. ${s.name}`).join('\n')}\n\nWhich one would you like?`;
+
+        const aiMessage: AiChatMessage = {
+          id: `ai-${Date.now()}-clarify`,
+          senderType: 'assistant',
+          message: clarificationMessage,
+          createdAt: new Date().toISOString(),
+        };
+
+        setMessages((prev) => [...prev, userMessage, aiMessage]);
+        setIsSending(false);
+        return;
+      }
+    }
+
     setCollectedData((prev) => ({
       ...prev,
       ...newData,
