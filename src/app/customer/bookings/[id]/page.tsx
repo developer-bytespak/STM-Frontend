@@ -41,6 +41,18 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     responseTime: 0,
   });
 
+  // Prevent background scroll when modals are open
+  useEffect(() => {
+    if (showFeedbackModal || showSupportModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showFeedbackModal, showSupportModal]);
+
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
@@ -620,7 +632,14 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
       {/* Customer Support Modal */}
       {showSupportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Customer Support</h3>
@@ -660,7 +679,14 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
           <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Leave Feedback</h3>
             <div className="space-y-6">
@@ -721,7 +747,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
                     value={feedback.responseTime}
                     onChange={(e) => setFeedback({ ...feedback, responseTime: parseInt(e.target.value) || 0 })}
                     min="0"
-                    className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                    className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                     placeholder="0"
                   />
                   <span className="text-sm text-gray-600">minutes</span>
@@ -737,7 +763,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
                   value={feedback.feedback}
                   onChange={(e) => setFeedback({ ...feedback, feedback: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                   placeholder="Share your experience in detail..."
                 />
               </div>

@@ -224,7 +224,14 @@ export default function DisputeDetailModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="fixed inset-0 flex items-center justify-center z-50 p-4"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
         <div className="bg-white rounded-lg p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading dispute details...</p>
@@ -239,7 +246,12 @@ export default function DisputeDetailModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+      className="fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-2 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
@@ -365,7 +377,7 @@ export default function DisputeDetailModal({
                           key={message.id}
                           className={'flex ' + (message.senderType === 'local_service_manager' ? 'justify-end' : 'justify-start')}
                         >
-                          <div className={'max-w-lg rounded-lg p-4 shadow-sm ' + (
+                          <div className={'max-w-lg rounded-lg p-4 shadow-sm break-words overflow-hidden ' + (
                             message.senderType === 'local_service_manager' 
                               ? 'bg-blue-600 text-white'
                               : message.senderType === 'customer'
@@ -380,7 +392,7 @@ export default function DisputeDetailModal({
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm">
+                            <div className="text-sm break-all">
                               {formatMessageContent(message.message)}
                             </div>
                             <p className={'text-xs mt-2 ' + (message.senderType === 'local_service_manager' ? 'text-blue-100' : 'text-gray-500')}>

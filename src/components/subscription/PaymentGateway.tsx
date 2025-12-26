@@ -193,10 +193,10 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                 }`}
               >
                 <div className="flex items-center justify-center space-x-2">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
-                  <span className="font-medium">Card</span>
+                  <span className="font-medium text-gray-900">Card</span>
                 </div>
               </button>
               <button
@@ -209,10 +209,10 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                 }`}
               >
                 <div className="flex items-center justify-center space-x-2">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  <span className="font-medium">US bank account</span>
+                  <span className="font-medium text-gray-900">US bank account</span>
                 </div>
               </button>
             </div>
@@ -231,7 +231,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                     value={formData.cardNumber}
                     onChange={(e) => handleCardNumberChange(e.target.value)}
                     placeholder="1234 5678 9012 3456"
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                       errors.cardNumber ? 'border-red-500' : 'border-gray-300'
                     }`}
                     maxLength={19}
@@ -259,7 +259,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                     value={formData.expiration}
                     onChange={(e) => handleExpirationChange(e.target.value)}
                     placeholder="MM/YY"
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                       errors.expiration ? 'border-red-500' : 'border-gray-300'
                     }`}
                     maxLength={5}
@@ -278,7 +278,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                       value={formData.cvc}
                       onChange={(e) => handleInputChange('cvc', e.target.value)}
                       placeholder="123"
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                         errors.cvc ? 'border-red-500' : 'border-gray-300'
                       }`}
                       maxLength={4}
@@ -303,7 +303,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                 <select
                   value={formData.country}
                   onChange={(e) => handleInputChange('country', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
                     errors.country ? 'border-red-500' : 'border-gray-300'
                   }`}
                 >
@@ -328,7 +328,7 @@ const PaymentGateway: React.FC<PaymentGatewayProps> = ({ planInfo }) => {
                   value={formData.zipCode}
                   onChange={(e) => handleInputChange('zipCode', e.target.value)}
                   placeholder="12345"
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                     errors.zipCode ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />

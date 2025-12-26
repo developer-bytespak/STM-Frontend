@@ -82,6 +82,18 @@ export default function TotalJobsPage() {
     fetchJobs();
   }, [currentPage, fromDate, toDate]);
 
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showDetailsModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showDetailsModal]);
+
   const handleViewDetails = async (jobId: number) => {
     try {
       const jobDetails = await providerApi.getJobDetails(jobId);
@@ -490,7 +502,14 @@ export default function TotalJobsPage() {
 
       {/* Job Details Modal */}
       {showDetailsModal && selectedJobDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div 
+          className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">

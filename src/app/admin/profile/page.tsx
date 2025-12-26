@@ -260,7 +260,7 @@ export default function AdminProfile() {
                       type="text"
                       value={editData.firstName}
                       onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.firstName ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -282,7 +282,7 @@ export default function AdminProfile() {
                       type="text"
                       value={editData.lastName}
                       onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.lastName ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -315,7 +315,7 @@ export default function AdminProfile() {
                       type="tel"
                       value={editData.phone}
                       onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-400 ${
                         errors.phone ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="+1 (555) 000-0000"
@@ -338,7 +338,7 @@ export default function AdminProfile() {
                       type="text"
                       value={editData.employeeId}
                       onChange={(e) => setEditData({ ...editData, employeeId: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-400 ${
                         errors.employeeId ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="ADM001"
@@ -360,7 +360,7 @@ export default function AdminProfile() {
                     <select
                       value={editData.department}
                       onChange={(e) => setEditData({ ...editData, department: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.department ? 'border-red-500' : 'border-gray-300'
                       }`}
                     >

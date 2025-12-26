@@ -6,6 +6,7 @@ import { OfficeBooking } from '@/types/office';
 import { bookingApi } from '@/api/officeBooking';
 import Badge from '@/components/ui/Badge';
 import BookingStatusIcon from '@/components/ui/BookingStatusIcon';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
 import { formatPrice } from '@/lib/pricingCalculator';
 import { useAlert } from '@/hooks/useAlert';
 import CancelBookingModal from '@/components/modals/CancelBookingModal';
@@ -157,10 +158,7 @@ export default function ProviderMyBookingsPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-          <div className="text-center py-8 sm:py-12">
-            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-navy-600 mx-auto"></div>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Loading your bookings...</p>
-          </div>
+          <CardListSkeleton />
         </div>
       </div>
     );
