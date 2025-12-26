@@ -133,7 +133,7 @@ export default function ResultsDisplay({
           <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
             {transformedProviders.map((provider, index) => (
               <ProviderCard
-                key={provider.id}
+                key={`${provider.id}-${index}`}
                 provider={provider}
                 onCallNow={onCallNow}
                 onGetEstimate={onGetEstimate}

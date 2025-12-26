@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { customerApi, CustomerDashboard as DashboardData } from '@/api/customer';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
+import SalesAssistantChat from '@/components/ai/SalesAssistantChat';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -166,6 +168,21 @@ export default function CustomerDashboard() {
             View completed jobs and leave feedback
           </p>
         </Link>
+
+        <button
+          onClick={() => setShowAIChat(true)}
+          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 flex flex-col min-h-[170px] text-left"
+        >
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Chat with AI Sales Assistant</h3>
+          <p className="text-gray-600 text-sm mt-auto">
+            Get personalized provider recommendations
+          </p>
+        </button>
       </div>
 
       {/* Recent Jobs */}
@@ -228,6 +245,9 @@ export default function CustomerDashboard() {
           </div>
         )}
       </div>
+
+      {/* AI Sales Assistant Chat Modal */}
+      <SalesAssistantChat isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
     </div>
   );
 }

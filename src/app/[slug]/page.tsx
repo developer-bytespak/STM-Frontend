@@ -9,6 +9,7 @@ import AuthenticatedHeader from '@/components/layout/AuthenticatedHeader';
 import Footer from '@/components/layout/Footer';
 import { useChat } from '@/contexts/ChatContext';
 import { homepageApi } from '@/api/homepage';
+import { aiChatApi } from '@/api/ai-chat';
 import { extractProviderIdFromSlug } from '@/lib/slug';
 import type { ProviderDetail, ProviderService } from '@/types/homepage';
 import ProviderProfileSkeleton from '@/components/ui/ProviderProfileSkeleton';
@@ -20,7 +21,7 @@ function ProviderPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuth();
-  const { conversations, openConversation } = useChat();
+  const { conversations, openConversation, createConversationFromAI } = useChat();
   
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +36,8 @@ function ProviderPageContent() {
   const searchedService = searchParams.get('service');
   const searchedCategory = searchParams.get('category');
   const searchedLocation = searchParams.get('location');
+  const fromAI = searchParams.get('from_ai') === 'true';
+  const aiSessionId = searchParams.get('session_id');
 
   // Build the full current URL with search params for returnUrl
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : `/${slug}`;
@@ -93,7 +96,7 @@ function ProviderPageContent() {
     }
   }, [searchParams]);
 
-  const handleBookNowClick = () => {
+  const handleBookNowClick = async () => {
     // Check if user is authenticated and is a customer
     if (!isAuthenticated) {
       setShowAuthPrompt(true);
@@ -105,7 +108,24 @@ function ProviderPageContent() {
       return;
     }
 
-    // If conversation exists, open it; otherwise show booking modal
+    // If from AI flow, create chat with AI summary
+    if (fromAI && aiSessionId && providerId) {
+      try {
+        const result = await aiChatApi.createChatFromAI(providerId, aiSessionId);
+        
+        // Open the chat using ChatContext
+        if (result.chatId) {
+          const providerName = provider?.businessName || provider?.ownerName || 'Provider';
+          createConversationFromAI(providerId, providerName, result.chatId);
+        }
+      } catch (error) {
+        console.error('Failed to create chat from AI:', error);
+        alert('Failed to create chat. Please try again.');
+      }
+      return;
+    }
+
+    // Regular flow: If conversation exists, open it; otherwise show booking modal
     if (existingConversation) {
       openConversation(existingConversation.id);
     } else {
@@ -346,12 +366,12 @@ function ProviderPageContent() {
               <button
                 onClick={handleBookNowClick}
                 className={`${
-                  existingConversation 
+                  existingConversation || fromAI
                     ? 'bg-blue-800 hover:bg-blue-900' 
                     : 'bg-navy-600 hover:bg-navy-700'
                 } text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-colors text-base sm:text-lg flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer`}
               >
-                {existingConversation ? (
+                {existingConversation || fromAI ? (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -513,10 +533,10 @@ function ProviderPageContent() {
             {!hasNoActiveServices && (
               <div className="bg-navy-50 border-2 border-navy-200 rounded-lg p-4 sm:p-6 text-center">
                 <h3 className="font-bold text-navy-900 mb-2 text-sm sm:text-base">
-                  {existingConversation ? 'Continue your conversation' : 'Ready to get started?'}
+                  {existingConversation || fromAI ? 'Continue your conversation' : 'Ready to get started?'}
                 </h3>
                 <p className="text-xs sm:text-sm text-navy-700 mb-3 sm:mb-4">
-                  {existingConversation 
+                  {existingConversation || fromAI 
                     ? `Continue chatting with ${provider.ownerName.split(' ')[0]}`
                     : `Book a service and chat with ${provider.ownerName.split(' ')[0]} directly`
                   }
@@ -524,12 +544,12 @@ function ProviderPageContent() {
                 <button
                   onClick={handleBookNowClick}
                   className={`w-full ${
-                    existingConversation 
+                    existingConversation || fromAI
                       ? 'bg-blue-800 hover:bg-blue-900' 
                       : 'bg-navy-600 hover:bg-navy-700'
                   } text-white py-2.5 sm:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer`}
                 >
-                  {existingConversation ? (
+                  {existingConversation || fromAI ? (
                     <>
                       <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
