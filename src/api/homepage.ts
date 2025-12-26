@@ -297,6 +297,42 @@ class HomepageApi {
       throw error;
     }
   }
+
+  /**
+   * Get all approved services
+   */
+  async getAllServices(): Promise<
+    Array<{
+      id: number;
+      name: string;
+      description: string;
+      category: string;
+    }>
+  > {
+    try {
+      console.log('Fetching services from /services endpoint...');
+      const response = await apiClient.request<{
+        services: Array<{
+          id: number;
+          name: string;
+          description: string;
+          category: string;
+        }>;
+        total: number;
+      }>('/services');
+      console.log('Services response:', response);
+      return response.services || [];
+    } catch (error: any) {
+      console.error('Error fetching all services:', {
+        message: error?.message,
+        status: error?.status,
+        statusText: error?.statusText,
+        response: error?.response,
+        error,
+      });
+      return [];
+    }
+  }
 }
 
 // Export singleton instance

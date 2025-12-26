@@ -57,6 +57,7 @@ interface ChatContextType {
   conversations: ChatConversation[];
   activeConversation: ChatConversation | null;
   createConversation: (providerId: string | number, providerName: string, formData: BookingFormData, jobId?: number, chatId?: string) => void;
+  createConversationFromAI: (providerId: string | number, providerName: string, chatId: string) => void;
   openConversation: (conversationId: string) => void;
   openConversationByJobId: (jobId: number) => boolean;
   closeConversation: () => void;
@@ -580,6 +581,65 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Create a conversation from AI flow
+   * Chat is already created on backend with AI summary injected
+   */
+  const createConversationFromAI = (
+    providerId: string | number,
+    providerName: string,
+    chatId: string
+  ) => {
+    if (!user) {
+      console.error('Cannot create conversation: User not authenticated');
+      return;
+    }
+
+    console.log('💬 Creating conversation from AI flow:', {
+      chatId,
+      providerId,
+      providerName,
+    });
+
+    // Check if conversation already exists
+    const existingConversation = conversations.find(conv => conv.id === chatId);
+    
+    if (existingConversation) {
+      console.log('📂 Opening existing conversation:', chatId);
+      setActiveConversation(existingConversation);
+      setConversations(prev => prev.map(conv => 
+        conv.id === chatId ? { ...conv, isOpen: true, isMinimized: false } : conv
+      ));
+      
+      // Join chat room if socket connected
+      if (isSocketConnected) {
+        socketService.joinChat(chatId);
+      }
+      return;
+    }
+
+    // Create new conversation
+    const newConversation: ChatConversation = {
+      id: chatId,
+      providerId: providerId.toString(),
+      providerName,
+      customerId: user.id,
+      customerName: user.name,
+      messages: [], // Messages will be loaded from backend
+      isOpen: true,
+      isMinimized: false,
+      createdAt: new Date(),
+    };
+
+    setConversations(prev => [...prev, newConversation]);
+    setActiveConversation(newConversation);
+
+    // Join chat room if socket connected
+    if (isSocketConnected) {
+      socketService.joinChat(chatId);
+    }
+  };
+
   const formatFormDataMessage = (formData: BookingFormData): string => {
     let message = `**Service Request Details**\n\n`;
     message += `Service Type: ${formData.serviceType}\n`;
@@ -901,6 +961,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         conversations,
         activeConversation,
         createConversation,
+        createConversationFromAI,
         openConversation,
         openConversationByJobId,
         closeConversation,

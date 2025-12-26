@@ -6,6 +6,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import HierarchicalSearch from '@/components/search/HierarchicalSearch';
 import Footer from '@/components/layout/Footer';
+import dynamic from 'next/dynamic';
+
+const ChatWidget = dynamic(() => import('@/components/ai/ChatWidget'), { ssr: false });
 
 export default function Home() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -62,6 +65,8 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
+      {/* SPS AI Chat Widget */}
+      <ChatWidget />
     </div>
   );
 }
