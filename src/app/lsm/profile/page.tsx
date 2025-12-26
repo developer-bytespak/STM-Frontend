@@ -285,7 +285,7 @@ export default function LSMProfile() {
                       type="text"
                       value={editData.firstName}
                       onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.firstName ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -307,7 +307,7 @@ export default function LSMProfile() {
                       type="text"
                       value={editData.lastName}
                       onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.lastName ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -340,7 +340,7 @@ export default function LSMProfile() {
                       type="tel"
                       value={editData.phone}
                       onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.phone ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="+1 (555) 000-0000"
@@ -363,7 +363,7 @@ export default function LSMProfile() {
                       type="text"
                       value={editData.employeeId}
                       onChange={(e) => setEditData({ ...editData, employeeId: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.employeeId ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Employee ID"
@@ -386,7 +386,7 @@ export default function LSMProfile() {
                       type="text"
                       value={editData.region}
                       onChange={(e) => setEditData({ ...editData, region: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.region ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Enter region"
@@ -409,7 +409,7 @@ export default function LSMProfile() {
                       type="text"
                       value={editData.area}
                       onChange={(e) => setEditData({ ...editData, area: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.area ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Enter area"
@@ -431,7 +431,7 @@ export default function LSMProfile() {
                     <select
                       value={editData.department}
                       onChange={(e) => setEditData({ ...editData, department: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.department ? 'border-red-500' : 'border-gray-300'
                       }`}
                     >
@@ -459,7 +459,7 @@ export default function LSMProfile() {
                       value={editData.address}
                       onChange={(e) => setEditData({ ...editData, address: e.target.value })}
                       rows={3}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 ${
                         errors.address ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="123 Main St, City, State"

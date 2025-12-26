@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
 import { useChat } from '@/contexts/ChatContext';
 import ChatPopup from '@/components/chat/ChatPopup';
+import DetailPageSkeleton from '@/components/ui/DetailPageSkeleton';
 
 interface JobDetailsProps {
   params: Promise<{
@@ -196,10 +197,7 @@ export default function JobDetails({ params }: JobDetailsProps) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading job details...</p>
-          </div>
+          <DetailPageSkeleton />
         </div>
       </div>
     );

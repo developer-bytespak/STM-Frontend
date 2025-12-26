@@ -41,10 +41,17 @@ export default function Modal({
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
+    >
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="absolute inset-0 transition-opacity"
         onClick={onClose}
       />
       

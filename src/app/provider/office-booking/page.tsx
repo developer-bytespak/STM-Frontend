@@ -6,6 +6,7 @@ import { OfficeSpace } from '@/types/office';
 import { officeSpaceApi, transformOfficeSpace } from '@/api/officeBooking';
 import OfficeCard from '@/components/cards/OfficeCard';
 import OfficeBookingModal from '@/components/booking/OfficeBookingModal';
+import CardListSkeleton from '@/components/ui/CardListSkeleton';
 // COMMENTED OUT - Search/Filter functionality
 // import Input from '@/components/ui/Input';
 import { formatPrice } from '@/lib/pricingCalculator';
@@ -274,15 +275,7 @@ export default function ProviderOfficeBookingPage() {
 
         {/* SIMPLIFIED - Office Grid */}
         {loading ? (
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 lg:p-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-navy-600 mx-auto"></div>
-              <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-medium text-gray-900">Loading office spaces...</h3>
-              <p className="mt-1 text-xs sm:text-sm text-gray-500">
-                Please wait while we fetch available offices
-              </p>
-            </div>
-          </div>
+          <CardListSkeleton />
         ) : offices.length === 0 ? (
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 lg:p-12">
             <div className="text-center">
