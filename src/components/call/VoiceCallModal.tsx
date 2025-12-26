@@ -25,10 +25,13 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [callDuration, setCallDuration] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isDeviceReady, setIsDeviceReady] = useState(false);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
   
   const deviceRef = useRef<Device | null>(null);
   const callRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check authentication when modal opens
   useEffect(() => {
@@ -48,7 +51,15 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
 
   // Initialize Twilio Device
   useEffect(() => {
-    if (!isOpen || !isAuthenticated) return;
+    if (!isOpen || !isAuthenticated) {
+      // Cleanup when modal closes or user logs out
+      if (deviceRef.current) {
+        deviceRef.current.destroy();
+        deviceRef.current = null;
+      }
+      setIsDeviceReady(false);
+      return;
+    }
 
     const initializeDevice = async () => {
       try {
@@ -56,6 +67,9 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         setStatusMessage('Initializing...');
         console.log('🔑 Fetching voice token...');
         const { token } = await generateVoiceToken();
+        
+        // Token expires in 3600 seconds (1 hour)
+        setTokenExpiresAt(Date.now() + (3600 * 1000));
         
         console.log('📞 Initializing Twilio Device...');
         const device = new Device(token, {
@@ -65,6 +79,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         // Device event listeners
         device.on('registered', () => {
           console.log('✅ Twilio Device registered');
+          setIsDeviceReady(true);
           setStatusMessage('Ready to call');
           setIsInitializing(false);
         });
@@ -75,6 +90,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
           setStatusMessage('Device initialization failed');
           setCallStatus('error');
           setIsInitializing(false);
+          setIsDeviceReady(false);
         });
 
         device.on('incoming', (call) => {
@@ -85,7 +101,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         await device.register();
         deviceRef.current = device;
         
-        console.log('✅ Device ready');
+        console.log('✅ Device registration initiated');
       } catch (err: any) {
         console.error('❌ Failed to initialize device:', err);
         
@@ -101,6 +117,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
           setCallStatus('error');
         }
         setIsInitializing(false);
+        setIsDeviceReady(false);
       }
     };
 
@@ -111,11 +128,65 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         deviceRef.current.destroy();
         deviceRef.current = null;
       }
+      setIsDeviceReady(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      if (tokenRefreshTimerRef.current) {
+        clearTimeout(tokenRefreshTimerRef.current);
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, isAuthenticated]);
+
+  // Token refresh effect - refresh token 5 minutes before expiry
+  useEffect(() => {
+    if (!tokenExpiresAt || !deviceRef.current || !isDeviceReady) return;
+    
+    const timeUntilExpiry = tokenExpiresAt - Date.now();
+    const refreshTime = timeUntilExpiry - (5 * 60 * 1000); // Refresh 5 min before expiry
+    
+    if (refreshTime <= 0) {
+      // Token already expired or expiring soon, refresh immediately
+      refreshToken();
+    } else {
+      tokenRefreshTimerRef.current = setTimeout(() => {
+        refreshToken();
+      }, refreshTime);
+    }
+    
+    return () => {
+      if (tokenRefreshTimerRef.current) {
+        clearTimeout(tokenRefreshTimerRef.current);
+      }
+    };
+  }, [tokenExpiresAt]);
+
+  // Refresh voice token before expiry
+  const refreshToken = async () => {
+    try {
+      console.log('🔄 Refreshing voice token...');
+      const { token } = await generateVoiceToken();
+      
+      if (deviceRef.current && isDeviceReady) {
+        await deviceRef.current.updateToken(token);
+        setTokenExpiresAt(Date.now() + (3600 * 1000)); // New expiry: 1 hour from now
+        console.log('✅ Voice token refreshed successfully');
+      }
+    } catch (err) {
+      console.error('❌ Failed to refresh token:', err);
+      setError('Session expired. Please login again.');
+      setIsAuthenticated(false);
+    }
+  };
+
+  // Helper to verify device is truly connected and ready
+  const isDeviceConnected = (): boolean => {
+    return (
+      deviceRef.current !== null &&
+      isDeviceReady &&
+      deviceRef.current.state === 'registered'
+    );
+  };
 
   // Start call timer
   const startTimer = () => {
@@ -149,9 +220,16 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
       return;
     }
 
-    if (!deviceRef.current) {
-      setError('Device not initialized');
-      setStatusMessage('Device not ready');
+    if (!isDeviceConnected()) {
+      setError('Device not ready. Please refresh.');
+      setStatusMessage('Device initialization failed');
+      setCallStatus('error');
+      
+      // Auto-retry device initialization after a delay
+      setTimeout(() => {
+        setCallStatus('idle');
+        setIsInitializing(true);
+      }, 2000);
       return;
     }
 
@@ -166,7 +244,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
       setStatusMessage('Connecting...');
       setError(null);
       
-      const call = await deviceRef.current.connect({
+      const call = await deviceRef.current!.connect({
         params: {
           To: providerId || 'provider', // Can be used for routing on backend
         },
@@ -452,3 +530,4 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
     </div>
   );
 }
+
