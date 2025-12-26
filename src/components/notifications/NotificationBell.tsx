@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import NotificationPopup from './NotificationPopup';
-import { getCombinedNotifications, getUnreadCount, markAllAsRead, clearReadNotifications as clearReadNotificationsApi, markNotificationAsRead, deleteNotification as deleteNotificationApi } from '@/api/notifications';
+import { getCombinedNotifications, markAllAsRead, clearReadNotifications as clearReadNotificationsApi, markNotificationAsRead, deleteNotification as deleteNotificationApi } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
 import { useAuth } from '@/hooks/useAuth';
+import { socketService } from '@/lib/socketService';
 
 interface NotificationBellProps {
   userRole?: 'customer' | 'service_provider' | 'admin' | 'local_service_manager';
@@ -30,7 +31,10 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
       });
       
       setNotifications(response.notifications);
-      setUnreadCount(response.unreadCount);
+      // Calculate unread count locally from the notifications array
+      const unread = response.notifications.filter(n => !n.is_read).length;
+      setUnreadCount(unread);
+      console.log(`✅ Fetched ${response.notifications.length} notifications, ${unread} unread`);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -38,35 +42,69 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     }
   }, [isAuthenticated, user]);
 
-  // Fetch only unread count (lightweight)
-  const fetchUnreadCount = useCallback(async () => {
-    if (!isAuthenticated || !user) return;
-
-    try {
-      const response = await getUnreadCount();
-      setUnreadCount(response.count);
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
-    }
-  }, [isAuthenticated, user]);
-
-  // Initial fetch and polling
+  // Initial fetch
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
       
-      // Poll for full notifications every 60 seconds
-      const notificationsInterval = setInterval(fetchNotifications, 60000);
+      // Poll as fallback every 60 seconds
+      const pollInterval = setInterval(fetchNotifications, 60000);
       
-      // Poll for unread count every 15 seconds (lightweight)
-      const unreadCountInterval = setInterval(fetchUnreadCount, 15000);
-      
-      return () => {
-        clearInterval(notificationsInterval);
-        clearInterval(unreadCountInterval);
-      };
+      return () => clearInterval(pollInterval);
     }
-  }, [isAuthenticated, fetchNotifications, fetchUnreadCount]);
+  }, [isAuthenticated, fetchNotifications]);
+
+  // Socket.IO real-time listener for new notifications
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      const socket = socketService.connect();
+      if (!socket) {
+        console.warn('⚠️ Socket.IO not connected, using polling fallback');
+        return;
+      }
+
+      // Handle new notification in real-time
+      const handleNewNotification = (data: any) => {
+        console.log('🔔 New notification received via Socket.IO:', data);
+        
+        const newNotification: Notification = {
+          id: data.id || Date.now(),
+          recipient_type: data.recipient_type || 'customer',
+          recipient_id: data.recipient_id || user.id,
+          type: data.type || 'system',
+          title: data.title || 'New Notification',
+          message: data.message || '',
+          is_read: false,
+          metadata: data.metadata,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString(),
+        };
+
+        // Add new notification to the top of the list
+        setNotifications(prev => [newNotification, ...prev]);
+        // Increment unread count (optimistic update)
+        setUnreadCount(prev => prev + 1);
+        console.log('🔴 Badge updated: +1 unread');
+      };
+
+      // Listen for multiple event names (backend compatibility)
+      socket.on('notification', handleNewNotification);
+      socket.on('notification:new', handleNewNotification);
+      socket.on('new_notification', handleNewNotification);
+
+      console.log('👂 Socket.IO listener ready for real-time notifications');
+
+      return () => {
+        socket.off('notification', handleNewNotification);
+        socket.off('notification:new', handleNewNotification);
+        socket.off('new_notification', handleNewNotification);
+      };
+    } catch (error) {
+      console.error('Error setting up Socket.IO listener:', error);
+    }
+  }, [isAuthenticated, user]);
 
   const togglePopup = () => {
     setShowPopup(!showPopup);
@@ -82,11 +120,13 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     // Only proceed if notification exists and is unread
     if (!notification || notification.is_read) return;
 
-    // Optimistically update UI
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    // Optimistically update UI (instant feedback)
+    const updatedNotifications = notifications.map(n => n.id === id ? { ...n, is_read: true } : n);
+    setNotifications(updatedNotifications);
+    // Recalculate unread count from updated array
+    const newUnreadCount = updatedNotifications.filter(n => !n.is_read).length;
+    setUnreadCount(newUnreadCount);
+    console.log(`✓ Marked notification ${id} as read, unread count: ${newUnreadCount}`);
 
     try {
       // Call API to mark as read
@@ -106,10 +146,10 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     if (unreadNotifications.length === 0) return;
 
     // Optimistically update UI
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, is_read: true }))
-    );
+    const updatedNotifications = notifications.map(n => ({ ...n, is_read: true }));
+    setNotifications(updatedNotifications);
     setUnreadCount(0);
+    console.log(`✓ Marked ${unreadNotifications.length} notifications as read`);
 
     try {
       // Call API to mark all as read
@@ -128,9 +168,13 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     if (!notificationToDelete) return;
 
     // Optimistically update UI
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    const updatedNotifications = notifications.filter(n => n.id !== id);
+    setNotifications(updatedNotifications);
+    // Recalculate unread count from updated array
     if (!notificationToDelete.is_read) {
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      const newUnreadCount = updatedNotifications.filter(n => !n.is_read).length;
+      setUnreadCount(newUnreadCount);
+      console.log(`✓ Deleted notification ${id}, unread count: ${newUnreadCount}`);
     }
 
     try {
@@ -151,7 +195,10 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     if (readNotifications.length === 0) return;
 
     // Optimistically update UI - remove all read notifications
-    setNotifications(prev => prev.filter(n => !n.is_read));
+    const updatedNotifications = notifications.filter(n => !n.is_read);
+    setNotifications(updatedNotifications);
+    // Unread count stays the same since we're only removing read ones
+    console.log(`✓ Cleared ${readNotifications.length} read notifications`);
 
     try {
       // Call API to clear read notifications
@@ -166,8 +213,7 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
 
   const closePopup = () => {
     setShowPopup(false);
-    // Refresh unread count when closing popup to ensure accuracy
-    fetchUnreadCount();
+    // Unread count is already calculated locally, no need to refetch
   };
 
   return (
