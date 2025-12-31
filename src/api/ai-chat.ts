@@ -155,18 +155,55 @@ class AiChatApi {
   /**
    * Generate summary from conversation
    */
-  async generateSummary(sessionId: string): Promise<{ summary: string }> {
+  async generateSummary(
+    sessionId: string,
+    collectedData?: {
+      service: string | null;
+      zipcode: string | null;
+      budget: string | null;
+      requirements: string | null;
+    }
+  ): Promise<{ summary: string }> {
     try {
       const response = await apiClient.request<{ summary: string }>(
         `/customer/ai-chat/sessions/${sessionId}/summary`,
         {
           method: 'POST',
+          body: collectedData ? JSON.stringify(collectedData) : undefined,
         }
       );
       return response;
     } catch (error: any) {
       console.error('Failed to generate summary:', error);
       throw new Error(error?.message || 'Failed to generate summary');
+    }
+  }
+
+  /**
+   * Extract structured data from conversation using AI
+   */
+  async extractData(sessionId: string): Promise<{
+    service: string | null;
+    zipcode: string | null;
+    budget: string | null;
+    requirements: string | null;
+  }> {
+    try {
+      const response = await apiClient.request<{
+        service: string | null;
+        zipcode: string | null;
+        budget: string | null;
+        requirements: string | null;
+      }>(
+        `/customer/ai-chat/sessions/${sessionId}/extract`,
+        {
+          method: 'POST',
+        }
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Failed to extract data:', error);
+      throw new Error(error?.message || 'Failed to extract data');
     }
   }
 
@@ -207,6 +244,40 @@ class AiChatApi {
     } catch (error: any) {
       console.error('Failed to get recommended providers:', error);
       throw new Error(error?.message || 'Failed to get recommended providers');
+    }
+  }
+
+  /**
+   * Get actual price range for a service from provider data
+   */
+  async getServicePriceRange(serviceName: string): Promise<{
+    serviceName: string;
+    minPrice: number;
+    maxPrice: number;
+    avgPrice: number;
+    providerCount: number;
+  }> {
+    try {
+      const response = await apiClient.request<{
+        serviceName: string;
+        minPrice: number;
+        maxPrice: number;
+        avgPrice: number;
+        providerCount: number;
+      }>(
+        `/customer/ai-chat/services/${encodeURIComponent(serviceName)}/price-range`
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Failed to get service price range:', error);
+      // Return default on error
+      return {
+        serviceName,
+        minPrice: 50,
+        maxPrice: 500,
+        avgPrice: 250,
+        providerCount: 0,
+      };
     }
   }
 
