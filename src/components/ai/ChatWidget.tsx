@@ -1,18 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import SalesAssistantChat from './SalesAssistantChat';
+import { useAuth } from '@/hooks/useAuth';
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+
+  // Only show AI Assistant for customers
+  const isCustomer = isAuthenticated && user?.role === 'customer';
 
   // Auto-open chat if returning from provider profile
   useEffect(() => {
+    if (!isCustomer) return; // Don't auto-open for non-customers
+    
     const isAiChatActive = sessionStorage.getItem('ai_chat_active');
     if (isAiChatActive === 'true') {
       setIsOpen(true);
       // Clear the flag after opening
       sessionStorage.removeItem('ai_chat_active');
     }
-  }, []);
+  }, [isCustomer]);
+
+  // Don't render anything if user is not a customer
+  if (!isCustomer) {
+    return null;
+  }
 
   return (
     <>

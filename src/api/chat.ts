@@ -120,7 +120,7 @@ export const chatApi = {
    * Load all chats based on user role
    * Automatically determines whether to call customer, provider, or LSM endpoint
    */
-  async getUserChats(userRole: 'customer' | 'service_provider' | 'local_service_manager'): Promise<Chat[]> {
+  async getUserChats(userRole: 'customer' | 'service_provider' | 'local_service_manager' | 'admin'): Promise<Chat[]> {
     if (userRole === 'customer') {
       return this.getCustomerChats();
     } else if (userRole === 'service_provider') {
@@ -128,7 +128,9 @@ export const chatApi = {
     } else if (userRole === 'local_service_manager') {
       return this.getLSMChats();
     } else {
-      throw new Error('Invalid user role for chat');
+      // For admin or other roles, return empty array (they don't use chat system)
+      console.log(`Chat not available for user role: ${userRole}`);
+      return [];
     }
   },
 
