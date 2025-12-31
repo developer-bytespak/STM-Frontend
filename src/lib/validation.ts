@@ -102,7 +102,7 @@ export function isValidBudget(budget: string, serviceName?: string | null): Vali
   }
   
   // Get hardcoded service-specific price range (fallback if async not available)
-  const priceRange = getServicePriceRange(serviceName);
+  const priceRange = getServicePriceRange(serviceName || null);
   
   // Minimum budget: $10 (or service minimum if available)
   const minBudget = priceRange ? priceRange.min : 10;

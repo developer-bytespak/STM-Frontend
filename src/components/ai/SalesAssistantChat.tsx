@@ -592,10 +592,10 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           
           // Replace temp user message with real one and add AI response
           const newUserMessage: AiChatMessage = {
-            id: response.message?.id || `user-${Date.now()}`,
+            id: response.userMessage?.id || `user-${Date.now()}`,
             senderType: 'user',
             message: sanitizedText,
-            createdAt: response.message?.createdAt || new Date().toISOString(),
+            createdAt: response.userMessage?.createdAt || new Date().toISOString(),
           };
           
           const newAiMessage: AiChatMessage = {
@@ -816,10 +816,10 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           
           // Replace temp user message with real one and add AI response
           const newUserMessage: AiChatMessage = {
-            id: response.message?.id || `user-${Date.now()}`,
+            id: response.userMessage?.id || `user-${Date.now()}`,
             senderType: 'user',
             message: serviceName,
-            createdAt: response.message?.createdAt || new Date().toISOString(),
+            createdAt: response.userMessage?.createdAt || new Date().toISOString(),
           };
           
           const newAiMessage: AiChatMessage = {
@@ -871,8 +871,8 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       const aiMessage: AiChatMessage = {
         id: response.aiMessage?.id || `ai-${Date.now()}`,
         senderType: 'assistant',
-        message: response.aiMessage?.message || response.message?.message || 'Message received.',
-        createdAt: response.aiMessage?.createdAt || response.message?.createdAt || new Date().toISOString(),
+        message: response.aiMessage?.message || 'Message received.',
+        createdAt: response.aiMessage?.createdAt || new Date().toISOString(),
       };
       
       // Replace temp message with real user message and add AI response
