@@ -398,12 +398,10 @@ export default function BookingModal({
             />
           </div>
 
-          {/* TODO: Re-enable budget field when ready to make it required again */}
-          {/* Budget */}
-          {/* <div>
+          {/* Budget input (customer can provide budget) */}
+          <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               {mode === 'sp-quote' ? 'Your Quote Amount:' : 'What is your budget for this service?'}
-              <span className="text-red-500 ml-1">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -427,7 +425,7 @@ export default function BookingModal({
                 💡 You can modify the customer&apos;s requested budget and provide your professional quote
               </p>
             )}
-          </div> */}
+          </div>
 
           {/* Additional Details */}
           <div>

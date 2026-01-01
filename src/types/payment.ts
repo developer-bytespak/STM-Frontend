@@ -318,4 +318,40 @@ export interface WalletTopUpData {
   description?: string;
 }
 
+// ==================== PROVIDER EARNINGS & INVOICES ====================
+
+export interface ProviderEarnings {
+  providerId: number;
+  totalEarnings: number;
+  totalJobs: number;
+  currentBalance: number;
+}
+
+export type InvoiceStatus = 'pending' | 'received' | 'disputed';
+
+export interface ProviderInvoice {
+  id: number;
+  jobId: number;
+  jobService: string;
+  jobCategory: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  status: InvoiceStatus;
+  stripeInvoiceId?: string;
+  stripeInvoiceUrl?: string;
+  stripePdfUrl?: string;
+  createdAt: string;
+  markedAt?: string;
+  notes?: string;
+}
+
+export interface InvoicesSummary {
+  total: number;
+  pending: number;
+  received: number;
+  disputed: number;
+  totalAmount: number;
+}
+
 
