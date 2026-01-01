@@ -12,11 +12,12 @@ interface VoiceCallModalProps {
   onClose: () => void;
   providerName: string;
   providerId?: string;
+  onRestore?: () => void;
 }
 
 type CallStatus = 'idle' | 'connecting' | 'ringing' | 'connected' | 'disconnected' | 'busy' | 'rejected' | 'no-answer' | 'failed' | 'error';
 
-export default function VoiceCallModal({ isOpen, onClose, providerName, providerId }: VoiceCallModalProps) {
+export default function VoiceCallModal({ isOpen, onClose, providerName, providerId, onRestore }: VoiceCallModalProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
@@ -27,6 +28,9 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
   const [isInitializing, setIsInitializing] = useState(false);
   const [isDeviceReady, setIsDeviceReady] = useState(false);
   const [tokenExpiresAt, setTokenExpiresAt] = useState<number | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
+  const [callHasEnded, setCallHasEnded] = useState(false);
   
   const deviceRef = useRef<Device | null>(null);
   const callRef = useRef<any>(null);
@@ -51,7 +55,8 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
 
   // Initialize Twilio Device
   useEffect(() => {
-    if (!isOpen || !isAuthenticated) {
+    // Don't reinitialize if previous call already ended
+    if (!isOpen || !isAuthenticated || callHasEnded) {
       // Cleanup when modal closes or user logs out
       if (deviceRef.current) {
         deviceRef.current.destroy();
@@ -136,7 +141,7 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         clearTimeout(tokenRefreshTimerRef.current);
       }
     };
-  }, [isOpen, isAuthenticated]);
+  }, [isOpen, isAuthenticated, callHasEnded]);
 
   // Token refresh effect - refresh token 5 minutes before expiry
   useEffect(() => {
@@ -264,34 +269,70 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         console.log('📴 Call disconnected', connection);
         setCallStatus('disconnected');
         setStatusMessage('Call ended');
+        setCallHasEnded(true);
         stopTimer();
-        setTimeout(() => {
-          onClose();
-        }, 2500);
+
+        // If minimized, auto-remove the minimized UI shortly after remote hangup
+        if (isMinimized) {
+          setTimeout(() => {
+            setIsMinimized(false);
+            setCallDuration(0);
+            // Cleanup device
+            if (deviceRef.current) {
+              try {
+                deviceRef.current.destroy();
+              } catch (e) {
+                // ignore
+              }
+              deviceRef.current = null;
+            }
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            onClose();
+          }, 2500);
+        }
       });
 
       call.on('cancel', () => {
         console.log('❌ Call cancelled');
         setCallStatus('disconnected');
         setStatusMessage('Call cancelled');
+        setCallHasEnded(true);
         stopTimer();
-        setTimeout(() => {
-          onClose();
-        }, 2500);
+        if (isMinimized) {
+          setTimeout(() => {
+            setIsMinimized(false);
+            setCallDuration(0);
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            onClose();
+          }, 2500);
+        }
       });
 
       call.on('reject', () => {
         console.log('❌ Call rejected');
         setCallStatus('rejected');
         setStatusMessage('Provider rejected the call');
+        setCallHasEnded(true);
         stopTimer();
-        setTimeout(() => {
-          onClose();
-        }, 3000);
+        if (isMinimized) {
+          setTimeout(() => {
+            setIsMinimized(false);
+            setCallDuration(0);
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            onClose();
+          }, 3000);
+        }
       });
 
       call.on('error', (error: any) => {
         console.error('❌ Call error:', error);
+        setCallHasEnded(true);
         
         // Parse Twilio error codes
         let errorMessage = 'Call failed';
@@ -314,9 +355,16 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
         setError(errorMessage);
         setStatusMessage(errorMessage);
         stopTimer();
-        setTimeout(() => {
-          onClose();
-        }, 3000);
+        if (isMinimized) {
+          setTimeout(() => {
+            setIsMinimized(false);
+            setCallDuration(0);
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            onClose();
+          }, 3000);
+        }
       });
 
       setCallStatus('ringing');
@@ -353,22 +401,57 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
     router.push('/login');
   };
   const handleClose = () => {
+    // If a call is active or connecting, minimize instead of ending the call
+    if (callRef.current && (callStatus === 'connecting' || callStatus === 'ringing' || callStatus === 'connected')) {
+      setIsMinimized(true);
+      // Don't call onClose - just hide the modal UI while keeping the component alive for the minimized widget
+      return;
+    }
+
+    // No active call -> perform normal close and reset
     if (callRef.current) {
       endCall();
     }
     setCallDuration(0);
     setCallStatus('idle');
+    setCallHasEnded(false);
     setError(null);
     setStatusMessage('');
     setIsInitializing(false);
     onClose();
   };
 
-  if (!isOpen) return null;
+  // clear forced open when parent closes/when ending modal
+  useEffect(() => {
+    if (!isOpen) {
+      setForceOpen(false);
+      // Reset callHasEnded only when fully closing
+      if (!isMinimized) {
+        setCallHasEnded(false);
+      }
+    }
+  }, [isOpen, isMinimized]);
+
+  const restoreModal = () => {
+    if (typeof onRestore === 'function') {
+      onRestore();
+    } else {
+      setForceOpen(true);
+    }
+    setIsMinimized(false);
+  };
+
+  // Allow rendering minimized UI or force-open even when parent `isOpen` is false
+  if (!isOpen && !isMinimized && !forceOpen) return null;
+
+  // Show modal fullscreen if isOpen or forceOpen, or just render minimized widget
+  const showModal = (isOpen || forceOpen) && !isMinimized;
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+    <>
+      {showModal && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white relative">
           <button
@@ -526,8 +609,45 @@ export default function VoiceCallModal({ isOpen, onClose, providerName, provider
             Powered by Twilio Voice
           </p>
         </div>
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+
+      {/* Minimized call widget */}
+      {isMinimized && (
+        <div className="fixed bottom-4 left-4 z-50">
+          <div className="flex items-center gap-3 bg-white shadow rounded-full p-3">
+            <button
+              onClick={restoreModal}
+              className="bg-blue-600 text-white p-3 rounded-full flex items-center justify-center"
+              title="Restore call"
+            >
+              <Phone className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-gray-900">{providerName}</span>
+              <span className="text-xs text-gray-500">{formatDuration(callDuration)}</span>
+            </div>
+
+            <button
+              onClick={() => {
+                // hang up and remove minimized widget
+                endCall();
+                setIsMinimized(false);
+                setCallDuration(0);
+                // Now close the modal
+                onClose();
+              }}
+              className="ml-3 text-red-600 p-2 rounded-full"
+              title="End call"
+            >
+              <PhoneOff className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

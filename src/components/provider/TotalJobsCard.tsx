@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Job } from '@/api/provider';
+import { sendJobInvoice, resendJobInvoice, getJobInvoiceDetails } from '@/api/payments';
 
 interface TotalJobsCardProps {
   job: Job;
@@ -9,6 +11,8 @@ interface TotalJobsCardProps {
 }
 
 export default function TotalJobsCard({ job, onViewDetails, onOpenChat }: TotalJobsCardProps) {
+  const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
+  const [invoiceMessage, setInvoiceMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -35,6 +39,49 @@ export default function TotalJobsCard({ job, onViewDetails, onOpenChat }: TotalJ
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    try {
+      setIsInvoiceLoading(true);
+      setInvoiceMessage(null);
+      const response = await sendJobInvoice(job.id);
+      setInvoiceMessage({
+        type: 'success',
+        text: response.alreadyExists ? 'Invoice already sent' : 'Invoice sent successfully!'
+      });
+      // Clear message after 3 seconds
+      setTimeout(() => setInvoiceMessage(null), 3000);
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      setInvoiceMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to send invoice'
+      });
+    } finally {
+      setIsInvoiceLoading(false);
+    }
+  };
+
+  const handleResendInvoice = async () => {
+    try {
+      setIsInvoiceLoading(true);
+      setInvoiceMessage(null);
+      const response = await resendJobInvoice(job.id);
+      setInvoiceMessage({
+        type: 'success',
+        text: response.message || 'Invoice resent successfully!'
+      });
+      setTimeout(() => setInvoiceMessage(null), 3000);
+    } catch (error) {
+      console.error('Error resending invoice:', error);
+      setInvoiceMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to resend invoice'
+      });
+    } finally {
+      setIsInvoiceLoading(false);
     }
   };
 
@@ -118,28 +165,26 @@ export default function TotalJobsCard({ job, onViewDetails, onOpenChat }: TotalJ
           </div>
         </div>
 
-        {/* Additional Info - consistent spacing */}
+        {/* Additional Info - show both Scheduled and Completed consistently */}
         <div className="space-y-4">
-          {job.scheduledAt && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Scheduled Date</p>
-              <p className="text-sm font-medium text-gray-900">{formatDate(job.scheduledAt)}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Scheduled Date</p>
+            <p className="text-sm font-medium text-gray-900">
+              {job.scheduledAt ? formatDate(job.scheduledAt) : <span className="text-sm text-gray-500">—</span>}
+            </p>
+          </div>
 
-          {getCorrectCompletedDate() && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Completed Date</p>
-              <p className="text-sm font-medium text-gray-900">
-                {formatDate(getCorrectCompletedDate()!)}
-                {!isValidDateOrder() && (
-                  <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                    ⚠️ Adjusted
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Completed Date</p>
+            <p className="text-sm font-medium text-gray-900">
+              {getCorrectCompletedDate() ? formatDate(getCorrectCompletedDate()!) : <span className="text-sm text-gray-500">—</span>}
+              {!isValidDateOrder() && getCorrectCompletedDate() && (
+                <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                  ⚠️ Adjusted
+                </span>
+              )}
+            </p>
+          </div>
 
           {/* Customer Contact */}
           <div className="pt-4 border-t border-gray-200">
@@ -154,6 +199,41 @@ export default function TotalJobsCard({ job, onViewDetails, onOpenChat }: TotalJ
 
       {/* Footer Actions - always at bottom */}
       <div className="pt-4 border-t border-gray-200 mt-4 space-y-2">
+        {/* Message Alert */}
+        {invoiceMessage && (
+          <div className={`p-3 rounded-lg text-sm ${
+            invoiceMessage.type === 'success' 
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {invoiceMessage.text}
+          </div>
+        )}
+
+        {/* Invoice Buttons - Show for completed jobs */}
+        {job.status.toLowerCase() === 'completed' && (
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={handleSendInvoice}
+              disabled={isInvoiceLoading}
+              className="px-3 py-2 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              title="Generate and send invoice to customer"
+            >
+              {isInvoiceLoading ? '...' : '📧 Send Invoice'}
+            </button>
+            <button 
+              onClick={handleResendInvoice}
+              disabled={isInvoiceLoading}
+              className="px-3 py-2 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              title="Resend invoice email to customer"
+            >
+              {isInvoiceLoading ? '...' : '🔄 Resend'}
+            </button>
+          </div>
+        )}
+
+        {/* For paid jobs we intentionally hide the resend button (invoice already finalized) */}
+
         <button 
           onClick={() => onViewDetails(job.id)}
           className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"

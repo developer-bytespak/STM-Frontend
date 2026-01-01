@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Linkify from 'react-linkify';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/hooks/useAuth';
 import { customerApi } from '@/api/customer';
@@ -481,7 +482,21 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <Linkify
+                        componentDecorator={(decoratedHref: string, decoratedText: string, key: number) => (
+                          <a
+                            key={key}
+                            href={decoratedHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
+                          >
+                            {decoratedText}
+                          </a>
+                        )}
+                      >
+                        <p className={`text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      </Linkify>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -739,7 +754,21 @@ export default function ChatPopup() {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      <Linkify
+                        componentDecorator={(decoratedHref: string, decoratedText: string, key: number) => (
+                          <a
+                            key={key}
+                            href={decoratedHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline cursor-pointer break-all"
+                          >
+                            {decoratedText}
+                          </a>
+                        )}
+                      >
+                        <p className={`text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere ${isOwnMessage || getMessageColor(message.senderRole, isOwnMessage) ? 'text-white' : 'text-gray-900'}`}>{message.content}</p>
+                      </Linkify>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
