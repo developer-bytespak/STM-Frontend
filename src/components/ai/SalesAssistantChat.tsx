@@ -29,6 +29,16 @@ const INITIAL_MESSAGES = [
   "Hi there! How may I assist you today?",
 ];
 
+// Suggested questions to guide new users
+const SUGGESTED_QUESTIONS = [
+  "I need house cleaning services in my area",
+  "What plumbing services do you offer?",
+  "I'm looking for a handyman for home repairs",
+  "Can you help me find a lawn care service?",
+  "I need electrical work done at my home",
+  "Show me available office cleaning services",
+];
+
 interface ServiceInfo {
   id: number;
   name: string;
@@ -75,6 +85,10 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   const MAX_MESSAGES = 100;
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const manuallyEditedFields = useRef<Set<keyof CollectedData>>(new Set());
+  const previousMessageCount = useRef<number>(0);
+  const [showChatHistory, setShowChatHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState<AiChatSession[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Fetch available services on mount
   useEffect(() => {
@@ -331,13 +345,33 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   // Auto-extract data from all messages whenever messages change using AI
   // Only extract after AI responds (not after every user message)
   useEffect(() => {
-    if (messages.length === 0 || !session || showConfirmation || editMode) {
-      return; // Don't extract when in edit mode or confirmation dialog
+    if (messages.length === 0 || !session || showConfirmation || editMode || showChatHistory) {
+      return; // Don't extract when in edit mode, confirmation dialog, or viewing history
+    }
+
+    // Check if there are any user messages (don't extract on just the AI greeting)
+    const hasUserMessages = messages.some(m => m.senderType === 'user');
+    if (!hasUserMessages) {
+      previousMessageCount.current = messages.length;
+      return; // Don't extract if no user has sent a message yet
+    }
+
+    // Only extract if message count increased by 1 or 2 (user + AI response)
+    // This prevents extraction when loading historical sessions (bulk message load)
+    const currentCount = messages.length;
+    const previousCount = previousMessageCount.current;
+    const messageCountDiff = currentCount - previousCount;
+    
+    if (messageCountDiff > 2 || messageCountDiff <= 0) {
+      // Bulk load (historical session) or no change - don't extract
+      previousMessageCount.current = currentCount;
+      return;
     }
 
     // Only extract if the last message is from assistant (AI just responded)
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.senderType !== 'assistant') {
+      previousMessageCount.current = currentCount;
       return;
     }
 
@@ -348,40 +382,98 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         const extracted = await aiChatApi.extractData(session.sessionId);
         console.log('✅ AI Extraction result:', extracted);
         
-        // Only update fields that:
-        // 1. Are currently null/empty AND
-        // 2. Were NOT manually edited by the user
-        const manuallyEdited = manuallyEditedFields.current;
+        // Check if AI extraction returned all nulls (API failed or no data found)
+        const hasAnyData = extracted.service || extracted.zipcode || extracted.budget || extracted.requirements;
         
-        setCollectedData(prev => ({
-          service: (extracted.service && !prev.service && !manuallyEdited.has('service')) 
-            ? extracted.service 
-            : prev.service,
-          zipcode: (extracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
-            ? extracted.zipcode 
-            : prev.zipcode,
-          budget: (extracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
-            ? extracted.budget 
-            : prev.budget,
-          location: prev.location,
-          requirements: (extracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
-            ? extracted.requirements 
-            : prev.requirements,
-        }));
-        
-        if (manuallyEdited.size > 0) {
-          console.log('🔒 Protected fields (manually edited):', Array.from(manuallyEdited));
+        if (!hasAnyData) {
+          console.log('⚠️ Backend AI returned all nulls, falling back to client-side regex extraction...');
+          
+          // Fallback: Use client-side regex extraction on the last user message
+          const lastUserMessage = messages.filter(m => m.senderType === 'user').pop();
+          if (lastUserMessage) {
+            const clientExtracted = extractDataFromMessages(lastUserMessage.message);
+            console.log('📋 Client-side fallback extraction found:', clientExtracted);
+            
+            // Update with client-side extracted data
+            const manuallyEdited = manuallyEditedFields.current;
+            setCollectedData(prev => ({
+              service: (clientExtracted.service && !prev.service && !manuallyEdited.has('service')) 
+                ? clientExtracted.service 
+                : prev.service,
+              zipcode: (clientExtracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
+                ? clientExtracted.zipcode 
+                : prev.zipcode,
+              budget: (clientExtracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+                ? clientExtracted.budget 
+                : prev.budget,
+              location: prev.location,
+              requirements: (clientExtracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+                ? clientExtracted.requirements 
+                : prev.requirements,
+            }));
+          }
+        } else {
+          // AI extraction succeeded, use AI results
+          console.log('✅ Using backend AI extraction results');
+          const manuallyEdited = manuallyEditedFields.current;
+          
+          setCollectedData(prev => ({
+            service: (extracted.service && !prev.service && !manuallyEdited.has('service')) 
+              ? extracted.service 
+              : prev.service,
+            zipcode: (extracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
+              ? extracted.zipcode 
+              : prev.zipcode,
+            budget: (extracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+              ? extracted.budget 
+              : prev.budget,
+            location: prev.location,
+            requirements: (extracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+              ? extracted.requirements 
+              : prev.requirements,
+          }));
+          
+          if (manuallyEdited.size > 0) {
+            console.log('🔒 Protected fields (manually edited):', Array.from(manuallyEdited));
+          }
         }
       } catch (error) {
-        console.error('❌ Failed to extract data with AI:', error);
-        // Silently fail - don't disrupt user experience
+        console.error('❌ Backend AI extraction failed with error:', error);
+        
+        // Fallback: Use client-side regex extraction on error
+        console.log('⚠️ Falling back to client-side regex extraction due to error...');
+        const lastUserMessage = messages.filter(m => m.senderType === 'user').pop();
+        if (lastUserMessage) {
+          const clientExtracted = extractDataFromMessages(lastUserMessage.message);
+          console.log('📋 Client-side fallback extraction found:', clientExtracted);
+          
+          const manuallyEdited = manuallyEditedFields.current;
+          setCollectedData(prev => ({
+            service: (clientExtracted.service && !prev.service && !manuallyEdited.has('service')) 
+              ? clientExtracted.service 
+              : prev.service,
+            zipcode: (clientExtracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
+              ? clientExtracted.zipcode 
+              : prev.zipcode,
+            budget: (clientExtracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+              ? clientExtracted.budget 
+              : prev.budget,
+            location: prev.location,
+            requirements: (clientExtracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+              ? clientExtracted.requirements 
+              : prev.requirements,
+          }));
+        }
       }
     };
 
+    // Update the previous count
+    previousMessageCount.current = currentCount;
+    
     // Debounce AI calls - only call after AI response settles
     const timeoutId = setTimeout(extractWithAI, 300);
     return () => clearTimeout(timeoutId);
-  }, [messages, session, showConfirmation, editMode]);
+  }, [messages, session, showConfirmation, editMode, showChatHistory]);
 
   const loadActiveSession = async () => {
     try {
@@ -403,12 +495,25 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         setHasActiveSession(true);
         setShowSessionPrompt(true);
       } else {
+        // No active session in database - clear any stale sessionStorage and start fresh
+        sessionStorage.removeItem('ai_chat_session_id');
+        sessionStorage.removeItem('ai_chat_active');
+        sessionStorage.removeItem('ai_chat_show_recommendations');
+        sessionStorage.removeItem('ai_chat_summary');
+        sessionStorage.removeItem('ai_chat_providers');
         setHasActiveSession(false);
-        setShowSessionPrompt(false);
+        setShowSessionPrompt(true);
       }
     } catch (error) {
       console.error('Failed to load active session:', error);
+      // On error, also clear stale sessionStorage
+      sessionStorage.removeItem('ai_chat_session_id');
+      sessionStorage.removeItem('ai_chat_active');
+      sessionStorage.removeItem('ai_chat_show_recommendations');
+      sessionStorage.removeItem('ai_chat_summary');
+      sessionStorage.removeItem('ai_chat_providers');
       setHasActiveSession(false);
+      setShowSessionPrompt(true);
     } finally {
       setIsLoading(false);
     }
@@ -484,17 +589,156 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         setSession(sessionData);
         setMessages(sessionData.messages || []);
         setShowServiceSelection(false); // Don't show selection for restored sessions
-        setShowRecommendations(false); // Show chat, not recommendations
+        
+        // Check if we should restore recommendations view
+        const shouldShowRecommendations = sessionStorage.getItem('ai_chat_show_recommendations') === 'true';
+        const storedSummary = sessionStorage.getItem('ai_chat_summary');
+        const storedProviders = sessionStorage.getItem('ai_chat_providers');
+        
+        if (shouldShowRecommendations && storedSummary && storedProviders) {
+          // Restore recommendations view
+          setShowRecommendations(true);
+          setSummary(storedSummary);
+          setRecommendedProviders(JSON.parse(storedProviders));
+          // Clear the stored data
+          sessionStorage.removeItem('ai_chat_show_recommendations');
+          sessionStorage.removeItem('ai_chat_summary');
+          sessionStorage.removeItem('ai_chat_providers');
+        } else {
+          setShowRecommendations(false); // Show chat by default
+        }
+        
         // Auto-extract data from existing messages
         const extracted = extractDataFromAllMessages(sessionData.messages || []);
         setCollectedData(extracted);
+      } else {
+        // Session not found in database - clear sessionStorage and start fresh
+        console.log('Session not found in database, starting new session');
+        sessionStorage.removeItem('ai_chat_session_id');
+        sessionStorage.removeItem('ai_chat_active');
+        sessionStorage.removeItem('ai_chat_show_recommendations');
+        sessionStorage.removeItem('ai_chat_summary');
+        sessionStorage.removeItem('ai_chat_providers');
+        await startNewSession();
       }
     } catch (error) {
       console.error('Failed to restore session:', error);
-      // Fall back to creating a new session
+      // Clear stale sessionStorage and fall back to creating a new session
+      sessionStorage.removeItem('ai_chat_session_id');
+      sessionStorage.removeItem('ai_chat_active');
+      sessionStorage.removeItem('ai_chat_show_recommendations');
+      sessionStorage.removeItem('ai_chat_summary');
+      sessionStorage.removeItem('ai_chat_providers');
       startNewSession();
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadChatHistory = async () => {
+    try {
+      setIsLoadingHistory(true);
+      const history = await aiChatApi.getSessionHistory();
+      setChatHistory(history);
+      setShowChatHistory(true);
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      alert('Failed to load chat history. Please try again.');
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const loadHistoricalSession = async (historicalSession: AiChatSession) => {
+    try {
+      setIsLoading(true);
+      setShowChatHistory(false);
+      
+      // Load the full session data with messages
+      const sessionData = await aiChatApi.getSessionById(historicalSession.sessionId);
+      
+      if (sessionData) {
+        console.log(`📜 Loading historical session: ${sessionData.sessionId}`);
+        console.log(`   Total messages in session: ${sessionData.messages?.length || 0}`);
+        console.log(`   Session has summary: ${!!sessionData.summary}`);
+        console.log(`   Session is active: ${sessionData.isActive}`);
+        
+        setSession(sessionData);
+        const msgs = sessionData.messages || [];
+        
+        // Update message count before setting messages to prevent auto-extraction
+        previousMessageCount.current = msgs.length;
+        
+        // If no messages, add a welcome message
+        if (msgs.length === 0) {
+          const welcomeMsg: AiChatMessage = {
+            id: `ai-${Date.now()}`,
+            senderType: 'assistant',
+            message: 'Welcome back! How can I help you today?',
+            createdAt: new Date().toISOString(),
+          };
+          setMessages([welcomeMsg]);
+          previousMessageCount.current = 1;
+        } else {
+          console.log(`   Setting ${msgs.length} messages to display`);
+          setMessages(msgs);
+        }
+        
+        setShowRecommendations(false);
+        setShowConfirmation(false);
+        setShowServiceSelection(false);
+        setShowSessionPrompt(false);
+        
+        // Auto-extract data from existing messages
+        const extracted = extractDataFromAllMessages(msgs);
+        setCollectedData(extracted);
+        
+        // If there's a summary, set it
+        if (sessionData.summary) {
+          setSummary(sessionData.summary);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load historical session:', error);
+      alert('Failed to load session. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuggestedQuestion = async (question: string) => {
+    if (!session || isSending) return;
+    
+    setIsSending(true);
+
+    // Sanitize the suggested question
+    const sanitizedText = sanitizeInput(question);
+
+    // Add user message optimistically
+    const userMessage: AiChatMessage = {
+      id: `temp-${Date.now()}`,
+      senderType: 'user',
+      message: sanitizedText,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    try {
+      const response = await aiChatApi.sendMessage(session.sessionId, question);
+
+      // Replace temp message with real one and add AI response
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== userMessage.id);
+        return [...filtered, response.userMessage, response.aiMessage];
+      });
+      setMessageCount(c => c + 2);
+    } catch (error) {
+      console.error('Failed to send suggested question:', error);
+      // Remove temp message on error
+      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -511,13 +755,9 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
     // Sanitize input
     const sanitizedText = sanitizeInput(text);
 
-    // If service selection is shown, don't allow text input (user must select from buttons)
-    if (showServiceSelection && !editMode) {
-      alert('Please select a service from the options above.');
-      setInput('');
-      setIsSending(false);
-      return;
-    }
+    // REMOVED: Blocking text input during service selection
+    // Users should be able to type their request even when service selector is shown
+    // The AI can parse natural language better than forcing button clicks
 
     setIsSending(true);
     setInput('');
@@ -632,60 +872,15 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       return;
     }
 
-    // Extract data will happen automatically via useEffect after message is sent
-    // No need for manual extraction here - AI handles it
+    // Backend AI extraction will happen via useEffect after message is sent
+    // Client-side regex extraction is used as fallback if AI returns null
 
-    // Detect vague requests and proactively show service selection
-    if (!collectedData.service && isVagueRequest(sanitizedText)) {
-      // Clear edit mode since user is starting fresh
-      setEditMode(null);
-      
-      const userMessage: AiChatMessage = {
-        id: `temp-${Date.now()}`,
-        senderType: 'user',
-        message: sanitizedText,
-        createdAt: new Date().toISOString(),
-      };
+    // REMOVED: Vague request detection that prevented first message from being saved
+    // This was causing messages like "I need house cleaning" to never reach the backend
+    // Let the AI handle all messages instead of intercepting them
 
-      const aiMessage: AiChatMessage = {
-        id: `ai-${Date.now()}-vague`,
-        senderType: 'assistant',
-        message: 'I\'d be happy to help! Let me show you our available services. Please select the one you need:',
-        createdAt: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, userMessage, aiMessage]);
-      setMessageCount(c => c + 2);
-      setShowServiceSelection(true);
-      setIsSending(false);
-      return;
-    }
-
-    // Check if user is asking about services
-    if (isAskingAboutServices(sanitizedText)) {
-      // Clear edit mode since user is asking about services in normal conversation
-      setEditMode(null);
-      
-      const userMessage: AiChatMessage = {
-        id: `temp-${Date.now()}`,
-        senderType: 'user',
-        message: sanitizedText,
-        createdAt: new Date().toISOString(),
-      };
-
-      const aiMessage: AiChatMessage = {
-        id: `ai-${Date.now()}-services`,
-        senderType: 'assistant',
-        message: 'Great question! We offer various cleaning and home service options. Please select the service you need from the options below:',
-        createdAt: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, userMessage, aiMessage]);
-      setMessageCount(c => c + 2);
-      setShowServiceSelection(true); // Show service selection buttons
-      setIsSending(false);
-      return;
-    }
+    // REMOVED: Service question interception - let OpenAI handle all questions naturally
+    // The AI is smart enough to respond appropriately to service questions
 
     // Add user message optimistically
     const userMessage: AiChatMessage = {
@@ -854,7 +1049,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       return;
     }
 
-    // Normal flow (not editing) - send to AI
+    // Normal flow (not editing) - send to AI with context of already collected data
     const userMessage: AiChatMessage = {
       id: `temp-${Date.now()}`,
       senderType: 'user',
@@ -863,9 +1058,27 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
     };
     setMessages((prev) => [...prev, userMessage]);
 
+    // Build a context message that includes already-collected data
+    let messageToSend = serviceName;
+    
+    // Check what data we already have from previous extraction
+    const hasZipcode = !!collectedData.zipcode;
+    const hasBudget = !!collectedData.budget;
+    const hasRequirements = !!collectedData.requirements;
+    
+    if (hasZipcode || hasBudget || hasRequirements) {
+      // Add context so AI knows we already have some data
+      messageToSend += ' (';
+      const parts = [];
+      if (hasZipcode) parts.push(`zipcode: ${collectedData.zipcode}`);
+      if (hasBudget) parts.push(`budget: ${collectedData.budget}`);
+      if (hasRequirements) parts.push(`requirements: ${collectedData.requirements}`);
+      messageToSend += parts.join(', ') + ')';
+    }
+
     try {
-      // Send to AI
-      const response = await aiChatApi.sendMessage(session.sessionId, serviceName);
+      // Send to AI with context
+      const response = await aiChatApi.sendMessage(session.sessionId, messageToSend);
       
       // Handle the response structure properly
       const aiMessage: AiChatMessage = {
@@ -910,9 +1123,12 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         provider.id
       );
 
-      // Store session context in sessionStorage to preserve chat position when returning
+      // Store session context and view state in sessionStorage to preserve position when returning
       sessionStorage.setItem('ai_chat_session_id', session.sessionId);
       sessionStorage.setItem('ai_chat_active', 'true');
+      sessionStorage.setItem('ai_chat_show_recommendations', 'true');
+      sessionStorage.setItem('ai_chat_summary', summary || '');
+      sessionStorage.setItem('ai_chat_providers', JSON.stringify(recommendedProviders));
 
       // Navigate to provider page with AI flow parameters
       router.push(`/${slug}?from_ai=true&session_id=${session.sessionId}`);
@@ -979,13 +1195,23 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           </div>
           <div className="flex items-center gap-2">
             {session && (
-              <button
-                onClick={startNewSession}
-                className="text-xs bg-white text-navy-600 px-3 py-1 rounded hover:bg-gray-100 transition-colors font-semibold"
-                title="Start a new conversation"
-              >
-                New Chat
-              </button>
+              <>
+                <button
+                  onClick={loadChatHistory}
+                  disabled={isLoadingHistory}
+                  className="text-xs bg-white text-navy-600 px-3 py-1 rounded hover:bg-gray-100 transition-colors font-semibold disabled:opacity-50"
+                  title="View previous conversations"
+                >
+                  {isLoadingHistory ? 'Loading...' : 'Previous Chats'}
+                </button>
+                <button
+                  onClick={startNewSession}
+                  className="text-xs bg-white text-navy-600 px-3 py-1 rounded hover:bg-gray-100 transition-colors font-semibold"
+                  title="Start a new conversation"
+                >
+                  New Chat
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -1007,7 +1233,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                 <p className="text-gray-600">Loading...</p>
               </div>
             </div>
-          ) : showSessionPrompt ? (
+          ) : showSessionPrompt && hasActiveSession ? (
             <div className="flex-1 flex items-center justify-center p-6">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-8 max-w-md w-full border border-blue-200 shadow-lg">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">You have an ongoing session</h3>
@@ -1042,7 +1268,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           ) : (
             <>
               {/* Messages */}
-              {!showRecommendations && (
+              {!showRecommendations && !showConfirmation && !showChatHistory && (
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
                   {messages.length === 0 && (
                     <div className="text-center text-gray-500 py-8">
@@ -1082,6 +1308,26 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                       </div>
                     );
                   })}
+
+                  {/* Suggested Questions - Show only when there's just the AI greeting (no user messages yet) */}
+                  {messages.length > 0 && messages.length <= 2 && !messages.some(m => m.senderType === 'user') && !isSending && (
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-600 text-center mb-3 font-medium">💡 Not sure what to ask? Try these:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-2xl mx-auto">
+                        {SUGGESTED_QUESTIONS.map((question, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSuggestedQuestion(question)}
+                            className="text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded-lg transition-all hover:shadow-md text-sm text-gray-700 hover:text-gray-900"
+                          >
+                            <span className="text-blue-600 mr-2">→</span>
+                            {question}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 text-center mt-3">Or type your own question below</p>
+                    </div>
+                  )}
 
                   {isSending && (
                     <div className="flex justify-start">
@@ -1185,16 +1431,16 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
               {/* Confirmation Dialog */}
               {showConfirmation && !showRecommendations && isRequiredDataComplete() && (
                 <div className="flex-1 overflow-y-auto p-6 bg-white">
-                  <div className="max-w-2xl mx-auto">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Please Review Your Information</h3>
-                    <p className="text-gray-600 mb-6">Please verify the details below before we find the best providers for you:</p>
+                  <div className="max-w-full mx-auto w-full flex flex-col min-h-full">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Please Review Your Information</h3>
+                    <p className="text-sm text-gray-600 mb-4">Please verify the details below before we find the best providers for you:</p>
                     
-                    <div className="space-y-4 mb-6">
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="space-y-3 mb-4 flex-1">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-gray-700">Service</h4>
-                            <p className="text-lg text-gray-900">{collectedData.service}</p>
+                            <h4 className="text-sm font-semibold text-gray-700">Service</h4>
+                            <p className="text-base text-gray-900">{collectedData.service}</p>
                           </div>
                           <button 
                             onClick={() => handleEditData('service')}
@@ -1205,11 +1451,11 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                         </div>
                       </div>
                       
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-gray-700">Location</h4>
-                            <p className="text-lg text-gray-900">{collectedData.zipcode}</p>
+                            <h4 className="text-sm font-semibold text-gray-700">Location</h4>
+                            <p className="text-base text-gray-900">{collectedData.zipcode}</p>
                           </div>
                           <button 
                             onClick={() => handleEditData('zipcode')}
@@ -1220,11 +1466,11 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                         </div>
                       </div>
                       
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-gray-700">Budget</h4>
-                            <p className="text-lg text-gray-900">{collectedData.budget}</p>
+                            <h4 className="text-sm font-semibold text-gray-700">Budget</h4>
+                            <p className="text-base text-gray-900">{collectedData.budget}</p>
                           </div>
                           <button 
                             onClick={() => handleEditData('budget')}
@@ -1235,11 +1481,11 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                         </div>
                       </div>
                       
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-700">Requirements</h4>
-                            <p className="text-lg text-gray-900 break-words">{collectedData.requirements}</p>
+                            <h4 className="text-sm font-semibold text-gray-700">Requirements</h4>
+                            <p className="text-base text-gray-900 break-words">{collectedData.requirements}</p>
                           </div>
                           <button 
                             onClick={() => handleEditData('requirements')}
@@ -1251,17 +1497,17 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                       </div>
                     </div>
                     
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 mt-auto">
                       <button
                         onClick={() => setShowConfirmation(false)}
-                        className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                        className="flex-1 bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm"
                       >
                         Go Back
                       </button>
                       <button
                         onClick={handleConfirmAndProceed}
                         disabled={isGeneratingSummary}
-                        className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isGeneratingSummary ? 'Finding Providers...' : 'Confirm & Find Providers'}
                       </button>
@@ -1270,9 +1516,93 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                 </div>
               )}
 
+              {/* Chat History Section */}
+              {showChatHistory && (
+                <div className="flex-1 overflow-y-auto p-6 bg-white">
+                  {/* Go Back Button */}
+                  <button
+                    onClick={() => setShowChatHistory(false)}
+                    className="mb-4 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Go Back
+                  </button>
+
+                  <h3 className="text-2xl font-bold text-black mb-4">Previous Chat Sessions</h3>
+                  
+                  {chatHistory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-600">
+                      <p>No previous chat sessions found.</p>
+                      <p className="text-sm mt-2">Start a new conversation to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {chatHistory.map((historicalSession) => (
+                        <div
+                          key={historicalSession.sessionId}
+                          className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => loadHistoricalSession(historicalSession)}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900 mb-1">
+                                Session from {new Date(historicalSession.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </h4>
+                              {historicalSession.summary && (
+                                <p className="text-sm text-gray-600 line-clamp-2">
+                                  {historicalSession.summary}
+                                </p>
+                              )}
+                            </div>
+                            <div className="ml-4 flex flex-col items-end gap-1">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                historicalSession.summary
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : historicalSession.isActive 
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {historicalSession.summary ? 'Completed' : historicalSession.isActive ? 'Active' : 'Closed'}
+                              </span>
+                              {historicalSession.messageCount !== undefined && (
+                                <span className="text-xs text-gray-500">
+                                  {historicalSession.messageCount} messages
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button className="mt-2 text-center bg-navy-600 text-white px-4 py-1 rounded hover:bg-navy-700 transition-colors text-xs font-medium">
+                            {historicalSession.summary ? 'View Conversation (Read-Only)' : 'Continue Conversation'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Provider Recommendations with Summary */}
               {showRecommendations && (
                 <div className="flex-1 overflow-y-auto p-6 bg-white">
+                  {/* Go Back to Chat Button */}
+                  <button
+                    onClick={() => setShowRecommendations(false)}
+                    className="mb-4 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Go Back to Chat Messages
+                  </button>
+
                   {summary && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <h4 className="text-lg font-bold text-gray-900 mb-3">Your Requirements Summary</h4>
@@ -1280,7 +1610,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                     </div>
                   )}
 
-                  <h3 className="text-xl font-semibold mb-4">Recommended Providers</h3>
+                  <h3 className="text-2xl font-bold text-black mb-4">Recommended Providers</h3>
                   {recommendedProviders.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">
                       <p>No providers found matching your criteria.</p>
@@ -1300,7 +1630,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                             </h4>
                             <div className="flex items-center gap-1">
                               <span className="text-yellow-500">⭐</span>
-                              <span className="text-sm font-semibold">{provider.rating.toFixed(1)}</span>
+                              <span className="text-base font-bold text-black">{provider.rating.toFixed(1)}</span>
                             </div>
                           </div>
                           <p className="text-sm text-gray-600 mb-2">{provider.location}</p>
@@ -1323,10 +1653,22 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
               )}
 
               {/* Input Area with Requirements Indicator */}
-              {!showRecommendations && !showConfirmation && (
+              {!showRecommendations && !showConfirmation && !showChatHistory && (
                 <div className="border-t border-gray-200 bg-white">
-                  {/* Data collection indicator with edit buttons */}
-                  <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600 space-y-1">
+                  {/* Check if session is closed (has summary) and show read-only message */}
+                  {session && summary && !session.isActive ? (
+                    <div className="p-4 bg-yellow-50 border-t-2 border-yellow-400 text-center">
+                      <p className="text-sm text-yellow-800 font-medium">
+                        📋 This conversation has been completed and is now read-only.
+                      </p>
+                      <p className="text-xs text-yellow-700 mt-1">
+                        The summary has been generated. You can view the conversation but cannot send new messages.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Data collection indicator with edit buttons */}
+                      <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600 space-y-1">
                     <div className="grid grid-cols-2 gap-2">
                       <div className="flex items-center justify-between">
                         <span className={collectedData.service ? 'text-green-600' : 'text-gray-500'}>
@@ -1435,6 +1777,8 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                       {isGeneratingSummary ? 'Generating Summary...' : 'Finish & Get Recommendations'}
                     </button>
                   </div>
+                    </>
+                  )}
                 </div>
               )}
             </>

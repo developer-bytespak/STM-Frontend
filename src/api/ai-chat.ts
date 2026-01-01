@@ -189,6 +189,7 @@ class AiChatApi {
     requirements: string | null;
   }> {
     try {
+      console.log(`🔍 [API] Calling extraction endpoint for session: ${sessionId}`);
       const response = await apiClient.request<{
         service: string | null;
         zipcode: string | null;
@@ -200,10 +201,20 @@ class AiChatApi {
           method: 'POST',
         }
       );
+      console.log(`✅ [API] Extraction API response:`, response);
       return response;
     } catch (error: any) {
-      console.error('Failed to extract data:', error);
-      throw new Error(error?.message || 'Failed to extract data');
+      console.error('❌ [API] Failed to extract data:', error);
+      console.error('   Error status:', error?.status);
+      console.error('   Error message:', error?.message);
+      console.error('   Full error:', error);
+      // Return null values instead of throwing to prevent disruption
+      return {
+        service: null,
+        zipcode: null,
+        budget: null,
+        requirements: null,
+      };
     }
   }
 
