@@ -34,6 +34,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   // const [reassignReason, setReassignReason] = useState('');
   // const [newProviderId, setNewProviderId] = useState('');
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [pendingAIChat, setPendingAIChat] = useState<any>(null);
   const [feedback, setFeedback] = useState({
     rating: 5,
     feedback: '',
@@ -60,6 +61,16 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         setError(null);
         const data = await customerApi.getJobDetails(jobId);
         setJobDetails(data);
+        
+        // Check for pending AI chat after payment
+        const pendingChat = sessionStorage.getItem('pendingAIChat');
+        if (pendingChat) {
+          const chatData = JSON.parse(pendingChat);
+          // Check if this is the job that was blocking the chat
+          if (data.job.status !== 'pending' || data.job.id !== jobId) {
+            setPendingAIChat(chatData);
+          }
+        }
       } catch (err: any) {
         console.error('Error fetching job details:', err);
         setError(err.message || 'Failed to load job details');
@@ -475,6 +486,21 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 cursor-pointer"
             >
               Close Deal & Start Job
+            </button>
+          )}
+
+          {pendingAIChat && (
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('pendingAIChat');
+                window.location.href = `/${pendingAIChat.providerSlug}?from_ai=true&session_id=${pendingAIChat.aiSessionId}`;
+              }}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium cursor-pointer"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Complete Booking & Open Chat
             </button>
           )}
 

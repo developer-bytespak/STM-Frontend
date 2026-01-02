@@ -397,17 +397,20 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
             // Update with client-side extracted data
             const manuallyEdited = manuallyEditedFields.current;
             setCollectedData(prev => ({
+              // Service and zipcode - only set once (don't overwrite)
               service: (clientExtracted.service && !prev.service && !manuallyEdited.has('service')) 
                 ? clientExtracted.service 
                 : prev.service,
               zipcode: (clientExtracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
                 ? clientExtracted.zipcode 
                 : prev.zipcode,
-              budget: (clientExtracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+              // Budget - always update if new value extracted (unless manually edited)
+              budget: (clientExtracted.budget && !manuallyEdited.has('budget')) 
                 ? clientExtracted.budget 
                 : prev.budget,
               location: prev.location,
-              requirements: (clientExtracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+              // Requirements - always update if new value extracted (unless manually edited)
+              requirements: (clientExtracted.requirements && !manuallyEdited.has('requirements')) 
                 ? clientExtracted.requirements 
                 : prev.requirements,
             }));
@@ -418,17 +421,21 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           const manuallyEdited = manuallyEditedFields.current;
           
           setCollectedData(prev => ({
+            // Service and zipcode - only set once (don't overwrite)
             service: (extracted.service && !prev.service && !manuallyEdited.has('service')) 
               ? extracted.service 
               : prev.service,
             zipcode: (extracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
               ? extracted.zipcode 
               : prev.zipcode,
-            budget: (extracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+            // Budget - always update if new value extracted (unless manually edited)
+            budget: (extracted.budget && !manuallyEdited.has('budget')) 
               ? extracted.budget 
               : prev.budget,
             location: prev.location,
-            requirements: (extracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+            // Requirements - always update if new value extracted (unless manually edited)
+            // This allows refining requirements as conversation progresses
+            requirements: (extracted.requirements && !manuallyEdited.has('requirements')) 
               ? extracted.requirements 
               : prev.requirements,
           }));
@@ -449,17 +456,20 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           
           const manuallyEdited = manuallyEditedFields.current;
           setCollectedData(prev => ({
+            // Service and zipcode - only set once (don't overwrite)
             service: (clientExtracted.service && !prev.service && !manuallyEdited.has('service')) 
               ? clientExtracted.service 
               : prev.service,
             zipcode: (clientExtracted.zipcode && !prev.zipcode && !manuallyEdited.has('zipcode')) 
               ? clientExtracted.zipcode 
               : prev.zipcode,
-            budget: (clientExtracted.budget && !prev.budget && !manuallyEdited.has('budget')) 
+            // Budget - always update if new value extracted (unless manually edited)
+            budget: (clientExtracted.budget && !manuallyEdited.has('budget')) 
               ? clientExtracted.budget 
               : prev.budget,
             location: prev.location,
-            requirements: (clientExtracted.requirements && !prev.requirements && !manuallyEdited.has('requirements')) 
+            // Requirements - always update if new value extracted (unless manually edited)
+            requirements: (clientExtracted.requirements && !manuallyEdited.has('requirements')) 
               ? clientExtracted.requirements 
               : prev.requirements,
           }));
@@ -568,9 +578,23 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         setMessages(activeSession.messages || []);
         setShowSessionPrompt(false);
         setShowServiceSelection(false); // Don't show selection for continued sessions
-        // Auto-extract data from existing messages
-        const extracted = extractDataFromAllMessages(activeSession.messages || []);
-        setCollectedData(extracted);
+        
+        // Extract data using backend AI for accurate service detection
+        try {
+          const aiExtracted = await aiChatApi.extractData(activeSession.sessionId);
+          console.log('🔍 AI extraction on session load:', aiExtracted);
+          setCollectedData({
+            service: aiExtracted.service || null,
+            zipcode: aiExtracted.zipcode || null,
+            budget: aiExtracted.budget || null,
+            location: null,
+            requirements: aiExtracted.requirements || null,
+          });
+        } catch (extractError) {
+          console.warn('AI extraction failed on session load, using client-side fallback');
+          const extracted = extractDataFromAllMessages(activeSession.messages || []);
+          setCollectedData(extracted);
+        }
       }
     } catch (error) {
       console.error('Failed to load session:', error);
@@ -608,9 +632,22 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           setShowRecommendations(false); // Show chat by default
         }
         
-        // Auto-extract data from existing messages
-        const extracted = extractDataFromAllMessages(sessionData.messages || []);
-        setCollectedData(extracted);
+        // Extract data using backend AI for accurate service detection
+        try {
+          const aiExtracted = await aiChatApi.extractData(sessionData.sessionId);
+          console.log('🔍 AI extraction on session restore:', aiExtracted);
+          setCollectedData({
+            service: aiExtracted.service || null,
+            zipcode: aiExtracted.zipcode || null,
+            budget: aiExtracted.budget || null,
+            location: null,
+            requirements: aiExtracted.requirements || null,
+          });
+        } catch (extractError) {
+          console.warn('AI extraction failed on session restore, using client-side fallback');
+          const extracted = extractDataFromAllMessages(sessionData.messages || []);
+          setCollectedData(extracted);
+        }
       } else {
         // Session not found in database - clear sessionStorage and start fresh
         console.log('Session not found in database, starting new session');
@@ -689,9 +726,22 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         setShowServiceSelection(false);
         setShowSessionPrompt(false);
         
-        // Auto-extract data from existing messages
-        const extracted = extractDataFromAllMessages(msgs);
-        setCollectedData(extracted);
+        // Extract data using backend AI for accurate service detection
+        try {
+          const aiExtracted = await aiChatApi.extractData(sessionData.sessionId);
+          console.log('🔍 AI extraction on historical session load:', aiExtracted);
+          setCollectedData({
+            service: aiExtracted.service || null,
+            zipcode: aiExtracted.zipcode || null,
+            budget: aiExtracted.budget || null,
+            location: null,
+            requirements: aiExtracted.requirements || null,
+          });
+        } catch (extractError) {
+          console.warn('AI extraction failed on historical session load, using client-side fallback');
+          const extracted = extractDataFromAllMessages(msgs);
+          setCollectedData(extracted);
+        }
         
         // If there's a summary, set it
         if (sessionData.summary) {

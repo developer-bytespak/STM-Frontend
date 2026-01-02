@@ -94,12 +94,51 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
       socket.on('notification:new', handleNewNotification);
       socket.on('new_notification', handleNewNotification);
 
+      // NEW: Handle combined job request + chat event
+      socket.on('new_job_with_chat', (data: any) => {
+        console.log('🔔💬 New job request with chat:', data);
+        
+        // 1. Add notification to bell
+        if (data.notification) {
+          const newNotification: Notification = {
+            id: Date.now(),
+            recipient_type: 'service_provider',
+            recipient_id: typeof user.id === 'string' ? parseInt(user.id) : user.id,
+            type: data.notification.type || 'job',
+            title: data.notification.title,
+            message: data.notification.message,
+            is_read: false,
+            metadata: {
+              job_id: data.notification.jobId,
+              chat_id: data.notification.chatId,
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          setNotifications(prev => [newNotification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+        }
+        
+        // 2. Dispatch event for chat auto-open (handled by ChatContext)
+        if (data.chat) {
+          window.dispatchEvent(new CustomEvent('auto_open_chat', {
+            detail: {
+              chatId: data.chat.chatId,
+              jobId: data.notification?.jobId,
+              message: data.chat,
+            }
+          }));
+        }
+      });
+
       console.log('👂 Socket.IO listener ready for real-time notifications');
 
       return () => {
         socket.off('notification', handleNewNotification);
         socket.off('notification:new', handleNewNotification);
         socket.off('new_notification', handleNewNotification);
+        socket.off('new_job_with_chat');
       };
     } catch (error) {
       console.error('Error setting up Socket.IO listener:', error);

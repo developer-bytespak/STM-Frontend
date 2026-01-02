@@ -373,7 +373,7 @@ export default function NotificationPopup({
         return (
           <div className="w-6 h-6 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
             <svg className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7mאמא 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m1 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         );
@@ -436,16 +436,29 @@ export default function NotificationPopup({
     }
   };
 
-  // Helper to extract chat ID from notification title and clean it for display
-  const extractChatId = (title: string): { chatId: string | null; cleanTitle: string } => {
-    const match = title.match(/\[chat:([^\]]+)\]/);
-    if (match && match[1]) {
+  // Helper to extract chat ID or job ID from notification title and clean it for display
+  const extractMetadataFromTitle = (title: string): { chatId: string | null; jobId: number | null; cleanTitle: string } => {
+    // Check for job ID first: [job:123]
+    const jobMatch = title.match(/\[job:(\d+)\]/);
+    if (jobMatch && jobMatch[1]) {
       return {
-        chatId: match[1],
+        chatId: null,
+        jobId: parseInt(jobMatch[1], 10),
+        cleanTitle: title.replace(/\s*\[job:\d+\]/, '').trim()
+      };
+    }
+    
+    // Check for chat ID: [chat:uuid]
+    const chatMatch = title.match(/\[chat:([^\]]+)\]/);
+    if (chatMatch && chatMatch[1]) {
+      return {
+        chatId: chatMatch[1],
+        jobId: null,
         cleanTitle: title.replace(/\s*\[chat:[^\]]+\]/, '').trim()
       };
     }
-    return { chatId: null, cleanTitle: title };
+    
+    return { chatId: null, jobId: null, cleanTitle: title };
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -456,31 +469,60 @@ export default function NotificationPopup({
       onMarkAsRead(notification.id);
     }
 
-    // Special handling for message notifications - extract chat_id from title
-    if (notification.type === 'message') {
-      // Try to extract chat_id from metadata first (if available)
-      let chatId = notification.metadata?.chat_id;
+    // Extract metadata from title (job_id or chat_id)
+    const { chatId, jobId, cleanTitle } = extractMetadataFromTitle(notification.title);
+    
+    // Normalize recipient type
+    const recipientStr = notification.recipient_type as string;
+    const isProvider = recipientStr === 'provider' || recipientStr === 'service_provider';
+
+    // Priority 1: If job_id is in title, redirect to job details
+    if (jobId) {
+      console.log('Redirecting to job:', jobId);
+      onClose();
       
-      // If not in metadata, try to parse from title format: "New Message [chat:uuid]"
-      if (!chatId && notification.title) {
-        const extracted = extractChatId(notification.title);
-        chatId = extracted.chatId;
+      if (isProvider) {
+        router.push(ROUTES.PROVIDER.JOB_DETAILS(jobId.toString()));
+      } else {
+        router.push(ROUTES.CUSTOMER.BOOKING_DETAILS(jobId.toString()));
       }
-      
-      if (chatId) {
-        console.log('Opening chat:', chatId);
-        onClose(); // Close popup
-        openConversation(chatId);
-        return;
-      }
+      return;
     }
 
-    // Get redirect URL and navigate
+    // Priority 2: If chat_id is in title, open chat
+    if (chatId) {
+      console.log('Opening chat:', chatId);
+      onClose();
+      openConversation(chatId);
+      return;
+    }
+
+    // Priority 3: Check metadata for job_id or chat_id
+    if (notification.metadata?.job_id) {
+      console.log('Redirecting to job from metadata:', notification.metadata.job_id);
+      onClose();
+      
+      if (isProvider) {
+        router.push(ROUTES.PROVIDER.JOB_DETAILS(notification.metadata.job_id));
+      } else {
+        router.push(ROUTES.CUSTOMER.BOOKING_DETAILS(notification.metadata.job_id));
+      }
+      return;
+    }
+
+    if (notification.metadata?.chat_id) {
+      console.log('Opening chat from metadata:', notification.metadata.chat_id);
+      onClose();
+      openConversation(notification.metadata.chat_id);
+      return;
+    }
+
+    // Priority 4: Use standard redirect URL logic
     const redirectUrl = getRedirectUrl(notification);
     console.log('Redirect URL:', redirectUrl);
     
     if (redirectUrl) {
-      onClose(); // Close popup before navigating
+      onClose();
       router.push(redirectUrl);
     } else {
       console.warn('No redirect URL found for notification type:', notification.type, 'recipient:', notification.recipient_type);
@@ -589,7 +631,7 @@ export default function NotificationPopup({
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-semibold text-gray-900 truncate">
-                        {extractChatId(notification.title).cleanTitle}
+                        {extractMetadataFromTitle(notification.title).cleanTitle}
                       </h4>
                       <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
                         {notification.message}
