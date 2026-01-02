@@ -118,9 +118,35 @@ function ProviderPageContent() {
           const providerName = provider?.businessName || provider?.ownerName || 'Provider';
           createConversationFromAI(providerId, providerName, result.chatId);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to create chat from AI:', error);
-        alert('Failed to create chat. Please try again.');
+        
+        // Handle unpaid job error
+        if (error.response?.data?.requiresPayment && error.response?.data?.unpaidJobId) {
+          const unpaidJobId = error.response.data.unpaidJobId;
+          const errorMessage = error.response.data.message || 'You have an unpaid job. Please complete payment before booking a new service.';
+          
+          // Store AI session info to retry after payment
+          const currentUrl = window.location.href;
+          sessionStorage.setItem('pendingAIChat', JSON.stringify({
+            providerId,
+            aiSessionId,
+            returnUrl: currentUrl,
+            providerSlug: provider?.slug || slug,
+          }));
+          
+          // Show confirmation dialog with Pay Now option
+          const shouldRedirect = window.confirm(
+            `${errorMessage}\n\nWould you like to go to your bookings to complete the payment?`
+          );
+          
+          if (shouldRedirect) {
+            // Redirect to the unpaid job in customer bookings
+            window.location.href = `/customer/bookings/${unpaidJobId}`;
+          }
+        } else {
+          alert('Failed to create chat. Please try again.');
+        }
       }
       return;
     }

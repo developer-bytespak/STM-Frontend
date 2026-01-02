@@ -562,7 +562,7 @@ export default function ChatPopup() {
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-sm text-gray-900"
             />
             <button
               type="submit"
@@ -834,7 +834,7 @@ export default function ChatPopup() {
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900"
             />
             <button
               type="submit"

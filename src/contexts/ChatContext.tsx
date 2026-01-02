@@ -224,6 +224,32 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user]);
 
   // ==========================================
+  // AUTO-OPEN CHAT FROM JOB NOTIFICATION
+  // ==========================================
+
+  // Listen for auto-open chat event from notification
+  useEffect(() => {
+    const handleAutoOpenChat = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { chatId, jobId, message } = customEvent.detail;
+      
+      console.log('💬🔔 Auto-opening chat from job notification:', { chatId, jobId });
+      
+      // Check if we're on a provider page
+      if (user?.role === 'service_provider' || user?.role === 'local_service_manager') {
+        // Open the chat conversation
+        openConversation(chatId);
+      }
+    };
+
+    window.addEventListener('auto_open_chat', handleAutoOpenChat as EventListener);
+
+    return () => {
+      window.removeEventListener('auto_open_chat', handleAutoOpenChat as EventListener);
+    };
+  }, [user]);
+
+  // ==========================================
   // JOIN/LEAVE CHAT ROOMS
   // ==========================================
 
