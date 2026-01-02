@@ -76,6 +76,11 @@ export default function SPRequestModal({
   return (
     <>
       <div 
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
         onClick={onBackdropClick}
       >
