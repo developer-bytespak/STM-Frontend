@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { lsmApi } from '@/api/lsm';
+import { getLsmMeetings } from '@/api/meetings';
 import { useAuth } from '@/hooks/useAuth';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 
@@ -19,6 +20,14 @@ export default function LSMDashboard() {
     queryFn: () => lsmApi.getDashboard(),
     staleTime: 60 * 1000, // 1 minute
     retry: 1, // Only retry once
+  });
+
+  // Fetch meetings for counts
+  const { data: meetingsData } = useQuery({
+    queryKey: ['lsm-meetings-count'],
+    queryFn: () => getLsmMeetings(),
+    staleTime: 60 * 1000,
+    retry: 1,
   });
 
   // Show loading state
@@ -82,6 +91,42 @@ export default function LSMDashboard() {
 
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {/* Meetings Card */}
+          <Link href="/lsm/meetings">
+            <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-500 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-indigo-100 rounded-lg p-3">
+                  <svg
+                    className="w-8 h-8 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Meetings</h3>
+              <p className="text-gray-600 text-sm mb-4">View and manage scheduled meetings</p>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-indigo-600">{(meetingsData || []).length}</span>
+                <span className="text-sm text-gray-500">Total</span>
+              </div>
+            </div>
+          </Link>
           {/* Chats Card */}
           <Link href="/lsm/chats">
             <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-500 p-6">

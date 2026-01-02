@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { lsmApi, PendingOnboardingResponse, ProviderInRegion } from '@/api/lsm';
-import { SPRequestList, SPRequestModal } from '@/components/lsm/sprequest';
+import { SPRequestList, SPRequestModal, ScheduleMeetingModal, MeetingSuccessModal, MeetingDetailsModal } from '@/components/lsm/sprequest';
 import ProviderStatusCard from '@/components/lsm/sprequest/ProviderStatusCard';
 import { useAlert } from '@/hooks/useAlert';
+import { MeetingResponseDto, Meeting } from '@/types/meeting';
+import { getLsmMeetings } from '@/api/meetings';
 
 export default function SPRequestPage() {
   const { showAlert, AlertComponent } = useAlert();
@@ -13,6 +15,12 @@ export default function SPRequestPage() {
   const [approvedProviders, setApprovedProviders] = useState<ProviderInRegion[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<PendingOnboardingResponse | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [showMeetingSuccessModal, setShowMeetingSuccessModal] = useState(false);
+  const [showMeetingDetailsModal, setShowMeetingDetailsModal] = useState(false);
+  const [scheduledMeeting, setScheduledMeeting] = useState<MeetingResponseDto | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
@@ -31,13 +39,15 @@ export default function SPRequestPage() {
       setRequests(pendingData);
       
       // Fetch providers by status (only approved and rejected for onboarding workflow)
-      const [approvedData, rejectedData] = await Promise.all([
+      const [approvedData, rejectedData, meetingsData] = await Promise.all([
         lsmApi.getProvidersInRegion('active'),
         lsmApi.getProvidersInRegion('rejected'),
+        getLsmMeetings().catch(() => []), // Don't fail if meetings API fails
       ]);
       
       setApprovedProviders(approvedData.providers);
       setRejectedProviders(rejectedData.providers);
+      setMeetings(meetingsData);
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to load data');
@@ -105,6 +115,63 @@ export default function SPRequestPage() {
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       closeModal();
+    }
+  };
+
+  const handleScheduleMeeting = (request: PendingOnboardingResponse) => {
+    setSelectedRequest(request);
+    setShowMeetingModal(true);
+  };
+
+  const handleViewMeeting = (request: PendingOnboardingResponse) => {
+    // Find the meeting for this provider
+    const meeting = meetings.find(m => m.provider_id === request.id);
+    if (meeting) {
+      setSelectedMeeting(meeting);
+      setShowMeetingDetailsModal(true);
+    }
+  };
+
+  const handleMeetingSuccess = async (meetingData: MeetingResponseDto) => {
+    // Update local meetings list with new meeting
+    setMeetings([...meetings, meetingData as Meeting]);
+    
+    setScheduledMeeting(meetingData);
+    setShowMeetingModal(false);
+    setShowMeetingSuccessModal(true);
+    
+    // Auto-open meeting details after a short delay
+    setTimeout(() => {
+      setSelectedMeeting(meetingData as Meeting);
+      setShowMeetingDetailsModal(true);
+      setShowMeetingSuccessModal(false);
+    }, 1500);
+    
+    showAlert({
+      title: 'Meeting Scheduled Successfully!',
+      message: `Zoom meeting scheduled with ${meetingData.provider_business_name}. Email sent to provider.`,
+      type: 'success'
+    });
+  };
+
+  const closeMeetingModal = () => {
+    setShowMeetingModal(false);
+    setSelectedRequest(null);
+  };
+
+  const closeMeetingSuccessModal = () => {
+    setShowMeetingSuccessModal(false);
+    setScheduledMeeting(null);
+  };
+
+  const closeMeetingDetailsModal = () => {
+    setShowMeetingDetailsModal(false);
+    setSelectedMeeting(null);
+  };
+
+  const handleMeetingBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      closeMeetingModal();
     }
   };
 
@@ -281,6 +348,9 @@ export default function SPRequestPage() {
                 <SPRequestList 
                   requests={requests}
                   onRequestClick={openModal}
+                  onScheduleMeeting={handleScheduleMeeting}
+                  onViewMeeting={handleViewMeeting}
+                  meetings={meetings}
                 />
               )}
             </div>
@@ -334,6 +404,40 @@ export default function SPRequestPage() {
             onReject={handleReject}
             onBackdropClick={handleBackdropClick}
             onRefresh={handleRefreshRequest}
+          />
+        )}
+
+        {/* Schedule Meeting Modal */}
+        {showMeetingModal && selectedRequest && (
+          <ScheduleMeetingModal
+            providerId={selectedRequest.id}
+            providerName={selectedRequest.businessName}
+            providerEmail={selectedRequest.user.email}
+            onClose={closeMeetingModal}
+            onSuccess={handleMeetingSuccess}
+            onBackdropClick={handleMeetingBackdropClick}
+          />
+        )}
+
+        {/* Meeting Success Modal */}
+        {showMeetingSuccessModal && scheduledMeeting && (
+          <MeetingSuccessModal
+            meeting={scheduledMeeting}
+            onClose={closeMeetingSuccessModal}
+            onViewDetails={() => {
+              setSelectedMeeting(scheduledMeeting as Meeting);
+              setShowMeetingDetailsModal(true);
+              setShowMeetingSuccessModal(false);
+            }}
+          />
+        )}
+
+        {/* Meeting Details Modal */}
+        {showMeetingDetailsModal && selectedMeeting && (
+          <MeetingDetailsModal
+            meeting={selectedMeeting}
+            onClose={closeMeetingDetailsModal}
+            onUpdate={fetchAllData}
           />
         )}
 
