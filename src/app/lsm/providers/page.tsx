@@ -161,7 +161,9 @@ export default function LSMProviders() {
 
         {/* Providers Grid */}
         <div className="max-w-6xl mx-auto">
-          {filteredProviders.length === 0 ? (
+          {loading ? (
+            <CardListSkeleton />
+          ) : filteredProviders.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

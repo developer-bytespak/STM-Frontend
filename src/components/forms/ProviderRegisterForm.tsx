@@ -964,7 +964,7 @@ export default function ServiceProviderSignupPage() {
                               }
                               maxLength={
                                 (formData.countryCode === 'US' || formData.countryCode === 'CA') 
-                                  ? 7 
+                                  ? 8 
                                   : undefined
                               }
                             />
