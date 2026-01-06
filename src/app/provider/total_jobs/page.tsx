@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { providerApi, JobsResponse, JobDetailsResponse } from '@/api/provider';
+import { useSearchParams } from 'next/navigation';
+import { providerApi, JobsResponse, JobDetailsResponse, Job } from '@/api/provider';
 import TotalJobsCard from '@/components/provider/TotalJobsCard';
 import { useChat } from '@/contexts/ChatContext';
+
+type TabType = 'all' | 'active' | 'pending' | 'paid' | 'completed';
 
 export default function TotalJobsPage() {
   const { openConversation } = useChat();
@@ -15,37 +18,28 @@ export default function TotalJobsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
-  // State for payment modal
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [paymentNotes, setPaymentNotes] = useState('');
-  
-  // State for filters and pagination
+  // State for tabs and filters
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  // Fetch jobs function
+  // Fetch all jobs (no status filter)
   const fetchJobs = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
       const params: {
-        status?: string;
         fromDate?: string;
         toDate?: string;
         page: number;
         limit: number;
       } = {
-        page: currentPage,
-        limit: 6,
+        page: 1,
+        limit: 100, // Fetch more to allow client-side grouping
       };
-
-      // Only show completed/paid jobs on total jobs page, exclude in_progress
-      params.status = 'completed,paid';
 
       // Add date filters
       if (fromDate) {
@@ -68,7 +62,7 @@ export default function TotalJobsPage() {
         pagination: {
           total: 0,
           page: 1,
-          limit: 6,
+          limit: 100,
           totalPages: 0,
         }
       });
@@ -80,19 +74,77 @@ export default function TotalJobsPage() {
   // Fetch jobs with filters
   useEffect(() => {
     fetchJobs();
-  }, [currentPage, fromDate, toDate]);
+  }, [fromDate, toDate]);
 
-  // Prevent background scroll when modal is open
+  // Read `tab` query param to set active tab (e.g. ?tab=pending)
+  const searchParams = useSearchParams();
   useEffect(() => {
-    if (showDetailsModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    const tab = searchParams?.get('tab');
+    if (!tab) return;
+    if (['all', 'active', 'pending', 'paid', 'completed'].includes(tab)) {
+      setActiveTab(tab as TabType);
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showDetailsModal]);
+  }, [searchParams]);
+
+  // Group and filter jobs by tab
+  const getJobsByTab = (tab: TabType): Job[] => {
+    if (!jobs?.data) return [];
+    
+    let filtered = jobs.data;
+    
+    // Filter by tab status
+    switch (tab) {
+      case 'active':
+        filtered = filtered.filter(job => job.status.toLowerCase() === 'in_progress');
+        break;
+      case 'pending':
+        filtered = filtered.filter(job => {
+          const status = job.status.toLowerCase();
+          return status === 'payment_pending' || status === 'invoice_pending' || status === 'completed';
+        });
+        break;
+      case 'paid':
+        filtered = filtered.filter(job => job.status.toLowerCase() === 'paid');
+        break;
+      case 'completed':
+        filtered = filtered.filter(job => job.status.toLowerCase() === 'completed' && job.paymentStatus?.toLowerCase() === 'received');
+        break;
+      case 'all':
+      default:
+        // Show all jobs
+        break;
+    }
+    
+    // Filter by search query
+    filtered = filtered.filter(job =>
+      job.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    // Sort jobs
+    filtered = filtered.sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === 'cost-desc') {
+        return b.price - a.price;
+      } else if (sortBy === 'cost-asc') {
+        return a.price - b.price;
+      }
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  const tabJobs = getJobsByTab(activeTab);
+  
+  // Calculate stats for current tab
+  const tabJobCount = tabJobs.length;
+  const tabEarnings = tabJobs.reduce((sum, job) => sum + job.price, 0);
+  const tabAvgValue = tabJobCount > 0 ? tabEarnings / tabJobCount : 0;
 
   const handleViewDetails = async (jobId: number) => {
     try {
@@ -225,44 +277,59 @@ export default function TotalJobsPage() {
     return 0;
   });
 
-  // Pagination
-  const totalPages = jobs?.pagination.totalPages || 0;
-
-  // Reset to page 1 when filters change
-  const handleFilterChange = () => {
-    setCurrentPage(1);
-  };
-
-  // Calculate stats from filtered jobs
-  const totalJobs = jobs?.pagination.total || 0;
-  const totalEarnings = filteredJobs.reduce((sum, job) => sum + job.price, 0);
-  const avgJobValue = filteredJobs.length > 0 ? totalEarnings / filteredJobs.length : 0;
+  // Calculate total jobs count
+  const totalJobsCount = jobs?.pagination.total || 0;
 
   return (
     <div>
       {/* Header */}
       <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="py-6">
-              <div className="flex items-center mb-4">
-                <button
-                  onClick={() => window.history.back()}
-                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back
-                </button>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900">Total Jobs</h1>
-            <p className="mt-2 text-gray-600">View and manage your completed and paid jobs</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-6">
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => window.history.back()}
+                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+            <p className="mt-2 text-gray-600">View and manage all your jobs</p>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <div className="flex space-x-8">
+            {[
+              { id: 'all', label: 'All Jobs' },
+              { id: 'active', label: 'Active' },
+              { id: 'pending', label: 'Payment Pending' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'completed', label: 'Completed' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-navy-600 text-navy-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Cards for Current Tab */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -272,8 +339,8 @@ export default function TotalJobsPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Jobs</p>
-                <p className="text-3xl font-bold text-gray-900">{totalJobs}</p>
+                <p className="text-sm font-medium text-gray-500">Jobs in this tab</p>
+                <p className="text-3xl font-bold text-gray-900">{tabJobCount}</p>
               </div>
             </div>
           </div>
@@ -286,8 +353,8 @@ export default function TotalJobsPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Earnings</p>
-                <p className="text-3xl font-bold text-green-600">${totalEarnings}</p>
+                <p className="text-sm font-medium text-gray-500">Total earnings</p>
+                <p className="text-3xl font-bold text-green-600">${tabEarnings.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -300,8 +367,8 @@ export default function TotalJobsPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Avg Job Value</p>
-                <p className="text-3xl font-bold text-purple-600">${avgJobValue.toFixed(0)}</p>
+                <p className="text-sm font-medium text-gray-500">Avg job value</p>
+                <p className="text-3xl font-bold text-purple-600">${tabAvgValue.toFixed(0)}</p>
               </div>
             </div>
           </div>
@@ -428,75 +495,31 @@ export default function TotalJobsPage() {
               </div>
             ))}
           </div>
-        ) : sortedJobs.length === 0 ? (
+        ) : tabJobs.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-4xl">📋</span>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {searchQuery ? 'No Jobs Found' : 'No Jobs Yet'}
+              {searchQuery ? 'No Jobs Found' : 'No Jobs in this Tab'}
             </h3>
             <p className="text-gray-600">
               {searchQuery 
                 ? 'Try adjusting your search query to see more results.'
-                : 'Your completed and paid jobs will appear here once you finish active jobs.'}
+                : 'No jobs to display in the selected category.'}
             </p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedJobs.map((job) => (
-                <TotalJobsCard 
-                  key={job.id} 
-                  job={job} 
-                  onViewDetails={handleViewDetails}
-                  onOpenChat={handleOpenChat}
-                />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  Previous
-                </button>
-                
-                <div className="flex gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-4 py-2 rounded-lg transition-colors cursor-pointer ${
-                        currentPage === page
-                          ? 'bg-blue-600 text-white'
-                          : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-
-            {/* Results Info */}
-            <div className="mt-4 text-center text-sm text-gray-600">
-              Showing {sortedJobs.length} of {totalJobs} jobs
-            </div>
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tabJobs.map((job) => (
+              <TotalJobsCard 
+                key={job.id} 
+                job={job} 
+                onViewDetails={handleViewDetails}
+                onOpenChat={handleOpenChat}
+              />
+            ))}
+          </div>
         )}
       </div>
 

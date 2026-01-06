@@ -7,6 +7,7 @@ import DataTable, { Column } from '@/components/admin/DataTable';
 import StatsGrid, { StatItem } from '@/components/admin/StatsGrid';
 import BanProviderModal from '@/components/admin/BanProviderModal';
 import UnbanConfirmModal from '@/components/admin/UnbanConfirmModal';
+import ProviderDetailsModal from '@/components/admin/ProviderDetailsModal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { mockProviders } from '@/data/mockProviders';
@@ -15,6 +16,7 @@ export default function ProvidersManagementPage() {
   const { ToastContainer } = useToast();
   const [banModalOpen, setBanModalOpen] = useState(false);
   const [unbanModalOpen, setUnbanModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<any>(null);
 
   // Fetch Providers
@@ -22,8 +24,21 @@ export default function ProvidersManagementPage() {
     queryKey: ['admin-providers'],
     queryFn: async () => {
       try {
-        return await adminApi.getAllProviders();
+        const response = await adminApi.getAllProviders();
+        // Map backend response to expected frontend format
+        return (response || []).map((provider: any) => ({
+          ...provider,
+          // Ensure totalEarnings is set from various possible backend field names
+          totalEarnings: provider.totalEarnings 
+            || provider.total_earnings 
+            || provider.earnings 
+            || provider.earned_amount 
+            || 0,
+          totalJobs: provider.totalJobs || provider.total_jobs || 0,
+          rating: provider.rating || 0,
+        }));
       } catch (err) {
+        console.error('Failed to fetch providers:', err);
         return mockProviders;
       }
     },
@@ -106,9 +121,12 @@ export default function ProvidersManagementPage() {
     {
       key: 'lsmName',
       label: 'LSM',
-      render: (provider) => (
-        <span className="text-sm text-gray-700">{provider.lsmName}</span>
-      ),
+      render: (provider) => {
+        const lsmName = provider.lsmName || provider.lsm_name || provider.lsm?.name || 'N/A';
+        return (
+          <span className="text-sm text-gray-700">{lsmName}</span>
+        );
+      },
     },
     {
       key: 'rating',
@@ -134,11 +152,15 @@ export default function ProvidersManagementPage() {
     {
       key: 'totalEarnings',
       label: 'Earnings',
-      render: (provider) => (
-        <span className="text-sm font-semibold text-gray-900">
-          ${provider.totalEarnings?.toLocaleString() || 0}
-        </span>
-      ),
+      render: (provider) => {
+        const earnings = provider.totalEarnings || provider.total_earnings || provider.earnings || 0;
+        const formattedEarnings = typeof earnings === 'number' ? earnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+        return (
+          <span className="text-sm font-semibold text-gray-900">
+            ${formattedEarnings}
+          </span>
+        );
+      },
     },
     {
       key: 'status',
@@ -189,7 +211,11 @@ export default function ProvidersManagementPage() {
     return (
       <div className="flex items-center justify-end gap-2">
         <button 
-          className="p-2 text-navy-600 hover:bg-navy-50 rounded-lg transition-colors" 
+          onClick={() => {
+            setSelectedProvider(provider);
+            setDetailsModalOpen(true);
+          }}
+          className="p-2 text-navy-600 hover:bg-navy-50 rounded-lg transition-colors cursor-pointer" 
           title="View Details"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,6 +318,16 @@ export default function ProvidersManagementPage() {
           setUnbanModalOpen(false);
           setSelectedProvider(null);
         }}
+      />
+
+      {/* Provider Details Modal */}
+      <ProviderDetailsModal
+        isOpen={detailsModalOpen}
+        onClose={() => {
+          setDetailsModalOpen(false);
+          setSelectedProvider(null);
+        }}
+        provider={selectedProvider}
       />
 
       {/* Toast Notifications */}

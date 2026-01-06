@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { getRelativeTime } from '@/api/notifications';
 import type { Notification } from '@/api/notifications';
 import { useRouter } from 'next/navigation';
+import { useChat } from '@/contexts/ChatContext';
+import { useAuth } from '@/hooks/useAuth';
+import { providerApi } from '@/api/provider';
+import { customerApi } from '@/api/customer';
+import { getInvoiceById } from '@/api/payments';
 import { ROUTES } from '@/constants/routes';
 
 interface AllNotificationsModalProps {
@@ -24,6 +29,8 @@ export default function AllNotificationsModal({
   isLoading = false
 }: AllNotificationsModalProps) {
   const router = useRouter();
+  const { openConversation } = useChat();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
   // Close on escape key
@@ -426,9 +433,87 @@ export default function AllNotificationsModal({
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
+    }
+
+    // Try to extract chat or job id from title first
+    const title = notification.title || '';
+    const jobMatch = title.match(/\[job:(\d+)\]/);
+    const chatMatch = title.match(/\[chat:([^\]]+)\]/);
+
+    if (chatMatch && chatMatch[1]) {
+      onClose();
+      openConversation(chatMatch[1]);
+      return;
+    }
+
+    // If metadata contains chat_id, open chat
+    if (notification.metadata?.chat_id) {
+      onClose();
+      openConversation(notification.metadata.chat_id);
+      return;
+    }
+
+    // If metadata contains job_id, try to fetch job details and open chat if available
+    if (notification.metadata?.job_id) {
+      const jobId = Number(notification.metadata.job_id);
+      try {
+        let details: any = null;
+        if (user?.role && user.role === 'service_provider') {
+          details = await providerApi.getJobDetails(jobId as any);
+        } else {
+          details = await customerApi.getJobDetails(jobId as any);
+        }
+
+        if (details?.chatId) {
+          onClose();
+          openConversation(String(details.chatId));
+          return;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch job details for notification fallback:', err);
+      }
+
+      // Fallback redirect if no chat found
+      const recipientStr = notification.recipient_type as string;
+      const isProvider = recipientStr === 'provider' || recipientStr === 'service_provider';
+      onClose();
+      if (isProvider) {
+        router.push(ROUTES.PROVIDER.JOB_DETAILS(notification.metadata.job_id));
+      } else {
+        router.push(ROUTES.CUSTOMER.BOOKING_DETAILS(notification.metadata.job_id));
+      }
+      return;
+    }
+
+    // If metadata contains invoice id, try to resolve job id then open chat
+    const invoiceId = notification.metadata?.invoice_id || notification.metadata?.invoiceId;
+    if (invoiceId) {
+      try {
+        const invoice = await getInvoiceById(Number(invoiceId));
+        if (invoice?.jobId) {
+          try {
+            let details: any = null;
+            if (user?.role && user.role === 'service_provider') {
+              details = await providerApi.getJobDetails(Number(invoice.jobId));
+            } else {
+              details = await customerApi.getJobDetails(Number(invoice.jobId));
+            }
+
+            if (details?.chatId) {
+              onClose();
+              openConversation(String(details.chatId));
+              return;
+            }
+          } catch (err) {
+            console.warn('Failed to fetch job details from invoice fallback:', err);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch invoice for notification fallback:', err);
+      }
     }
 
     const redirectUrl = getRedirectUrl(notification);
@@ -522,7 +607,7 @@ export default function AllNotificationsModal({
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => void handleNotificationClick(notification)}
                   className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer relative ${
                     !notification.is_read ? 'bg-blue-50' : ''
                   }`}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useChat, BookingFormData } from '@/contexts/ChatContext';
 import { customerApi } from '@/api/customer';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +33,8 @@ export default function BookingModal({
 }: BookingModalProps) {
   const { createConversation } = useChat();
   const { user } = useAuth();
+  const router = useRouter();
+  const [blockedUnpaidJob, setBlockedUnpaidJob] = useState<{ id: string; message?: string } | null>(null);
   const [formData, setFormData] = useState<BookingFormData & { address?: string; zipcode?: string }>(() => {
     if (mode === 'sp-quote' && initialData) {
       return initialData;
@@ -148,9 +151,44 @@ export default function BookingModal({
           zipcode: ''
         });
       } catch (error: any) {
-        console.error('Failed to create job:', error);
-        setErrors({ 
-          description: error.message || 'Failed to create job request. Please try again.' 
+        console.error('Failed to create job error:', error);
+        console.error('Error response:', error?.response?.data);
+        
+        // If backend indicates an unpaid job blocks booking, surface a dialog instead of inline error
+        const requiresPayment = error?.response?.data?.requiresPayment;
+        let unpaidJobId = error?.response?.data?.unpaidJobId 
+          || error?.response?.data?.unpaid_job_id 
+          || error?.response?.data?.unpaid_job
+          || error?.response?.data?.unpaidJob;
+        const unpaidMessage = error?.response?.data?.message || error?.message || '';
+
+        // Try to extract unpaid job id from message text (e.g. "#40" or "(40)")
+        if (!unpaidJobId && typeof unpaidMessage === 'string') {
+          const hashMatch = unpaidMessage.match(/#(\d+)/);
+          if (hashMatch) unpaidJobId = hashMatch[1];
+          else {
+            const parenMatch = unpaidMessage.match(/\((\d+)\)/);
+            if (parenMatch) unpaidJobId = parenMatch[1];
+          }
+        }
+
+        // Check if the message itself contains "unpaid" keyword as another indicator
+        const isUnpaidJob = requiresPayment || (typeof unpaidMessage === 'string' && unpaidMessage.toLowerCase().includes('unpaid'));
+        
+        if (isUnpaidJob || unpaidJobId) {
+          if (unpaidJobId) {
+            console.log('Unpaid job detected:', unpaidJobId);
+            setBlockedUnpaidJob({ id: String(unpaidJobId), message: unpaidMessage });
+          } else {
+            setBlockedUnpaidJob(null);
+          }
+          setErrors({ description: unpaidMessage || 'You have an unpaid job. Please complete payment before booking.' });
+          return;
+        }
+
+        setBlockedUnpaidJob(null);
+        setErrors({
+          description: error.message || 'Failed to create job request. Please try again.'
         });
       } finally {
         setIsSubmitting(false);
@@ -204,6 +242,36 @@ export default function BookingModal({
   };
 
   const serviceQuestions = getServiceSpecificQuestions();
+
+  // If there's an unpaid job blocking, show that dialog on top
+  if (blockedUnpaidJob) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+        <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-2xl">
+          <h3 className="text-lg font-bold mb-2 text-gray-900">Unpaid Job Blocking Booking</h3>
+          <p className="text-sm text-gray-700 mb-4">
+            {blockedUnpaidJob.message || `You have an unpaid job (#${blockedUnpaidJob.id}). Please complete payment before booking with another provider.`}
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => router.push(`/customer/bookings/${blockedUnpaidJob.id}`)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              View Unpaid Job
+            </button>
+            <button
+              type="button"
+              onClick={() => setBlockedUnpaidJob(null)}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -278,6 +346,7 @@ export default function BookingModal({
               )}
               <p className="text-sm text-gray-500 ml-auto">{formData.description.length}/2500</p>
             </div>
+            {/* unpaid-job CTA removed from inline form; dialog will show below when needed */}
           </div>
 
           {/* Dimensions */}
