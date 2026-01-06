@@ -18,8 +18,8 @@ export default function ProviderJobs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for filters - default to 'all' instead of 'new'
-  const [statusFilter, setStatusFilter] = useState('all');
+  // State for filters - default to 'new' so only incoming requests show
+  const [statusFilter, setStatusFilter] = useState('new');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   
@@ -93,7 +93,9 @@ export default function ProviderJobs() {
         }
       }));
       
-      setJobRequests(requests);
+      // Defensive filter: hide completed/paid jobs on the Job Requests page
+      const visibleRequests = requests.filter(r => r.job.status !== 'completed' && r.job.status !== 'paid');
+      setJobRequests(visibleRequests);
     } catch (err: any) {
       console.error('Failed to fetch job requests:', err);
       console.error('Error details:', {

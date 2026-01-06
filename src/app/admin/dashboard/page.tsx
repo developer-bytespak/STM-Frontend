@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { adminApi } from '@/api/admin';
@@ -12,44 +12,63 @@ import JobsStatusChart from '@/components/admin/JobsStatusChart';
 import QuickActions from '@/components/admin/QuickActions';
 import LSMRegionsCard from '@/components/admin/LSMRegionsCard';
 import Loader from '@/components/ui/Loader';
-import {
-  mockDashboardStats,
-  mockRecentActivities,
-  mockPendingActions,
-  mockRevenueData,
-  mockJobStatusData,
-} from '@/data/mockAdminData';
+import { mockJobStatusData, mockRevenueData, mockRecentActivities } from '@/data/mockAdminData';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const [revenuePeriod, setRevenuePeriod] = useState<string>('7days');
+  const [jobsPeriod, setJobsPeriod] = useState<string>('7days');
+
+  // Fetch dashboard stats
+  const { data: statsData, isLoading: isStatsLoading } = useQuery({
+    queryKey: ['admin-dashboard-stats'],
+    queryFn: () => adminApi.getDashboardStats(),
+    placeholderData: {
+      activeJobs: 0,
+      activeUsers: 0,
+      revenueToday: 0,
+      pendingApprovals: 0,
+      totalProviders: 0,
+      totalLSMs: 0,
+    },
+  });
 
   // Fetch pending actions from real API
   const { data: pendingActionsData, isLoading: isPendingLoading } = useQuery({
     queryKey: ['admin-pending-actions'],
     queryFn: () => adminApi.getPendingActions(),
-    // Fallback to mock data on error
-    placeholderData: mockPendingActions,
+    placeholderData: [],
   });
 
-  // Use real data if available, otherwise use mock data
-  const pendingActions = pendingActionsData || mockPendingActions;
+  // Fetch activities
+  const { data: activitiesData, isLoading: isActivitiesLoading } = useQuery({
+    queryKey: ['admin-activities'],
+    queryFn: () => adminApi.getActivities(8),
+    placeholderData: [],
+  });
 
-  // Calculate pending approvals count from real data
-  const pendingApprovalsCount = pendingActions.reduce(
-    (sum, action) => sum + (action.count || 0),
-    0
-  );
+  // Fetch revenue data
+  const { data: revenueData, isLoading: isRevenueLoading } = useQuery({
+    queryKey: ['admin-revenue', revenuePeriod],
+    queryFn: () => adminApi.getRevenue(revenuePeriod),
+    placeholderData: { data: [], summary: {} },
+  });
 
-  // Update stats with real pending approvals
-  const displayStats = {
-    ...mockDashboardStats,
-    pendingApprovals: pendingApprovalsCount || mockDashboardStats.pendingApprovals,
-  };
+  // Use real stats data
+  const displayStats = (statsData || {}) as any;
+
+  // Fetch jobs distribution - will implement API later
+  // For now using mock data
+  const jobsChartData = mockJobStatusData;
+
+  const pendingActions = pendingActionsData || [];
+  const activities = activitiesData || [];
+  const revenueChartData = revenueData?.data || revenueData || [];
 
   const stats = [
     {
       title: 'Active Jobs',
-      value: displayStats.activeJobs,
+      value: displayStats?.activeJobs || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -66,7 +85,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Active Users',
-      value: displayStats.activeUsers.toLocaleString(),
+      value: (displayStats?.activeUsers || 0).toLocaleString(),
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -83,7 +102,10 @@ export default function AdminDashboard() {
     },
     {
       title: 'Revenue Today',
-      value: `$${displayStats.revenueToday.toLocaleString()}`,
+      value: `$${(displayStats?.revenueToday || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -100,7 +122,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Pending Approvals',
-      value: displayStats.pendingApprovals,
+      value: displayStats?.pendingApprovals || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -116,7 +138,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Total Providers',
-      value: displayStats.totalProviders,
+      value: displayStats?.totalProviders || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -133,7 +155,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Active LSMs',
-      value: displayStats.totalLSMs,
+      value: displayStats?.totalLSMs || 0,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -208,15 +230,35 @@ export default function AdminDashboard() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
-          <RevenueChart data={mockRevenueData} />
+          {isRevenueLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader />
+            </div>
+          ) : (
+            <RevenueChart 
+              data={revenueChartData}
+              period={revenuePeriod}
+              onPeriodChange={setRevenuePeriod}
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
-          <JobsStatusChart data={mockJobStatusData} />
+          <JobsStatusChart 
+            data={jobsChartData}
+            period={jobsPeriod}
+            onPeriodChange={setJobsPeriod}
+          />
         </div>
 
         {/* Recent Activity */}
-        <ActivityFeed activities={mockRecentActivities} maxItems={8} />
+        {isActivitiesLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader />
+          </div>
+        ) : (
+          <ActivityFeed activities={activities} maxItems={8} />
+        )}
 
         {/* LSM Regions Card */}
         <LSMRegionsCard />

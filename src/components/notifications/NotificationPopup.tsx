@@ -7,6 +7,10 @@ import type { Notification } from '@/api/notifications';
 import { ROUTES } from '@/constants/routes';
 import AllNotificationsModal from './AllNotificationsModal';
 import { useChat } from '@/contexts/ChatContext';
+import { useAuth } from '@/hooks/useAuth';
+import { providerApi } from '@/api/provider';
+import { customerApi } from '@/api/customer';
+import { getInvoiceById } from '@/api/payments';
 
 interface NotificationPopupProps {
   notifications: Notification[];
@@ -32,6 +36,7 @@ export default function NotificationPopup({
   const popupRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const { openConversation } = useChat();
+  const { user } = useAuth();
   const [showAllModal, setShowAllModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
@@ -461,7 +466,7 @@ export default function NotificationPopup({
     return { chatId: null, jobId: null, cleanTitle: title };
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     console.log('Notification clicked:', notification);
     
     // Mark as read if unread
@@ -497,17 +502,64 @@ export default function NotificationPopup({
       return;
     }
 
-    // Priority 3: Check metadata for job_id or chat_id
+    // Priority 3: If metadata contains job_id try to fetch job details to find chatId
     if (notification.metadata?.job_id) {
-      console.log('Redirecting to job from metadata:', notification.metadata.job_id);
+      const jobId = Number(notification.metadata.job_id);
+      try {
+        // Prefer chat open if job has a chatId
+        let details: any = null;
+        if (user?.role === 'service_provider') {
+          details = await providerApi.getJobDetails(jobId as any);
+        } else {
+          details = await customerApi.getJobDetails(jobId as any);
+        }
+
+        if (details?.chatId) {
+          onClose();
+          openConversation(String(details.chatId));
+          return;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch job details for notification fallback:', err);
+      }
+
+      // Fallback: redirect to job/booking details
       onClose();
-      
       if (isProvider) {
         router.push(ROUTES.PROVIDER.JOB_DETAILS(notification.metadata.job_id));
       } else {
         router.push(ROUTES.CUSTOMER.BOOKING_DETAILS(notification.metadata.job_id));
       }
       return;
+    }
+
+    // If metadata contains invoice id, try to resolve job id then open chat
+    const invoiceId = notification.metadata?.invoice_id || notification.metadata?.invoiceId;
+    if (invoiceId) {
+      try {
+        const invoice = await getInvoiceById(Number(invoiceId));
+        if (invoice?.jobId) {
+          // reuse job flow
+          try {
+            let details: any = null;
+            if (user?.role === 'service_provider') {
+              details = await providerApi.getJobDetails(Number(invoice.jobId));
+            } else {
+              details = await customerApi.getJobDetails(Number(invoice.jobId));
+            }
+
+            if (details?.chatId) {
+              onClose();
+              openConversation(String(details.chatId));
+              return;
+            }
+          } catch (err) {
+            console.warn('Failed to fetch job details from invoice fallback:', err);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch invoice for notification fallback:', err);
+      }
     }
 
     if (notification.metadata?.chat_id) {
@@ -614,7 +666,7 @@ export default function NotificationPopup({
             {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => void handleNotificationClick(notification)}
                   className={`p-3 sm:p-4 hover:bg-gray-50 transition-colors relative cursor-pointer ${
                     !notification.is_read ? 'bg-blue-50' : ''
                   }`}

@@ -203,10 +203,48 @@ class AdminApi {
       
       const response = await apiClient.request<ApiResponse<any[]>>(`/admin/providers?${params.toString()}`);
       // Extract the data array from the response object
-      return response?.data || [];
+      const data = response?.data || [];
+      console.log('Admin providers API response:', data);
+      // Log the structure of first provider to see what fields are available
+      if (data && data.length > 0) {
+        console.log('First provider fields:', Object.keys(data[0]));
+        console.log('First provider earnings field:', {
+          totalEarnings: data[0].totalEarnings,
+          total_earnings: data[0].total_earnings,
+          earnings: data[0].earnings,
+          earned_amount: data[0].earned_amount,
+        });
+      }
+      return data;
     } catch (error) {
       // If endpoint not implemented yet, fallback to mock data
       console.warn('Providers endpoint not implemented, using mock data');
+      throw error;
+    }
+  }
+
+  /**
+   * Get provider details by ID
+   */
+  async getProviderDetails(providerId: number): Promise<any> {
+    try {
+      const response = await apiClient.request<ApiResponse<any>>(`/admin/providers/${providerId}`);
+      return response?.data || null;
+    } catch (error) {
+      console.error(`Failed to fetch provider details for ID ${providerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get/view a provider document
+   */
+  async getProviderDocument(providerId: number, documentId: number): Promise<any> {
+    try {
+      const response = await apiClient.request<ApiResponse<any>>(`/admin/providers/${providerId}/documents/${documentId}`);
+      return response?.data || null;
+    } catch (error) {
+      console.error(`Failed to fetch document ${documentId} for provider ${providerId}:`, error);
       throw error;
     }
   }
@@ -250,29 +288,56 @@ class AdminApi {
 
   /**
    * Get dashboard statistics
-   * TODO: Implement backend endpoint GET /admin/dashboard/stats
    */
   async getDashboardStats(): Promise<DashboardStats> {
-    // This will be implemented once backend endpoint is ready
-    throw new Error('Dashboard stats endpoint not implemented yet. Use mock data.');
+    try {
+      const response = await apiClient.request<ApiResponse<DashboardStats>>('/admin/dashboard/stats');
+      return response?.data || {
+        activeJobs: 0,
+        activeUsers: 0,
+        revenueToday: 0,
+        pendingApprovals: 0,
+        totalProviders: 0,
+        totalLSMs: 0,
+      };
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      throw error;
+    }
   }
 
   /**
    * Get recent activity
-   * TODO: Implement backend endpoint GET /admin/dashboard/activities
    */
-  async getRecentActivities(limit = 10): Promise<any[]> {
-    // This will be implemented once backend endpoint is ready
-    throw new Error('Recent activities endpoint not implemented yet. Use mock data.');
+  async getActivities(limit: number = 10, type?: string): Promise<any[]> {
+    try {
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      if (type) params.append('type', type);
+      
+      const response = await apiClient.request<ApiResponse<any[]>>(
+        `/admin/activities?${params.toString()}`
+      );
+      return response?.data || [];
+    } catch (error) {
+      console.error('Failed to fetch activities:', error);
+      throw error;
+    }
   }
 
   /**
    * Get revenue chart data
-   * TODO: Implement backend endpoint GET /admin/dashboard/revenue-chart
    */
-  async getRevenueChartData(period = '30d'): Promise<any[]> {
-    // This will be implemented once backend endpoint is ready
-    throw new Error('Revenue chart endpoint not implemented yet. Use mock data.');
+  async getRevenue(period: string = '7days'): Promise<any> {
+    try {
+      const response = await apiClient.request<ApiResponse<any>>(
+        `/admin/revenue?period=${period}`
+      );
+      return response?.data || {};
+    } catch (error) {
+      console.error('Failed to fetch revenue data:', error);
+      throw error;
+    }
   }
 
   /**
@@ -289,10 +354,7 @@ class AdminApi {
    * Get provider details
    * TODO: Implement backend endpoint GET /admin/providers/:id
    */
-  async getProviderDetails(providerId: number): Promise<any> {
-    // This will be implemented once backend endpoint is ready
-    throw new Error('Provider details endpoint not implemented yet.');
-  }
+  
 
   /**
    * Get all LSMs

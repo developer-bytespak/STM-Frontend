@@ -96,7 +96,7 @@ export default function ActiveJobsCard({ className = '' }: ActiveJobsCardProps) 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Active Jobs</h2>
         <Link
-          href="/provider/activejobs"
+          href="/provider/total_jobs"
           className="text-navy-600 hover:text-navy-700 font-medium text-sm"
         >
           View All →
