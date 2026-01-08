@@ -24,7 +24,7 @@ export default function ProvidersManagementPage() {
     queryKey: ['admin-providers'],
     queryFn: async () => {
       try {
-        const response = await adminApi.getAllProviders();
+        const response = await adminApi.getAllProviders({ limit: 1000 }); // Request all providers
         // Map backend response to expected frontend format
         return (response || []).map((provider: any) => ({
           ...provider,

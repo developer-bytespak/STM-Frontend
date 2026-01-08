@@ -390,7 +390,7 @@ function ProviderDashboardContent() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Rs. {job.price.toLocaleString()}</span>
+                    <span className="text-gray-600">$. {job.price.toLocaleString()}</span>
                     <span className="text-gray-500">{new Date(job.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>

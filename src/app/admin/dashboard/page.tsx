@@ -57,9 +57,17 @@ export default function AdminDashboard() {
   // Use real stats data
   const displayStats = (statsData || {}) as any;
 
-  // Fetch jobs distribution - will implement API later
-  // For now using mock data
-  const jobsChartData = mockJobStatusData;
+  // Fetch jobs distribution
+  const { data: jobsDistributionData, isLoading: isJobsLoading } = useQuery({
+    queryKey: ['admin-jobs-distribution', jobsPeriod],
+    queryFn: () => {
+      const period = jobsPeriod === '7days' ? '7d' : jobsPeriod === '30days' ? '30d' : jobsPeriod === '90days' ? '90d' : '1y';
+      return adminApi.getJobsDistribution(period);
+    },
+    placeholderData: { summary: {}, data: [] },
+  });
+
+  const jobsChartData = jobsDistributionData?.data || jobsDistributionData || [];
 
   const pendingActions = pendingActionsData || [];
   const activities = activitiesData || [];
@@ -244,11 +252,18 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
-          <JobsStatusChart 
-            data={jobsChartData}
-            period={jobsPeriod}
-            onPeriodChange={setJobsPeriod}
-          />
+          {isJobsLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader />
+            </div>
+          ) : (
+            <JobsStatusChart 
+              data={jobsChartData}
+              period={jobsPeriod}
+              onPeriodChange={setJobsPeriod}
+              summary={jobsDistributionData?.summary}
+            />
+          )}
         </div>
 
         {/* Recent Activity */}

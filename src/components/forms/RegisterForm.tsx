@@ -287,7 +287,7 @@ export default function RegisterForm() {
               value={formData.firstName}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 border rounded-lg
+                w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.firstName ? 'border-red-500' : 'border-gray-300'}
               `}
@@ -310,7 +310,7 @@ export default function RegisterForm() {
               value={formData.lastName}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 border rounded-lg
+                w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.lastName ? 'border-red-500' : 'border-gray-300'}
               `}
@@ -334,7 +334,7 @@ export default function RegisterForm() {
             value={formData.email}
             onChange={handleChange}
             className={`
-              w-full px-4 py-2 border rounded-lg
+              w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.email ? 'border-red-500' : 'border-gray-300'}
             `}
@@ -357,7 +357,7 @@ export default function RegisterForm() {
             value={formData.phone}
             onChange={handleChange}
             className={`
-              w-full px-4 py-2 border rounded-lg
+              w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.phone ? 'border-red-500' : 'border-gray-300'}
             `}
@@ -380,7 +380,7 @@ export default function RegisterForm() {
             onChange={handleChange}
             rows={3}
             className={`
-              w-full px-4 py-2 border rounded-lg
+              w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.address ? 'border-red-500' : 'border-gray-300'}
             `}
@@ -419,7 +419,7 @@ export default function RegisterForm() {
               }
             }}
             className={`
-              w-full px-4 py-2 border rounded-lg
+              w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
               focus:outline-none focus:ring-2 focus:ring-green-500
               ${errors.zipCode ? 'border-red-500' : 'border-gray-300'}
             `}
@@ -443,7 +443,7 @@ export default function RegisterForm() {
               value={formData.city}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 border rounded-lg
+                w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.city ? 'border-red-500' : 'border-gray-300'}
               `}
@@ -468,7 +468,7 @@ export default function RegisterForm() {
                 handleChange({ target: { name: 'state', value: two } } as any);
               }}
               className={`
-                w-full px-4 py-2 border rounded-lg
+                w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.state ? 'border-red-500' : 'border-gray-300'}
               `}
@@ -512,7 +512,7 @@ export default function RegisterForm() {
               value={formData.password}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 pr-10 border rounded-lg
+                w-full px-4 py-2 pr-10 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.password ? 'border-red-500' : 'border-gray-300'}
               `}
@@ -593,7 +593,7 @@ export default function RegisterForm() {
               value={formData.confirmPassword}
               onChange={handleChange}
               className={`
-                w-full px-4 py-2 pr-10 border rounded-lg
+                w-full px-4 py-2 pr-10 border rounded-lg text-gray-900 placeholder-gray-500
                 focus:outline-none focus:ring-2 focus:ring-green-500
                 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}
               `}

@@ -26,7 +26,7 @@ export default function NotificationBell({ userRole }: NotificationBellProps) {
     try {
       setIsLoading(true);
       const response = await getCombinedNotifications({
-        limit: 20,
+        limit: 50,
         offset: 0,
       });
       

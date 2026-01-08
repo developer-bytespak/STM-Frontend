@@ -229,9 +229,24 @@ class AdminApi {
   async getProviderDetails(providerId: number): Promise<any> {
     try {
       const response = await apiClient.request<ApiResponse<any>>(`/admin/providers/${providerId}`);
-      return response?.data || null;
+      
+      console.log('🔍 Raw API response object:', response);
+      console.log('🔍 response?.data:', response?.data);
+      
+      // Try different ways to extract data
+      const data = response?.data || response || null;
+      
+      console.log('✅ Final extracted data:', {
+        id: data?.id,
+        businessName: data?.businessName,
+        hasDocuments: !!data?.documents,
+        documentsLength: data?.documents?.length || 0,
+        documentsArray: data?.documents,
+      });
+      
+      return data;
     } catch (error) {
-      console.error(`Failed to fetch provider details for ID ${providerId}:`, error);
+      console.error(`❌ Failed to fetch provider details for ID ${providerId}:`, error);
       throw error;
     }
   }
@@ -241,10 +256,27 @@ class AdminApi {
    */
   async getProviderDocument(providerId: number, documentId: number): Promise<any> {
     try {
+      console.log(`🌐 API CALL: GET /admin/providers/${providerId}/documents/${documentId}`);
       const response = await apiClient.request<ApiResponse<any>>(`/admin/providers/${providerId}/documents/${documentId}`);
-      return response?.data || null;
+      
+      console.log(`🌐 RAW RESPONSE from apiClient:`, response);
+      console.log(`🌐 response?.data:`, response?.data);
+      console.log(`🌐 typeof response:`, typeof response);
+      console.log(`🌐 response keys:`, response ? Object.keys(response) : 'null');
+      
+      // Try to extract data - it might be response.data or the response itself
+      const data = response?.data !== undefined ? response.data : response;
+      
+      console.log(`🌐 EXTRACTED DATA:`, data);
+      console.log(`🌐 Data keys:`, data ? Object.keys(data) : 'null');
+      
+      if (!data) {
+        console.warn(`🌐 WARNING: Data is null/undefined`);
+      }
+      
+      return data;
     } catch (error) {
-      console.error(`Failed to fetch document ${documentId} for provider ${providerId}:`, error);
+      console.error(`🌐 API ERROR - Failed to fetch document ${documentId} for provider ${providerId}:`, error);
       throw error;
     }
   }
@@ -341,12 +373,18 @@ class AdminApi {
   }
 
   /**
-   * Get jobs distribution
-   * TODO: Implement backend endpoint GET /admin/dashboard/jobs-distribution
+   * Get jobs distribution grouped by status and date
    */
-  async getJobsDistribution(): Promise<any[]> {
-    // This will be implemented once backend endpoint is ready
-    throw new Error('Jobs distribution endpoint not implemented yet. Use mock data.');
+  async getJobsDistribution(period: string = '7d'): Promise<any> {
+    try {
+      const response = await apiClient.request<ApiResponse<any>>(
+        `/admin/jobs-distribution?period=${period}`
+      );
+      return response?.data || response || {};
+    } catch (error) {
+      console.error('Failed to fetch jobs distribution:', error);
+      throw error;
+    }
   }
 
 
