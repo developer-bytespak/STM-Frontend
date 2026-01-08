@@ -851,7 +851,12 @@ export default function ChatPopup() {
 
       {/* Add LSM Modal */}
       {showLSMModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}>
           <div className="bg-white rounded-lg max-w-md w-full mx-2 p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -876,7 +881,7 @@ export default function ChatPopup() {
                   value={disputeDescription}
                   onChange={(e) => setDisputeDescription(e.target.value)}
                   placeholder="E.g., Work not completed according to agreement, poor quality, missed deadline..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 resize-none text-gray-900 placeholder-gray-900"
                   rows={3}
                   maxLength={500}
                 />

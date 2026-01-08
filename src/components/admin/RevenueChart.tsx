@@ -74,22 +74,25 @@ export default function RevenueChart({ data, period = '7days', onPeriodChange }:
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="date"
-            stroke="#9ca3af"
-            style={{ fontSize: '12px' }}
+            stroke="#6b7280"
+            style={{ fontSize: '12px', color: '#111827' }}
+            tick={{ fill: '#111827' }}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
-            stroke="#9ca3af"
-            style={{ fontSize: '12px' }}
+            stroke="#6b7280"
+            style={{ fontSize: '12px', color: '#111827' }}
+            tick={{ fill: '#111827' }}
             tickLine={false}
             tickFormatter={(value) => `$${value}`}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#9ca3af"
-            style={{ fontSize: '12px' }}
+            stroke="#6b7280"
+            style={{ fontSize: '12px', color: '#111827' }}
+            tick={{ fill: '#111827' }}
             tickLine={false}
           />
           <Tooltip

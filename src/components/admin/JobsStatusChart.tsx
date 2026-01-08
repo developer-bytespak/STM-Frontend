@@ -20,24 +20,93 @@ interface JobsStatusChartProps {
   data: any;
   period?: string;
   onPeriodChange?: (period: string) => void;
+  summary?: any;
 }
 
-export default function JobsStatusChart({ data, period = '7days', onPeriodChange }: JobsStatusChartProps) {
-  // Handle both array and object data formats
-  const chartData: Array<{ name: string; count: number; color: string; percentage?: number }> = Array.isArray(data) 
-    ? data.map(item => ({
-        name: item.status || 'Unknown',
-        count: item.count || 0,
-        color: item.color || '#6b7280',
-        percentage: item.percentage || 0,
-      }))
-    : Object.entries(data || {}).map(([name, count]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        count: count as number,
-        color: '#6b7280',
-      })) || [];
+const statusColors: Record<string, string> = {
+  new: '#3b82f6',
+  in_progress: '#f59e0b',
+  completed: '#10b981',
+  paid: '#06b6d4',
+  cancelled: '#ef4444',
+  rejected_by_sp: '#ec4899',
+  rejected_by_customer: '#8b5cf6',
+};
+
+const statusLabels: Record<string, string> = {
+  new: 'New',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  paid: 'Paid',
+  cancelled: 'Cancelled',
+  rejected_by_sp: 'Rejected by SP',
+  rejected_by_customer: 'Rejected by Customer',
+};
+
+export default function JobsStatusChart({ data, period = '7days', onPeriodChange, summary }: JobsStatusChartProps) {
+  // Transform summary data for pie chart
+  const chartData: Array<{ name: string; count: number; color: string; percentage?: number; status?: string }> = [];
+  
+  // Console log for debugging
+  console.log('JobsStatusChart - Raw summary from API:', summary);
+  console.log('JobsStatusChart - Raw data:', data);
+  
+  if (summary && typeof summary === 'object') {
+    // Use summary data from API response
+    console.log('Using summary data from API');
+    Object.entries(summary).forEach(([status, count]) => {
+      console.log(`Processing status "${status}": ${count}, has label: ${!!statusLabels[status]}`);
+      // Only include known statuses that have labels and colors defined
+      if (status !== 'total' && typeof count === 'number' && count > 0 && statusLabels[status]) {
+        console.log(`✓ Adding status "${status}" to chart`);
+        chartData.push({
+          name: statusLabels[status],
+          count: count as number,
+          color: statusColors[status],
+          status: status,
+        });
+      }
+    });
+  } else if (Array.isArray(data) && data.length > 0) {
+    // Handle daily distribution data - aggregate by status for pie chart
+    console.log('Using daily distribution data from API');
+    const statusAgg: Record<string, number> = {};
+    
+    data.forEach((item: any) => {
+      Object.keys(item).forEach((key) => {
+        // Only process known status keys
+        if (key !== 'date' && key !== 'total' && typeof item[key] === 'number' && statusLabels[key]) {
+          statusAgg[key] = (statusAgg[key] || 0) + item[key];
+        }
+      });
+    });
+    
+    console.log('Aggregated status data:', statusAgg);
+    
+    Object.entries(statusAgg).forEach(([status, count]) => {
+      if (count > 0) {
+        chartData.push({
+          name: statusLabels[status],
+          count: count as number,
+          color: statusColors[status],
+          status: status,
+        });
+      }
+    });
+  }
 
   const totalJobs = chartData.reduce((sum, item) => sum + (item.count || 0), 0);
+  
+  // Prepare bar chart data from daily distribution
+  const barChartData = Array.isArray(data) ? data.map((item: any) => ({
+    date: item.date,
+    new: item.new || 0,
+    in_progress: item.in_progress || 0,
+    completed: item.completed || 0,
+    paid: item.paid || 0,
+    cancelled: item.cancelled || 0,
+    total: item.total || 0,
+  })) : [];
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -68,20 +137,22 @@ export default function JobsStatusChart({ data, period = '7days', onPeriodChange
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart */}
+        {/* Bar Chart - Daily Distribution */}
         <div>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData}>
+            <BarChart data={barChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
-                dataKey="status"
-                stroke="#9ca3af"
-                style={{ fontSize: '12px' }}
+                dataKey="date"
+                stroke="#6b7280"
+                style={{ fontSize: '12px', color: '#111827' }}
+                tick={{ fill: '#111827' }}
                 tickLine={false}
               />
               <YAxis
-                stroke="#9ca3af"
-                style={{ fontSize: '12px' }}
+                stroke="#6b7280"
+                style={{ fontSize: '12px', color: '#111827' }}
+                tick={{ fill: '#111827' }}
                 tickLine={false}
               />
               <Tooltip
@@ -92,11 +163,7 @@ export default function JobsStatusChart({ data, period = '7days', onPeriodChange
                   padding: '12px',
                 }}
               />
-              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || '#6b7280'} />
-                ))}
-              </Bar>
+              <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
