@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import VoiceCallModal from '@/components/call/VoiceCallModal';
+import { useCall } from '@/contexts/CallContext';
 
 interface ProviderCardProps {
   provider: {
@@ -33,7 +32,7 @@ interface ProviderCardProps {
 }
 
 export default function ProviderCard({ provider, onCallNow, onGetEstimate, index = 0, searchParams }: ProviderCardProps) {
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const { openCall } = useCall();
   // Determine star color based on rating
   const getStarColor = (rating: number = 0) => {
     if (rating >= 5.0) return 'text-yellow-500'; // Bright yellow for perfect rating
@@ -52,20 +51,13 @@ export default function ProviderCard({ provider, onCallNow, onGetEstimate, index
   const handleVoiceCall = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsCallModalOpen(true);
+    openCall(provider.businessName || `${provider.firstName} ${provider.lastName}`, provider.id);
     // Also call the onCallNow callback if provided
     onCallNow?.();
   };
 
   return (
     <>
-      {/* Voice Call Modal */}
-      <VoiceCallModal
-        isOpen={isCallModalOpen}
-        onClose={() => setIsCallModalOpen(false)}
-        providerName={provider.businessName || `${provider.firstName} ${provider.lastName}`}
-        //providerId={provider.id}
-      />
 
       <Link href={providerUrl}>
       <div

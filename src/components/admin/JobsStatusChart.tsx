@@ -144,13 +144,13 @@ export default function JobsStatusChart({ data, period = '7days', onPeriodChange
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="date"
-                stroke="#6b7280"
+                stroke="#111827"
                 style={{ fontSize: '12px', color: '#111827' }}
                 tick={{ fill: '#111827' }}
                 tickLine={false}
               />
               <YAxis
-                stroke="#6b7280"
+                stroke="#111827"
                 style={{ fontSize: '12px', color: '#111827' }}
                 tick={{ fill: '#111827' }}
                 tickLine={false}
@@ -161,6 +161,7 @@ export default function JobsStatusChart({ data, period = '7days', onPeriodChange
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   padding: '12px',
+                  color: '#111827',
                 }}
               />
               <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
