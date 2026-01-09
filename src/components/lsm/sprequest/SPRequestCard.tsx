@@ -37,16 +37,16 @@ export default function SPRequestCard({
       onClick={onClick}
       className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-800">
           {request.businessName}
         </h3>
-        <div className="flex flex-col items-end space-y-1">
-          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+        <div className="flex flex-wrap gap-2 items-start justify-end">
+          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full whitespace-nowrap">
             ⏳ PENDING
           </span>
           {request.readyForActivation && (
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+            <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full whitespace-nowrap">
               ✅ READY
             </span>
           )}

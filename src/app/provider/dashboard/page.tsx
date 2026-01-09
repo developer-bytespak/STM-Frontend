@@ -232,7 +232,7 @@ function ProviderDashboardContent() {
               </Link>
             )}
             {pendingActions.jobsToComplete > 0 && (
-              <Link href="/provider/jobs" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
+              <Link href="/provider/total_jobs" className="bg-white p-4 rounded-lg hover:shadow-md transition-shadow">
                 <p className="text-2xl font-bold text-blue-600">{pendingActions.jobsToComplete}</p>
                 <p className="text-sm text-gray-600">Jobs to Complete</p>
               </Link>

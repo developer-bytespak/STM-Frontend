@@ -2,13 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { OTPVerification } from '@/components/auth/OTPVerification';
 import { validateEmail, sanitizeInput } from '@/lib/validation';
-import { generateOTP, storeOTPSession, clearOTPSession } from '@/lib/otp';
-import { sendOTPEmail } from '@/lib/emailjs';
+import { authApi } from '@/api/auth';
 
 interface FormErrors {
   email?: string;
+  otp?: string;
   newPassword?: string;
   confirmPassword?: string;
   general?: string;
@@ -20,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [currentStep, setCurrentStep] = useState<ForgotPasswordStep>('email');
   const [formData, setFormData] = useState({
     email: '',
+    otp: '',
     newPassword: '',
     confirmPassword: '',
   });
@@ -27,12 +27,13 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
-    if (errors[field]) {
+    if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
     if (errors.general) {
@@ -46,13 +47,6 @@ export default function ForgotPasswordPage() {
     const emailValidation = validateEmail(formData.email);
     if (!emailValidation.valid) {
       newErrors.email = emailValidation.error;
-    } else {
-      // Check if email exists in localStorage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find((u: any) => u.email === formData.email);
-      if (!user) {
-        newErrors.email = 'No account found with this email address.';
-      }
     }
 
     setErrors(newErrors);
@@ -74,13 +68,14 @@ export default function ForgotPasswordPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Call backend to send OTP
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrors({});
 
     try {
-      // Validate email
+      // Validate email format
       if (!validateEmailStep()) {
         setLoading(false);
         return;
@@ -88,40 +83,90 @@ export default function ForgotPasswordPage() {
 
       const sanitizedEmail = sanitizeInput(formData.email);
 
-      // Generate and send OTP
-      const otp = generateOTP();
-      const emailResult = await sendOTPEmail(
-        sanitizedEmail,
-        otp,
-        'User'
-      );
+      // Call API to send OTP
+      const response = await authApi.sendPasswordResetOTP(sanitizedEmail);
 
-      if (!emailResult.success) {
+      if ((response as any)?.message) {
+        // Move to OTP verification step
+        setCurrentStep('otp');
+        setOtpResendTimer(60); // 60 seconds before can resend
+      } else {
         setErrors({ 
-          general: emailResult.error || 'Failed to send verification code. Please try again.' 
+          general: 'Failed to send verification code. Please try again.' 
         });
-        setLoading(false);
-        return;
       }
-
-      // Store OTP session
-      storeOTPSession(sanitizedEmail, otp, '');
-
-      // Move to OTP verification step
-      setCurrentStep('otp');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          'An unexpected error occurred. Please try again.';
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOTPVerificationSuccess = async () => {
-    // Move to new password step
-    setCurrentStep('new-password');
+  // Resend OTP
+  const handleResendOTP = async () => {
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const sanitizedEmail = sanitizeInput(formData.email);
+
+      const response = await authApi.resendPasswordResetOTP(sanitizedEmail);
+
+      if ((response as any)?.message) {
+        setOtpResendTimer(60);
+        setErrors({ general: undefined });
+      } else {
+        setErrors({ 
+          general: 'Failed to resend verification code. Please try again.' 
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to resend OTP';
+      setErrors({ general: errorMessage });
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Verify OTP with backend
+  const handleOTPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrors({});
+
+    try {
+      if (!formData.otp || formData.otp.length !== 6) {
+        setErrors({ otp: 'Please enter a valid 6-digit OTP' });
+        setLoading(false);
+        return;
+      }
+
+      const sanitizedEmail = sanitizeInput(formData.email);
+
+      // Call API to verify OTP
+      const response = await authApi.verifyPasswordResetOTP(sanitizedEmail, formData.otp);
+
+      if ((response as any)?.verified) {
+        // Move to new password step
+        setCurrentStep('new-password');
+      } else {
+        setErrors({ 
+          general: 'OTP verification failed. Please try again.' 
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 
+                          'Invalid OTP. Please try again.';
+      setErrors({ general: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset password with backend
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -134,22 +179,26 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      // Update password in localStorage
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const updatedUsers = users.map((user: any) => 
-        user.email === formData.email 
-          ? { ...user, password: formData.newPassword, updatedAt: new Date().toISOString() }
-          : user
+      const sanitizedEmail = sanitizeInput(formData.email);
+
+      // Call API to reset password
+      const response = await authApi.resetPassword(
+        sanitizedEmail,
+        formData.otp,
+        formData.newPassword,
       );
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
 
-      // Clear OTP session
-      clearOTPSession();
-
-      // Move to success step
-      setCurrentStep('success');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password. Please try again.';
+      if ((response as any)?.message) {
+        // Move to success step
+        setCurrentStep('success');
+      } else {
+        setErrors({ 
+          general: 'Failed to reset password. Please try again.' 
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 
+                          'Failed to reset password. Please try again.';
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
@@ -194,9 +243,9 @@ export default function ForgotPasswordPage() {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className={`
-                    w-full px-4 py-2 border rounded-lg
+                    w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500
                     focus:outline-none focus:ring-2 focus:ring-navy-500
-                    ${errors.email ? 'border-red-500' : 'border-gray-300 text-gray-800' }
+                    ${errors.email ? 'border-red-500' : 'border-gray-300'}
                   `}
                   placeholder="john@example.com"
                 />
@@ -243,13 +292,86 @@ export default function ForgotPasswordPage() {
       <div className="bg-gradient-to-br from-navy-50 to-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-            <OTPVerification
-              email={formData.email}
-              userName="User"
-              phone=""
-              onVerificationSuccess={handleOTPVerificationSuccess}
-              onBack={() => setCurrentStep('email')}
-            />
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">📧</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Verify OTP
+              </h2>
+              <p className="text-gray-600">
+                Enter the 6-digit code sent to {formData.email}
+              </p>
+            </div>
+
+            <form onSubmit={handleOTPSubmit} className="space-y-4">
+              {/* OTP Field */}
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                  Verification Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="otp"
+                  value={formData.otp}
+                  onChange={(e) => handleInputChange('otp', e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  maxLength={6}
+                  className={`
+                    w-full px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-500 text-center text-2xl tracking-widest
+                    focus:outline-none focus:ring-2 focus:ring-navy-500
+                    ${errors.otp ? 'border-red-500' : 'border-gray-300'}
+                  `}
+                  placeholder="000000"
+                />
+                {errors.otp && (
+                  <p className="text-red-500 text-xs mt-1">{errors.otp}</p>
+                )}
+              </div>
+
+              {/* General Error */}
+              {errors.general && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{errors.general}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading || formData.otp.length !== 6}
+                className="w-full bg-navy-600 text-white py-3 rounded-lg font-semibold
+                  hover:bg-navy-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+            </form>
+
+            {/* Resend OTP */}
+            <div className="mt-6 text-center">
+              {otpResendTimer > 0 ? (
+                <p className="text-sm text-gray-600">
+                  Resend code in {otpResendTimer}s
+                </p>
+              ) : (
+                <button
+                  onClick={handleResendOTP}
+                  disabled={loading}
+                  className="text-navy-600 hover:text-navy-800 font-medium text-sm disabled:opacity-50"
+                >
+                  Resend Code
+                </button>
+              )}
+            </div>
+
+            {/* Back Button */}
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setCurrentStep('email')}
+                className="text-gray-600 hover:text-gray-800 font-medium text-sm"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -294,7 +416,7 @@ export default function ForgotPasswordPage() {
                     id="newPassword"
                     value={formData.newPassword}
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-800"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button
@@ -318,7 +440,7 @@ export default function ForgotPasswordPage() {
                     id="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-800"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button

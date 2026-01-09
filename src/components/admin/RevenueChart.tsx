@@ -74,14 +74,14 @@ export default function RevenueChart({ data, period = '7days', onPeriodChange }:
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="date"
-            stroke="#6b7280"
+            stroke="#111827"
             style={{ fontSize: '12px', color: '#111827' }}
             tick={{ fill: '#111827' }}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
-            stroke="#6b7280"
+            stroke="#111827"
             style={{ fontSize: '12px', color: '#111827' }}
             tick={{ fill: '#111827' }}
             tickLine={false}
@@ -90,7 +90,7 @@ export default function RevenueChart({ data, period = '7days', onPeriodChange }:
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#6b7280"
+            stroke="#111827"
             style={{ fontSize: '12px', color: '#111827' }}
             tick={{ fill: '#111827' }}
             tickLine={false}
@@ -101,6 +101,7 @@ export default function RevenueChart({ data, period = '7days', onPeriodChange }:
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               padding: '12px',
+              color: '#111827',
             }}
             formatter={(value: number, name: string) => {
               if (name === 'revenue') return [`$${value.toLocaleString()}`, 'Revenue'];

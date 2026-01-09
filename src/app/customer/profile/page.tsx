@@ -255,9 +255,10 @@ export default function CustomerProfile() {
                       type="text"
                       value={editData.firstName}
                       onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500 ${
                         errors.firstName ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      placeholder="Enter first name"
                     />
                   ) : (
                     <p className="px-4 py-2 text-gray-900">{profileData.firstName}</p>
@@ -277,9 +278,10 @@ export default function CustomerProfile() {
                       type="text"
                       value={editData.lastName}
                       onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500 ${
                         errors.lastName ? 'border-red-500' : 'border-gray-300'
                       }`}
+                      placeholder="Enter last name"
                     />
                   ) : (
                     <p className="px-4 py-2 text-gray-900">{profileData.lastName}</p>
@@ -310,7 +312,7 @@ export default function CustomerProfile() {
                       type="tel"
                       value={editData.phone}
                       onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500 ${
                         errors.phone ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="+1 (555) 000-0000"
@@ -333,7 +335,7 @@ export default function CustomerProfile() {
                       value={editData.address}
                       onChange={(e) => setEditData({ ...editData, address: e.target.value })}
                       rows={3}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500 ${
                         errors.address ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="123 Main St, City, State"
@@ -356,7 +358,7 @@ export default function CustomerProfile() {
                       type="text"
                       value={editData.zipCode}
                       onChange={(e) => setEditData({ ...editData, zipCode: e.target.value })}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 ${
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-gray-900 placeholder-gray-500 ${
                         errors.zipCode ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="12345 or 12345-6789"

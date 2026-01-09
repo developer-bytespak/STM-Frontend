@@ -5,19 +5,29 @@ import { useRouter } from 'next/navigation';
 import { Device } from '@twilio/voice-sdk';
 import { generateVoiceToken } from '@/api/call';
 import { session } from '@/api/session';
+import { useCall } from '@/contexts/CallContext';
 import { X, Phone, PhoneOff, Mic, MicOff, LogIn } from 'lucide-react';
 
 interface VoiceCallModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  providerName: string;
+  isOpen?: boolean;
+  onClose?: () => void;
+  providerName?: string;
   providerId?: string;
   onRestore?: () => void;
 }
 
 type CallStatus = 'idle' | 'connecting' | 'ringing' | 'connected' | 'disconnected' | 'busy' | 'rejected' | 'no-answer' | 'failed' | 'error';
 
-export default function VoiceCallModal({ isOpen, onClose, providerName, providerId, onRestore }: VoiceCallModalProps) {
+export default function VoiceCallModal(props: VoiceCallModalProps = {}) {
+  // Use CallContext if available, otherwise use props
+  const callContext = useCall();
+  
+  const isOpen = props.isOpen !== undefined ? props.isOpen : callContext.isCallModalOpen;
+  const onClose = props.onClose || (() => callContext.closeCall());
+  const providerName = props.providerName || callContext.providerName;
+  const providerId = props.providerId || callContext.providerId;
+  const onRestore = props.onRestore;
+  
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');

@@ -281,7 +281,17 @@ export default function MeetingDetailsModal({
               )}
 
               {/* Action Buttons */}
-              {meeting.meeting_status !== 'cancelled' && meeting.meeting_status !== 'completed' && (
+              {meeting.meeting_status === 'cancelled' ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowReschedule(true)}
+                    className="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                    disabled={loading}
+                  >
+                    🔄 Reschedule Cancelled Meeting
+                  </button>
+                </div>
+              ) : meeting.meeting_status !== 'completed' && (
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowReschedule(true)}
