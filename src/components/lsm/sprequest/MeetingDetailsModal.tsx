@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Meeting, RescheduleMeetingDto } from '@/types/meeting';
-import { rescheduleMeeting, cancelMeeting } from '@/api/meetings';
+import { rescheduleMeeting, cancelMeeting, completeMeeting } from '@/api/meetings';
+
+// Properly structured component with fixed JSX logic
 
 interface MeetingDetailsModalProps {
   meeting: Meeting;
@@ -16,8 +18,10 @@ export default function MeetingDetailsModal({
   onUpdate,
 }: MeetingDetailsModalProps) {
   const [showReschedule, setShowReschedule] = useState(false);
+  const [showCompleteForm, setShowCompleteForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
   const [rescheduleData, setRescheduleData] = useState({
     startDate: '',
     startTime: '',
@@ -120,6 +124,29 @@ export default function MeetingDetailsModal({
     }
   };
 
+  const handleCompleteMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Complete meeting handler called for meeting:', meeting.id);
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Calling completeMeeting API with notes:', notes);
+      const response = await completeMeeting(meeting.id, { notes: notes.trim() || undefined });
+      console.log('API response:', response);
+      alert('Meeting marked as completed successfully!');
+      setShowCompleteForm(false);
+      setNotes('');
+      onUpdate();
+      onClose();
+    } catch (err: any) {
+      console.error('Error completing meeting:', err);
+      setError(err.message || 'Failed to complete meeting');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getMinDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -133,7 +160,7 @@ export default function MeetingDetailsModal({
 
     if (startTime && startDate) {
       const start = new Date(`${startDate}T${startTime}`);
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const end = new Date(start.getTime() + 40 * 60 * 1000);
       
       const endDate = end.toISOString().split('T')[0];
       const endTime = end.toTimeString().slice(0, 5);
@@ -187,7 +214,99 @@ export default function MeetingDetailsModal({
             </div>
           )}
 
-          {!showReschedule ? (
+          {showCompleteForm ? (
+            <form onSubmit={handleCompleteMeeting}>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">✅ Mark Meeting as Complete</h3>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Meeting Notes (Optional)</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add any notes about the completed meeting..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 resize-none"
+                  rows={4}
+                  disabled={loading}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCompleteForm(false);
+                    setNotes('');
+                  }}
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-green-300" disabled={loading}>
+                  {loading ? 'Completing...' : '✅ Complete Meeting'}
+                </button>
+              </div>
+            </form>
+          ) : showReschedule ? (
+            <form onSubmit={handleReschedule}>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">🔄 Reschedule Meeting</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+                  <input
+                    type="date"
+                    value={rescheduleData.startDate}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, startDate: e.target.value })}
+                    min={getMinDate()}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Time *</label>
+                  <input
+                    type="time"
+                    value={rescheduleData.startTime}
+                    onChange={handleStartTimeChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
+                  <input
+                    type="date"
+                    value={rescheduleData.endDate}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, endDate: e.target.value })}
+                    min={rescheduleData.startDate || getMinDate()}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Time *</label>
+                  <input
+                    type="time"
+                    value={rescheduleData.endTime}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, endTime: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowReschedule(false)}
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-300" disabled={loading}>
+                  {loading ? 'Rescheduling...' : '✅ Confirm Reschedule'}
+                </button>
+              </div>
+            </form>
+          ) : (
             <>
               {/* Meeting Info */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
@@ -225,7 +344,6 @@ export default function MeetingDetailsModal({
 
               {/* Zoom Links */}
               <div className="space-y-4 mb-6">
-                {/* Host Start Link */}
                 <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-bold text-gray-900 flex items-center">
@@ -252,7 +370,6 @@ export default function MeetingDetailsModal({
                   </a>
                 </div>
 
-                {/* Provider Join Link */}
                 <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-bold text-gray-900 flex items-center">
@@ -285,24 +402,41 @@ export default function MeetingDetailsModal({
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowReschedule(true)}
-                    className="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+                    className="flex-1 px-6 py-3 bg-orange-100 text-orange-600 rounded-lg font-medium hover:bg-orange-200 transition-colors"
                     disabled={loading}
                   >
                     🔄 Reschedule Cancelled Meeting
                   </button>
                 </div>
-              ) : meeting.meeting_status !== 'completed' && (
+              ) : meeting.meeting_status === 'completed' ? (
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowReschedule(true)}
-                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-6 py-3 bg-orange-100 text-orange-600 rounded-lg font-medium hover:bg-orange-200 transition-colors"
+                    disabled={loading}
+                  >
+                    🔄 Reschedule Completed Meeting
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCompleteForm(true)}
+                    className="flex-1 px-6 py-3 bg-green-100 text-green-600 rounded-lg font-medium hover:bg-green-200 transition-colors"
+                    disabled={loading}
+                  >
+                    ✓ Mark as Complete
+                  </button>
+                  <button
+                    onClick={() => setShowReschedule(true)}
+                    className="flex-1 px-6 py-3 bg-blue-100 text-blue-600 rounded-lg font-medium hover:bg-blue-200 transition-colors"
                     disabled={loading}
                   >
                     🔄 Reschedule Meeting
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                    className="flex-1 px-6 py-3 bg-red-100 text-red-600 rounded-lg font-medium hover:bg-red-200 transition-colors"
                     disabled={loading}
                   >
                     ❌ Cancel Meeting
@@ -310,85 +444,6 @@ export default function MeetingDetailsModal({
                 </div>
               )}
             </>
-          ) : (
-            /* Reschedule Form */
-            <form onSubmit={handleReschedule}>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">🔄 Reschedule Meeting</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={rescheduleData.startDate}
-                    onChange={(e) => setRescheduleData({ ...rescheduleData, startDate: e.target.value })}
-                    min={getMinDate()}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Time *
-                  </label>
-                  <input
-                    type="time"
-                    value={rescheduleData.startTime}
-                    onChange={handleStartTimeChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={rescheduleData.endDate}
-                    onChange={(e) => setRescheduleData({ ...rescheduleData, endDate: e.target.value })}
-                    min={rescheduleData.startDate || getMinDate()}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Time *
-                  </label>
-                  <input
-                    type="time"
-                    value={rescheduleData.endTime}
-                    onChange={(e) => setRescheduleData({ ...rescheduleData, endTime: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowReschedule(false)}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-300"
-                  disabled={loading}
-                >
-                  {loading ? 'Rescheduling...' : '✅ Confirm Reschedule'}
-                </button>
-              </div>
-            </form>
           )}
         </div>
       </div>

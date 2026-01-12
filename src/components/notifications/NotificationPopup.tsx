@@ -95,6 +95,9 @@ export default function NotificationPopup({
             return `${ROUTES.PROVIDER.JOBS}?status=new`;
           } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
             return `${ROUTES.PROVIDER.JOBS}?status=in_progress`;
+          } else if (titleLower.includes('deal closed') || titleLower.includes('start work')) {
+            // "Deal Closed - Start Work" notification should go to total_jobs page
+            return '/provider/total_jobs';
           } else if (titleLower.includes('dispute')) {
             return `${ROUTES.PROVIDER.JOBS}?status=disputed`;
           }
@@ -147,6 +150,9 @@ export default function NotificationPopup({
             return `${ROUTES.PROVIDER.JOBS}?status=new`;
           } else if (titleLower.includes('complete') || titleLower.includes('progress')) {
             return `${ROUTES.PROVIDER.JOBS}?status=in_progress`;
+          } else if (titleLower.includes('deal closed') || titleLower.includes('start work')) {
+            // "Deal Closed - Start Work" notification should go to total_jobs page
+            return '/provider/total_jobs';
           }
           return ROUTES.PROVIDER.JOBS;
         } else if (isLSM) {
