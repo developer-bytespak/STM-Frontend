@@ -125,10 +125,13 @@ export default function AvailedJobsPage() {
         <button
           key="prev"
           onClick={() => handlePageChange(currentPage - 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
+          className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-900 cursor-pointer transition-all duration-200 flex items-center gap-2"
+          title="Go to previous page"
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           <span className="hidden sm:inline">Previous</span>
-          <span className="sm:hidden">Prev</span>
         </button>
       );
     }
@@ -139,11 +142,12 @@ export default function AvailedJobsPage() {
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-3 py-2 text-sm font-medium border-t border-b cursor-pointer ${
+          className={`min-w-10 h-10 px-3 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
             i === currentPage
-              ? 'text-blue-600 bg-blue-50 border-blue-300'
-              : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50 hover:text-gray-700'
+              ? 'bg-navy-600 text-white border border-navy-600 shadow-md'
+              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:border-gray-400'
           }`}
+          title={`Go to page ${i}`}
         >
           {i}
         </button>
@@ -156,24 +160,30 @@ export default function AvailedJobsPage() {
         <button
           key="next"
           onClick={() => handlePageChange(currentPage + 1)}
-          className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
+          className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-900 cursor-pointer transition-all duration-200 flex items-center gap-2"
+          title="Go to next page"
         >
           <span className="hidden sm:inline">Next</span>
-          <span className="sm:hidden">Next</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       );
     }
 
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-8 gap-4">
-        <div className="text-sm text-gray-700 text-center sm:text-left">
-          Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-          <span className="font-medium">{Math.min(endIndex, totalJobs)}</span> of{' '}
-          <span className="font-medium">{totalJobs}</span> completed jobs
-        </div>
-        
-        <div className="flex flex-wrap justify-center sm:justify-end gap-1">
-          {pages}
+      <div className="mt-8 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            <span className="font-semibold text-gray-900">Showing</span> <span className="font-bold text-navy-600">{startIndex + 1}</span>{' '}
+            <span className="font-semibold text-gray-900">to</span> <span className="font-bold text-navy-600">{Math.min(endIndex, totalJobs)}</span>{' '}
+            <span className="font-semibold text-gray-900">of</span> <span className="font-bold text-navy-600">{totalJobs}</span>{' '}
+            <span className="font-semibold text-gray-900">completed jobs</span>
+          </div>
+          
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
+            {pages}
+          </div>
         </div>
       </div>
     );

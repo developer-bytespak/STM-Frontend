@@ -133,12 +133,12 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   }, [isOpen, session]);
 
   // Helper: Check if all required data is collected
+  // Requirements is now OPTIONAL - only Service, Budget, and Zipcode are mandatory
   const isRequiredDataComplete = (): boolean => {
     return !!(
       collectedData.service &&
       collectedData.budget &&
-      collectedData.zipcode &&
-      collectedData.requirements
+      collectedData.zipcode
     );
   };
 
@@ -966,13 +966,12 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   const handleFinishAndGetRecommendations = async () => {
     if (!session) return;
 
-    // Validate required data first
+    // Validate required data first (Service, Budget, Zipcode are mandatory; Requirements is optional)
     if (!isRequiredDataComplete()) {
       const missing = [];
       if (!collectedData.service) missing.push('Service');
       if (!collectedData.budget) missing.push('Budget');
       if (!collectedData.zipcode) missing.push('Zipcode');
-      if (!collectedData.requirements) missing.push('Requirements');
 
       alert(`Please provide the following information:\n\n${missing.join('\n')}`);
       return;
@@ -1536,18 +1535,20 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                         </div>
                       </div>
                       
-                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-gray-700">Requirements</h4>
-                            <p className="text-base text-gray-900 break-words">{collectedData.requirements}</p>
+                            <h4 className="text-sm font-semibold text-gray-700">Requirements <span className="text-blue-600 text-xs font-normal">(Optional)</span></h4>
+                            <p className="text-base text-gray-900 break-words">{collectedData.requirements || 'No specific requirements'}</p>
                           </div>
-                          <button 
-                            onClick={() => handleEditData('requirements')}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-semibold underline ml-4"
-                          >
-                            Change
-                          </button>
+                          {collectedData.requirements && (
+                            <button 
+                              onClick={() => handleEditData('requirements')}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-semibold underline ml-4"
+                            >
+                              Change
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
