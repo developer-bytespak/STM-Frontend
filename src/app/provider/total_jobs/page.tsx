@@ -6,7 +6,7 @@ import { providerApi, JobsResponse, JobDetailsResponse, Job } from '@/api/provid
 import TotalJobsCard from '@/components/provider/TotalJobsCard';
 import { useChat } from '@/contexts/ChatContext';
 
-type TabType = 'all' | 'active' | 'pending' | 'paid' | 'completed';
+type TabType = 'all' | 'active' | 'pending' | 'paid';
 
 export default function TotalJobsPage() {
   const { openConversation } = useChat();
@@ -24,6 +24,8 @@ export default function TotalJobsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const JOBS_PER_PAGE = 9;
 
   // Fetch all jobs (no status filter)
   const fetchJobs = async () => {
@@ -81,10 +83,15 @@ export default function TotalJobsPage() {
   useEffect(() => {
     const tab = searchParams?.get('tab');
     if (!tab) return;
-    if (['all', 'active', 'pending', 'paid', 'completed'].includes(tab)) {
+    if (['all', 'active', 'pending', 'paid'].includes(tab)) {
       setActiveTab(tab as TabType);
+      setCurrentPage(1);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // Group and filter jobs by tab
   const getJobsByTab = (tab: TabType): Job[] => {
@@ -105,9 +112,6 @@ export default function TotalJobsPage() {
         break;
       case 'paid':
         filtered = filtered.filter(job => job.status.toLowerCase() === 'paid');
-        break;
-      case 'completed':
-        filtered = filtered.filter(job => job.status.toLowerCase() === 'completed' && job.paymentStatus?.toLowerCase() === 'received');
         break;
       case 'all':
       default:
@@ -145,6 +149,18 @@ export default function TotalJobsPage() {
   const tabJobCount = tabJobs.length;
   const tabEarnings = tabJobs.reduce((sum, job) => sum + job.price, 0);
   const tabAvgValue = tabJobCount > 0 ? tabEarnings / tabJobCount : 0;
+
+  // Pagination logic
+  const totalPages = Math.ceil(tabJobCount / JOBS_PER_PAGE);
+  const startIndex = (currentPage - 1) * JOBS_PER_PAGE;
+  const endIndex = startIndex + JOBS_PER_PAGE;
+  const paginatedJobs = tabJobs.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
 
   const handleViewDetails = async (jobId: number) => {
     try {
@@ -312,7 +328,6 @@ export default function TotalJobsPage() {
               { id: 'active', label: 'Active' },
               { id: 'pending', label: 'Payment Pending' },
               { id: 'paid', label: 'Paid' },
-              { id: 'completed', label: 'Completed' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -510,16 +525,76 @@ export default function TotalJobsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tabJobs.map((job) => (
-              <TotalJobsCard 
-                key={job.id} 
-                job={job} 
-                onViewDetails={handleViewDetails}
-                onOpenChat={handleOpenChat}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {paginatedJobs.map((job) => (
+                <TotalJobsCard 
+                  key={job.id} 
+                  job={job} 
+                  onViewDetails={handleViewDetails}
+                  onOpenChat={handleOpenChat}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white rounded-lg shadow p-4">
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, tabJobCount)}</span> of <span className="font-medium">{tabJobCount}</span> jobs
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  {/* Page number buttons */}
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      const isCurrentPage = page === currentPage;
+                      const isVisible = Math.abs(page - currentPage) <= 1 || page === 1 || page === totalPages;
+                      
+                      if (!isVisible && page !== 2 && page !== totalPages - 1) {
+                        return null;
+                      }
+                      
+                      if ((page === 2 && currentPage > 3) || (page === totalPages - 1 && currentPage < totalPages - 2)) {
+                        return (
+                          <span key={`ellipsis-${page}`} className="px-2 py-2 text-gray-600">...</span>
+                        );
+                      }
+                      
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            isCurrentPage
+                              ? 'bg-navy-600 text-white'
+                              : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
