@@ -15,7 +15,7 @@ interface BookingDetailsProps {
 }
 
 export default function BookingDetails({ params }: BookingDetailsProps) {
-  const { openConversationByJobId } = useChat();
+  const { openConversationByJobId, createConversationFromAI } = useChat();
   const { showAlert, AlertComponent } = useAlert();
   const router = useRouter();
   const resolvedParams = use(params);
@@ -254,13 +254,33 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     }
   };
 
-  const handleOpenChat = () => {
-    const chatOpened = openConversationByJobId(jobId);
-    if (!chatOpened) {
+  const handleOpenChat = async () => {
+    try {
+      const chatOpened = openConversationByJobId(jobId);
+      if (chatOpened) {
+        return;
+      }
+
+      // If no existing conversation, use job details to open chat
+      if (jobDetails && jobDetails.chatId) {
+        createConversationFromAI(
+          jobDetails.provider.id,
+          jobDetails.provider.businessName,
+          jobDetails.chatId.toString()
+        );
+      } else {
+        showAlert({
+          title: 'Chat Unavailable',
+          message: 'Chat is not available for this booking. Please contact support if you need assistance.',
+          type: 'info'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error opening chat:', error);
       showAlert({
-        title: 'Chat Unavailable',
-        message: 'Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!',
-        type: 'info'
+        title: 'Error',
+        message: error.message || 'Failed to open chat. Please try again.',
+        type: 'error'
       });
     }
   };

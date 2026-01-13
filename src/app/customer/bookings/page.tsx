@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { customerApi, CustomerJob } from '@/api/customer';
 import { useChat } from '@/contexts/ChatContext';
 import TableSkeleton from '@/components/ui/TableSkeleton';
@@ -10,12 +11,14 @@ import { useAlert } from '@/hooks/useAlert';
 const JOBS_PER_PAGE = 10;
 
 export default function CustomerBookings() {
-  const { openConversationByJobId } = useChat();
+  const { openConversationByJobId, createConversationFromAI } = useChat();
   const { showAlert, AlertComponent } = useAlert();
+  const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<CustomerJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -35,13 +38,46 @@ export default function CustomerBookings() {
     fetchJobs();
   }, []);
 
-  const handleOpenChat = (jobId: number) => {
-    const chatOpened = openConversationByJobId(jobId);
-    if (!chatOpened) {
+  // Read status filter from query params
+  useEffect(() => {
+    const status = searchParams?.get('status');
+    setFilterStatus(status);
+    setCurrentPage(1); // Reset to first page when filter changes
+  }, [searchParams]);
+
+  const handleOpenChat = async (jobId: number) => {
+    try {
+      // First, try to open existing conversation
+      const chatOpened = openConversationByJobId(jobId);
+      if (chatOpened) {
+        return;
+      }
+
+      // If no existing conversation, fetch job details to get chatId
+      console.log('Fetching job details for chatId...');
+      const jobDetails = await customerApi.getJobDetails(jobId);
+      
+      if (!jobDetails.chatId) {
+        showAlert({
+          title: 'Chat Unavailable',
+          message: 'Chat is not available for this booking. Please contact support if you need assistance.',
+          type: 'info'
+        });
+        return;
+      }
+
+      // Create conversation with the chatId from backend
+      createConversationFromAI(
+        jobDetails.provider.id,
+        jobDetails.provider.businessName,
+        jobDetails.chatId.toString()
+      );
+    } catch (error: any) {
+      console.error('Error opening chat:', error);
       showAlert({
-        title: 'Chat Unavailable',
-        message: 'Chat is currently only available for newly created bookings. Full chat integration with existing jobs is coming soon!',
-        type: 'info'
+        title: 'Error',
+        message: error.message || 'Failed to open chat. Please try again.',
+        type: 'error'
       });
     }
   };
@@ -64,12 +100,17 @@ export default function CustomerBookings() {
     );
   };
 
+  // Filter jobs by status if query parameter is set
+  const filteredJobs = filterStatus 
+    ? jobs.filter(job => job.status.toLowerCase() === filterStatus.toLowerCase())
+    : jobs;
+
   // Calculate pagination
-  const totalJobs = jobs.length;
+  const totalJobs = filteredJobs.length;
   const totalPages = Math.ceil(totalJobs / JOBS_PER_PAGE);
   const startIndex = (currentPage - 1) * JOBS_PER_PAGE;
   const endIndex = startIndex + JOBS_PER_PAGE;
-  const currentJobs = jobs.slice(startIndex, endIndex);
+  const currentJobs = filteredJobs.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -188,7 +229,21 @@ export default function CustomerBookings() {
         <div className="flex items-center justify-between mt-2">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
-            <p className="text-gray-600 mt-1">View and manage your service requests</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-gray-600">View and manage your service requests</p>
+              {filterStatus && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-xs text-gray-600">Filtered:</span>
+                  <span className="text-xs font-semibold text-blue-700">{filterStatus.replace('_', ' ').toUpperCase()}</span>
+                  <Link 
+                    href="/customer/bookings"
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-2"
+                  >
+                    ✕ Clear
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
           <Link
             href="/"

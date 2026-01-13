@@ -475,12 +475,17 @@ export default function BookingModal({
             <div className="relative">
               <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow only numbers and one decimal point
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData({ ...formData, budget: value });
+                  }
+                }}
                 placeholder="0"
-                min="0"
-                step="0.01"
                 className={`w-full pl-8 pr-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                   errors.budget ? 'border-red-500' : 'border-gray-300'
                 }`}

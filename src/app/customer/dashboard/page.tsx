@@ -79,7 +79,7 @@ export default function CustomerDashboard() {
             <span className="text-2xl">🔵</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{dashboard?.jobs?.in_progress || 0}</p>
-          <Link href="/customer/bookings" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
+          <Link href="/customer/bookings?status=in_progress" className="text-navy-600 text-sm hover:underline mt-auto pt-2 inline-block cursor-pointer">
             View active →
           </Link>
         </div>
