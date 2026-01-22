@@ -196,6 +196,7 @@ export interface JobDetail {
   spAccepted: boolean;
   pendingApproval: boolean;
   location: string;
+  images?: string[];
   scheduledAt: string | null;
   completedAt: string | null;
   paidAt: string | null;
