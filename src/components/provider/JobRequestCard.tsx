@@ -20,6 +20,8 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showNegotiateModal, setShowNegotiateModal] = useState(false);
+  const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [rejectReason, setRejectReason] = useState('');
   const [negotiationData, setNegotiationData] = useState({
     editedPrice: '',
@@ -245,6 +247,49 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
     );
   };
 
+  const openImageGallery = (index: number = 0) => {
+    setCurrentImageIndex(index);
+    setImageGalleryOpen(true);
+  };
+
+  const closeImageGallery = () => {
+    setImageGalleryOpen(false);
+    setCurrentImageIndex(0);
+  };
+
+  const nextImage = () => {
+    if (!jobDetails?.job.images) return;
+    setCurrentImageIndex((prev) => (prev + 1) % jobDetails.job.images!.length);
+  };
+
+  const previousImage = () => {
+    if (!jobDetails?.job.images) return;
+    setCurrentImageIndex((prev) => (prev - 1 + jobDetails.job.images!.length) % jobDetails.job.images!.length);
+  };
+
+  const downloadImage = async () => {
+    if (!jobDetails?.job.images) return;
+    try {
+      const imageUrl = jobDetails.job.images[currentImageIndex];
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `job-${jobId}-image-${currentImageIndex + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download image:', error);
+      // Fallback: open in new tab
+      if (jobDetails?.job.images) {
+        window.open(jobDetails.job.images[currentImageIndex], '_blank');
+      }
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-200">
       {/* Header */}
@@ -334,6 +379,19 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
           >
             View Details
           </Link>
+
+          {job.images && job.images.length > 0 && (
+            <button
+              onClick={() => openImageGallery(0)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+              title="View uploaded images"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {job.images.length}
+            </button>
+          )}
 
           <button
             onClick={handleOpenChat}
@@ -566,6 +624,94 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
               </button>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Image Gallery Lightbox */}
+      {imageGalleryOpen && jobDetails?.job.images && jobDetails.job.images.length > 0 && (
+        <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center">
+          {/* Close button */}
+          <button
+            onClick={closeImageGallery}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 cursor-pointer"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Image counter */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+            {currentImageIndex + 1} / {jobDetails.job.images.length}
+          </div>
+
+          {/* Previous button */}
+          {jobDetails.job.images.length > 1 && (
+            <button
+              onClick={previousImage}
+              className="absolute left-4 text-white hover:text-gray-300 cursor-pointer"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Main image */}
+          <div className="max-w-7xl max-h-screen w-full h-full flex items-center justify-center p-4">
+            <img 
+              src={jobDetails.job.images[currentImageIndex]} 
+              alt={`Job image ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect width="400" height="400" fill="%23333"/%3E%3Ctext x="200" y="200" font-family="Arial" font-size="20" fill="%23fff" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+              }}
+            />
+          </div>
+
+          {/* Next button */}
+          {jobDetails.job.images.length > 1 && (
+            <button
+              onClick={nextImage}
+              className="absolute right-4 text-white hover:text-gray-300 cursor-pointer"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Thumbnail strip at bottom */}
+          {jobDetails.job.images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black/50 p-2 rounded-lg max-w-full overflow-x-auto">
+              {jobDetails.job.images.map((url, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`w-16 h-16 rounded cursor-pointer overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    idx === currentImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Download button */}
+          <button
+            onClick={downloadImage}
+            className="absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
         </div>
       )}
       

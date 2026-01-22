@@ -26,6 +26,9 @@ export default function ChatPopup() {
   const [showLSMModal, setShowLSMModal] = useState(false);
   const [disputeDescription, setDisputeDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -315,6 +318,8 @@ export default function ChatPopup() {
     return content.split('\n').map((line, idx) => {
       const trimmedLine = line.trim();
       
+      if (!trimmedLine) return null;
+      
       if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
         return <p key={idx} className="font-bold text-white mb-3 text-sm border-b border-white/30 pb-2 break-words overflow-wrap-anywhere hyphens-auto">{trimmedLine.slice(2, -2)}</p>;
       } else if (trimmedLine) {
@@ -333,6 +338,184 @@ export default function ChatPopup() {
       }
       return null;
     });
+  };
+
+  const openImageGallery = (images: string[], index: number) => {
+    setGalleryImages(images);
+    setCurrentImageIndex(index);
+    setImageGalleryOpen(true);
+  };
+
+  const closeImageGallery = () => {
+    setImageGalleryOpen(false);
+    setGalleryImages([]);
+    setCurrentImageIndex(0);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const previousImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  const downloadImage = async () => {
+    try {
+      const imageUrl = galleryImages[currentImageIndex];
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `job-image-${currentImageIndex + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download image:', error);
+      // Fallback: open in new tab
+      window.open(galleryImages[currentImageIndex], '_blank');
+    }
+  };
+
+  const renderImageGallery = (imageData: {images: string[], count: number}) => {
+    const { images, count } = imageData;
+    
+    console.log('🎨 Rendering gallery with', count, 'images');
+    
+    // Single image - full width
+    if (count === 1) {
+      return (
+        <div className="w-full">
+          <div 
+            onClick={() => openImageGallery(images, 0)}
+            className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+            style={{ height: '240px' }}
+          >
+            <img 
+              src={images[0]} 
+              alt="Job image"
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                console.error('Failed to load image:', images[0]);
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+    
+    // 2 images - side by side
+    if (count === 2) {
+      return (
+        <div className="w-full">
+          <div className="grid grid-cols-2 gap-1">
+            {images.map((url, idx) => (
+              <div 
+                key={idx}
+                onClick={() => openImageGallery(images, idx)}
+                className="relative w-full cursor-pointer hover:opacity-95 transition-opacity overflow-hidden rounded-lg"
+                style={{ height: '160px' }}
+              >
+                <img 
+                  src={url} 
+                  alt={`Job image ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error('Failed to load image:', url);
+                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
+    // 3 images - 1 large + 2 small
+    if (count === 3) {
+      return (
+        <div className="w-full">
+          <div className="grid grid-cols-2 gap-1">
+            <div 
+              onClick={() => openImageGallery(images, 0)}
+              className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+              style={{ height: '322px' }}
+            >
+              <img 
+                src={images[0]} 
+                alt="Job image 1"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  console.error('Failed to load image:', images[0]);
+                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              {images.slice(1).map((url, idx) => (
+                <div 
+                  key={idx + 1}
+                  onClick={() => openImageGallery(images, idx + 1)}
+                  className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                  style={{ height: '160px' }}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Job image ${idx + 2}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.error('Failed to load image:', url);
+                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // 4+ images - Grid with "+X more" overlay
+    return (
+      <div className="w-full">
+        <div className="grid grid-cols-2 gap-1">
+          {images.slice(0, 4).map((url, idx) => (
+            <div 
+              key={idx}
+              onClick={() => openImageGallery(images, idx)}
+              className="relative w-full cursor-pointer hover:opacity-95 transition-opacity overflow-hidden rounded-lg"
+              style={{ height: '160px' }}
+            >
+              <img 
+                src={url} 
+                alt={`Job image ${idx + 1}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  console.error('Failed to load image:', url);
+                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+                }}
+              />
+              {idx === 3 && count > 4 && (
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                  <span className="text-white text-2xl font-bold">+{count - 4}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   // Preview Minimized State - Button style like the attached image
@@ -445,7 +628,7 @@ export default function ChatPopup() {
 
             return (
               <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${isOwnMessage ? 'order-2 max-w-[85%]' : message.type === 'form-data' ? 'order-1 max-w-[95%]' : 'order-1 max-w-[85%]'}`}>
+                <div className={`${isOwnMessage ? (message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-2 w-full' : 'order-2 max-w-[80%]' : (message.type === 'form-data' || message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-1 mb-1">
                     {!isOwnMessage && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
@@ -456,7 +639,9 @@ export default function ChatPopup() {
                   </div>
                   <div 
                     className={`rounded-lg ${
-                      isOwnMessage
+                      message.type === 'image' || (message.content && message.content.includes('"images"'))
+                        ? 'px-0 py-0'
+                        : isOwnMessage
                         ? 'text-white rounded-br-none px-3 py-2'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-3'
@@ -465,7 +650,9 @@ export default function ChatPopup() {
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-3 py-2'
                     }`}
                     style={
-                      isOwnMessage || message.type === 'form-data'
+                      message.type === 'image' || (message.content && message.content.includes('"images"'))
+                        ? undefined
+                        : isOwnMessage || message.type === 'form-data'
                         ? { backgroundColor: '#00a63e' } 
                         : getMessageColor(message.senderRole, isOwnMessage)
                         ? { backgroundColor: getMessageColor(message.senderRole, isOwnMessage) }
@@ -475,6 +662,24 @@ export default function ChatPopup() {
                     {message.type === 'form-data' ? (
                       <div className="text-gray-900 w-full">
                         {formatMessageContent(message.content)}
+                      </div>
+                    ) : message.type === 'image' || (message.content && message.content.includes('"images":')) ? (
+                      <div className="w-full">
+                        {(() => {
+                          try {
+                            console.log('🖼️ Image message detected:', message.content);
+                            const imageData = JSON.parse(message.content);
+                            console.log('📊 Parsed image data:', imageData);
+                            if (!imageData.images || !Array.isArray(imageData.images) || imageData.images.length === 0) {
+                              console.error('❌ Invalid image data structure:', imageData);
+                              return <p className="text-white text-xs">No images found</p>;
+                            }
+                            return renderImageGallery(imageData);
+                          } catch (e) {
+                            console.error('❌ Failed to parse image data:', e, message.content);
+                            return <p className="text-white text-xs">Failed to load images</p>;
+                          }
+                        })()}
                       </div>
                     ) : message.type === 'file' && message.files ? (
                       <div>
@@ -729,7 +934,7 @@ export default function ChatPopup() {
 
             return (
               <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                <div className={`${isOwnMessage ? 'order-2 max-w-[80%]' : message.type === 'form-data' ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
+                <div className={`${isOwnMessage ? (message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-2 w-full' : 'order-2 max-w-[80%]' : (message.type === 'form-data' || message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     {!isOwnMessage && (
                       <span className="text-xs font-semibold text-gray-600">{message.senderName}</span>
@@ -740,7 +945,9 @@ export default function ChatPopup() {
                   </div>
                   <div 
                     className={`rounded-lg ${
-                      isOwnMessage
+                      message.type === 'image' || (message.content && message.content.includes('"images"'))
+                        ? 'px-0 py-0'
+                        : isOwnMessage
                         ? 'text-white rounded-br-none px-4 py-3'
                         : message.type === 'form-data'
                         ? 'rounded-bl-none px-3 py-4'
@@ -749,7 +956,9 @@ export default function ChatPopup() {
                         : 'bg-white border border-gray-200 rounded-bl-none text-gray-900 px-4 py-3'
                     }`}
                     style={
-                      isOwnMessage || message.type === 'form-data'
+                      message.type === 'image' || (message.content && message.content.includes('"images"'))
+                        ? undefined
+                        : isOwnMessage || message.type === 'form-data'
                         ? { backgroundColor: '#00a63e' } 
                         : getMessageColor(message.senderRole, isOwnMessage)
                         ? { backgroundColor: getMessageColor(message.senderRole, isOwnMessage) }
@@ -759,6 +968,24 @@ export default function ChatPopup() {
                     {message.type === 'form-data' ? (
                       <div className="text-gray-900 w-full">
                         {formatMessageContent(message.content)}
+                      </div>
+                    ) : message.type === 'image' || (message.content && message.content.includes('"images":')) ? (
+                      <div className="w-full">
+                        {(() => {
+                          try {
+                            console.log('🖼️ Image message detected (maximized):', message.content);
+                            const imageData = JSON.parse(message.content);
+                            console.log('📊 Parsed image data (maximized):', imageData);
+                            if (!imageData.images || !Array.isArray(imageData.images) || imageData.images.length === 0) {
+                              console.error('❌ Invalid image data structure (maximized):', imageData);
+                              return <p className="text-white text-sm">No images found</p>;
+                            }
+                            return renderImageGallery(imageData);
+                          } catch (e) {
+                            console.error('❌ Failed to parse image data (maximized):', e, message.content);
+                            return <p className="text-white text-sm">Failed to load images</p>;
+                          }
+                        })()}
                       </div>
                     ) : message.type === 'file' && message.files ? (
                       <div>
@@ -973,6 +1200,94 @@ export default function ChatPopup() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Gallery Lightbox */}
+      {imageGalleryOpen && (
+        <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center">
+          {/* Close button */}
+          <button
+            onClick={closeImageGallery}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 cursor-pointer"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Image counter */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+            {currentImageIndex + 1} / {galleryImages.length}
+          </div>
+
+          {/* Previous button */}
+          {galleryImages.length > 1 && (
+            <button
+              onClick={previousImage}
+              className="absolute left-4 text-white hover:text-gray-300 cursor-pointer"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Main image */}
+          <div className="max-w-7xl max-h-screen w-full h-full flex items-center justify-center p-4">
+            <img 
+              src={galleryImages[currentImageIndex]} 
+              alt={`Image ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect width="400" height="400" fill="%23333"/%3E%3Ctext x="200" y="200" font-family="Arial" font-size="20" fill="%23fff" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+              }}
+            />
+          </div>
+
+          {/* Next button */}
+          {galleryImages.length > 1 && (
+            <button
+              onClick={nextImage}
+              className="absolute right-4 text-white hover:text-gray-300 cursor-pointer"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Thumbnail strip at bottom */}
+          {galleryImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black/50 p-2 rounded-lg max-w-full overflow-x-auto">
+              {galleryImages.map((url, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`w-16 h-16 rounded cursor-pointer overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    idx === currentImageIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Download button */}
+          <button
+            onClick={downloadImage}
+            className="absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
         </div>
       )}
     </>

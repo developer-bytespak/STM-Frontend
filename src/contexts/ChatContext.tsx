@@ -17,7 +17,7 @@ export interface Message {
   senderRole: 'customer' | 'service_provider' | 'local_service_manager';
   content: string;
   timestamp: Date;
-  type: 'text' | 'form-data' | 'file';
+  type: 'text' | 'form-data' | 'file' | 'image';
   formData?: BookingFormData;
   files?: {
     name: string;
@@ -337,9 +337,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     created_at: string;
   }) => {
     // Convert backend message to frontend Message format
-    const isFileMessage = messageData.message_type === 'document' || messageData.message_type === 'image';
+    const isFileMessage = messageData.message_type === 'document';
+    const isImageGallery = messageData.message_type === 'image';
     
     // For file messages, the 'message' field contains the file URL
+    // For image gallery, the 'message' field contains JSON with image array
     const newMessage: Message = {
       id: messageData.id,
       senderId: messageData.sender_id,
@@ -347,12 +349,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       senderRole: messageData.sender_type,
       content: isFileMessage ? extractFileName(messageData.message) : messageData.message,
       timestamp: new Date(messageData.created_at),
-      type: isFileMessage ? 'file' : 'text',
+      type: isImageGallery ? 'image' : isFileMessage ? 'file' : 'text',
       // If it's a file message, parse the file URL and create file object
       files: isFileMessage ? [{
         name: extractFileName(messageData.message),
         size: 0, // Size not available from backend
-        type: messageData.message_type === 'image' ? 'image/*' : 'application/*',
+        type: 'application/*',
         url: messageData.message, // The message content IS the file URL
       }] : undefined,
     };
@@ -454,7 +456,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       
       // Convert backend messages to frontend format
       const messages: Message[] = response.messages.map(msg => {
-        const isFileMessage = msg.message_type === 'document' || msg.message_type === 'image';
+        const isFileMessage = msg.message_type === 'document';
+        const isImageGallery = msg.message_type === 'image';
         
         return {
           id: msg.id,
@@ -463,12 +466,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           senderRole: msg.sender_type,
           content: isFileMessage ? extractFileName(msg.message) : msg.message,
           timestamp: new Date(msg.created_at),
-          type: isFileMessage ? 'file' : 'text',
+          type: isImageGallery ? 'image' : isFileMessage ? 'file' : 'text',
           // If it's a file message, parse the file URL and create file object
           files: isFileMessage ? [{
             name: extractFileName(msg.message),
             size: 0, // Size not available from backend
-            type: msg.message_type === 'image' ? 'image/*' : 'application/*',
+            type: 'application/*',
             url: msg.message, // The message content IS the file URL
           }] : undefined,
         };

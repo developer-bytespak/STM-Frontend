@@ -119,6 +119,7 @@ export interface CreateJobDto {
   preferredDate?: string;  // Optional - ISO date string
   requiresInPersonVisit?: boolean;
   inPersonVisitCost?: number;
+  images?: string[];  // Optional - array of image URLs from Vercel Blob
 }
 
 export interface JobActionDto {
@@ -328,6 +329,15 @@ class CustomerApi {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response;
+  }
+
+  /**
+   * Upload job request images
+   * Endpoint: POST /jobs/images/upload
+   */
+  async uploadJobImages(formData: FormData): Promise<{ imageUrls: string[] }> {
+    const response = await apiClient.upload<{ imageUrls: string[] }>('/jobs/images/upload', formData);
     return response;
   }
 }

@@ -35,6 +35,9 @@ export default function BookingModal({
   const { user } = useAuth();
   const router = useRouter();
   const [blockedUnpaidJob, setBlockedUnpaidJob] = useState<{ id: string; message?: string } | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState<BookingFormData & { address?: string; zipcode?: string }>(() => {
     if (mode === 'sp-quote' && initialData) {
       return initialData;
@@ -69,6 +72,51 @@ export default function BookingModal({
 
   if (!isOpen) return null;
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    console.log('📁 Files selected:', files.length);
+    
+    // Check total image count
+    if (images.length + files.length > 10) {
+      alert(`You can only upload a maximum of 10 images. Currently uploaded: ${images.length}`);
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      // Create FormData and append all files
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append('images', file);
+        console.log('📤 Adding to FormData:', file.name, file.size, 'bytes');
+      });
+
+      // Upload to backend using apiClient for proper authentication
+      console.log('🚀 Uploading to backend...');
+      const response = await customerApi.uploadJobImages(formData);
+      console.log('✅ Upload successful! Vercel Blob URLs:', response.imageUrls);
+      
+      // Add Vercel Blob URLs to images
+      setImages([...images, ...response.imageUrls]);
+      
+      // Reset the file input so the same files can be selected again
+      e.target.value = '';
+    } catch (error) {
+      console.error('❌ Error uploading images:', error);
+      alert('Failed to upload images. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -76,6 +124,11 @@ export default function BookingModal({
     const newErrors: Record<string, string> = {};
     if (!formData.description.trim()) {
       newErrors.description = 'Please describe the service you need';
+    }
+    if (mode === 'customer-booking' && !agreedToTerms) {
+      newErrors.terms = 'You must agree to the terms and conditions';
+      alert('Please agree to the terms and conditions to continue.');
+      return;
     }
     // TODO: Re-enable budget validation when ready to make it required again
     // if (!formData.budget.trim()) {
@@ -120,6 +173,7 @@ export default function BookingModal({
             additionalDetails: formData.additionalDetails,
             budget: formData.budget,  // Keep in answers for reference
           },
+          images: images,  // Customer uploaded images
           preferredDate: formData.preferredDate || undefined,
           requiresInPersonVisit: false,
         });
@@ -150,6 +204,8 @@ export default function BookingModal({
           address: '',
           zipcode: ''
         });
+        setImages([]);
+        setAgreedToTerms(false);
       } catch (error: any) {
         console.error('Failed to create job error:', error);
         console.error('Error response:', error?.response?.data);
@@ -363,29 +419,6 @@ export default function BookingModal({
             />
           </div>
 
-          {/* Urgency */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Once you place your order, when would you like your service delivered?
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {['24 Hours', '3 Days', '7 Days', 'Flexible'].map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, urgency: option })}
-                  className={`px-4 py-3 rounded-lg border-2 font-medium transition-all cursor-pointer ${
-                    formData.urgency === option
-                      ? 'border-navy-600 bg-navy-50 text-navy-700'
-                      : 'border-gray-300 text-gray-700 hover:border-navy-400'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Address (Customer Booking Only) */}
           {mode === 'customer-booking' && (
             <div>
@@ -515,13 +548,135 @@ export default function BookingModal({
             />
           </div>
 
+          {/* Image Upload */}
+          {mode === 'customer-booking' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Upload Images (Optional)
+              </label>
+              <p className="text-xs text-gray-600 mb-3">
+                Add photos to help the provider better understand your needs (max 5MB per image)
+              </p>
+              
+              {/* Upload Button */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  id="image-upload"
+                  className="hidden"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-4 border-2 border-dashed rounded-lg transition-all cursor-pointer ${
+                    uploading
+                      ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                      : 'border-navy-300 bg-navy-50 hover:bg-navy-100 hover:border-navy-400'
+                  }`}
+                >
+                  <svg className="w-6 h-6 text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span className="text-sm font-medium text-navy-700">
+                    {uploading ? 'Uploading...' : 'Choose Images'}
+                  </span>
+                </label>
+              </div>
+              
+              {uploading && (
+                <div className="mt-3 flex items-center gap-2 text-navy-600">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-sm font-medium">Uploading images...</span>
+                </div>
+              )}
+              
+              {/* Image Gallery */}
+              {images.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-gray-700 mb-2">
+                    {images.length} {images.length === 1 ? 'image' : 'images'} uploaded
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((url, index) => (
+                      <div 
+                        key={`${url}-${index}`} 
+                        className="group relative aspect-square rounded-xl overflow-hidden bg-white border-2 border-gray-200 hover:border-navy-400 transition-all shadow-sm hover:shadow-md"
+                      >
+                        <img 
+                          src={url} 
+                          alt={`Upload ${index + 1}`} 
+                          className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                          style={{ zIndex: 1 }}
+                          onLoad={() => {
+                            console.log('✅ Image loaded successfully:', url);
+                          }}
+                          onError={(e) => {
+                            console.error('❌ Failed to load image:', url);
+                            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ctext x="100" y="100" font-family="Arial" font-size="14" fill="%236b7280" text-anchor="middle" dominant-baseline="middle"%3EImage Error%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" style={{ zIndex: 2 }} />
+                        {/* Remove Button */}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 shadow-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer z-10"
+                          title="Remove image"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Terms and Conditions */}
+          {mode === 'customer-booking' && (
+            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 text-navy-600 border-gray-300 rounded focus:ring-navy-500 cursor-pointer"
+                required
+              />
+              <label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer">
+                I agree to the{' '}
+                <a
+                  href="/terms-and-conditions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-navy-600 hover:text-navy-800 underline font-medium"
+                >
+                  Terms and Conditions
+                </a>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || uploading || (mode === 'customer-booking' && !agreedToTerms)}
             className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-lg disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isSubmitting 
+            {uploading
+              ? 'Uploading Images...'
+              : isSubmitting 
               ? 'Creating Job Request...' 
               : mode === 'sp-quote' 
               ? 'Send Quote to Customer' 
