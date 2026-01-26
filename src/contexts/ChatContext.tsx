@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { socketService } from '@/lib/socketService';
 import { chatApi } from '@/api/chat';
 import { useAuth } from '@/hooks/useAuth';
@@ -80,16 +80,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuth();
+  const isInitializedRef = useRef(false);
+  const socketListenersAttachedRef = useRef(false);
+  const userIdRef = useRef<string | number | null>(null);
 
   // ==========================================
   // SOCKET.IO CONNECTION SETUP
   // ==========================================
 
-  // Load existing chats when user logs in
+  // Load existing chats when user logs in - ONLY ONCE per user
   useEffect(() => {
     if (!isAuthenticated || !user) {
+      isInitializedRef.current = false;
+      userIdRef.current = null;
       return;
     }
+
+    // Check if already initialized for this user
+    if (isInitializedRef.current && userIdRef.current === user.id) {
+      return;
+    }
+
+    isInitializedRef.current = true;
+    userIdRef.current = user.id;
 
     const loadExistingChats = async () => {
       try {
@@ -134,17 +147,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadExistingChats();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]);
 
-  // Initialize socket connection when user is authenticated
+  // Initialize socket connection when user is authenticated - ONLY ONCE per user
   useEffect(() => {
     if (!isAuthenticated || !user) {
       // User not authenticated, don't connect socket
       socketService.disconnect();
       setIsSocketConnected(false);
       setConnectionError(null);
+      socketListenersAttachedRef.current = false;
       return;
     }
+
+    // Check if already attached for this user
+    if (socketListenersAttachedRef.current && userIdRef.current === user.id) {
+      return;
+    }
+
+    socketListenersAttachedRef.current = true;
+    userIdRef.current = user.id;
 
     console.log('🔌 Initializing socket connection for user:', user.name);
     
@@ -221,7 +243,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       socketService.offUserJoined();
       // Don't disconnect socket here - keep it alive for other components
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]);
 
   // ==========================================
   // AUTO-OPEN CHAT FROM JOB NOTIFICATION
