@@ -21,6 +21,8 @@ interface NotificationPopupProps {
   onClose: () => void;
   bellRef: React.RefObject<HTMLDivElement | null>;
   isLoading?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export default function NotificationPopup({
@@ -31,7 +33,9 @@ export default function NotificationPopup({
   onClearRead,
   onClose,
   bellRef,
-  isLoading = false
+  isLoading = false,
+  hasMore = false,
+  onLoadMore
 }: NotificationPopupProps) {
   const popupRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -652,7 +656,7 @@ export default function NotificationPopup({
 
       {/* Notification List */}
       <div className="overflow-y-auto flex-1">
-        {isLoading ? (
+        {isLoading && notifications.length === 0 ? (
           <div className="p-8 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
             <p className="text-gray-500 text-sm mt-3">Loading notifications...</p>
@@ -718,6 +722,33 @@ export default function NotificationPopup({
           </div>
         )}
       </div>
+
+      {/* Load More Button */}
+      {hasMore && filteredNotifications.length > 0 && (
+        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+          <button
+            onClick={onLoadMore}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors cursor-pointer text-sm font-medium"
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                Loading...
+              </span>
+            ) : (
+              'Load More Notifications'
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* No more notifications message */}
+      {!hasMore && notifications.length > 0 && filteredNotifications.length > 0 && (
+        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 text-center">
+          <p className="text-gray-500 text-xs">All notifications loaded</p>
+        </div>
+      )}
 
       {/* Footer - Hidden on all screen sizes */}
       {notifications.length > 0 && (

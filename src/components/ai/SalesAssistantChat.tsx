@@ -89,9 +89,14 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<AiChatSession[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const servicesInitializedRef = useRef(false);
 
-  // Fetch available services on mount
+  // Fetch available services on mount - ONLY ONCE
   useEffect(() => {
+    // Prevent duplicate fetches
+    if (servicesInitializedRef.current) return;
+    servicesInitializedRef.current = true;
+
     const fetchServices = async () => {
       try {
         const allServices = await homepageApi.getAllServices();
