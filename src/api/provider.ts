@@ -492,14 +492,17 @@ class ProviderApi {
   
 
   /**
-   * Get all active jobs for current provider
-   * Endpoint: GET /provider/jobs
+   * Get all active jobs for current provider (in_progress, completed).
+   * Endpoint: GET /provider/jobs (returns { data, pagination })
    */
   async getProviderJobs(): Promise<ActiveJob[]> {
-    const response = await apiClient.request<ActiveJob[]>('/provider/jobs', {
+    const response = await apiClient.request<JobsResponse>('/provider/jobs?status=in_progress,completed', {
       method: 'GET'
     });
-    return response;
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data as unknown as ActiveJob[];
+    }
+    return [];
   }
 
   
@@ -545,11 +548,43 @@ class ProviderApi {
    * Endpoint: GET /provider/jobs (with optional status filter)
    */
   async getPendingJobs(status?: string): Promise<any[]> {
-    const url = status ? `/provider/jobs?status=${status}` : '/provider/jobs';
-    const response = await apiClient.request<{data: any[]}>(url, {
-      method: 'GET'
-    });
-    return response.data;
+    try {
+      const url = status ? `/provider/jobs?status=${status}` : '/provider/jobs';
+      console.log('🌐 Making API call to:', url);
+      
+      const response = await apiClient.request<any>(url, {
+        method: 'GET'
+      });
+      
+      console.log('📡 Raw API Response:', JSON.stringify(response, null, 2));
+      console.log('📡 Response type:', typeof response);
+      console.log('📡 Is Array?:', Array.isArray(response));
+      console.log('📡 Has data property?:', response && 'data' in response);
+      console.log('📡 response.data type:', response?.data ? typeof response.data : 'N/A');
+      console.log('📡 response.data is Array?:', Array.isArray(response?.data));
+      
+      // Backend returns: { data: [...], pagination: {...} }
+      // Check response.data first (most likely)
+      if (response && response.data && Array.isArray(response.data)) {
+        console.log('✅ Found jobs in response.data:', response.data.length, 'jobs');
+        return response.data;
+      }
+      
+      // Fallback: if response itself is an array
+      if (Array.isArray(response)) {
+        console.log('✅ Response is array:', response.length, 'jobs');
+        return response;
+      }
+      
+      // If response is not in expected format, log and return empty array
+      console.error('❌ Unexpected API response format. Full response:', response);
+      return [];
+    } catch (error: any) {
+      console.error('❌ Error fetching pending jobs:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error status:', error.status);
+      return []; // Return empty array on error instead of throwing
+    }
   }
 
   /**
