@@ -55,9 +55,14 @@ function ProviderPageContent() {
 
   // Extract provider ID from slug for conversation check
   const providerId = extractProviderIdFromSlug(slug);
-  const existingConversation = conversations.find(
-    conv => conv.providerId === providerId?.toString()
-  );
+  const existingConversation = conversations.find((conv) => {
+    if (!providerId || !user) return false;
+    // Ensure both provider AND current customer match this user
+    return (
+      conv.providerId === providerId.toString() &&
+      String(conv.customerId) === String(user.id)
+    );
+  });
 
   // Fetch provider data
   useEffect(() => {

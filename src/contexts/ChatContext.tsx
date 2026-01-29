@@ -91,6 +91,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Load existing chats when user logs in - ONLY ONCE per user
   useEffect(() => {
     if (!isAuthenticated || !user) {
+      // Clear chat state on logout or when no user
+      setConversations([]);
+      setActiveConversation(null);
+      try {
+        localStorage.removeItem('chatConversations');
+      } catch (e) {
+        console.error('Failed to clear chatConversations from localStorage:', e);
+      }
       isInitializedRef.current = false;
       userIdRef.current = null;
       return;
@@ -99,6 +107,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // Check if already initialized for this user
     if (isInitializedRef.current && userIdRef.current === user.id) {
       return;
+    }
+
+    // New user or first-time initialization: reset conversations
+    if (userIdRef.current !== user.id) {
+      setConversations([]);
+      setActiveConversation(null);
     }
 
     isInitializedRef.current = true;
@@ -534,27 +548,37 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // Load conversations from localStorage on mount (backup)
   useEffect(() => {
+    // Hydrate from localStorage only for current user and only if backend hasn't loaded anything
+    if (!user) return;
+
     const stored = localStorage.getItem('chatConversations');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        const withDates = parsed.map((conv: any) => ({
-          ...conv,
-          createdAt: new Date(conv.createdAt),
-          messages: conv.messages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }))
-        }));
+        const withDates = parsed
+          .filter((conv: any) => {
+            // Ensure the conversation belongs to the currently logged-in user
+            return String(conv.customerId) === String(user.id) ||
+                   String(conv.providerId) === String(user.id) ||
+                   String(conv.lsmId) === String(user.id);
+          })
+          .map((conv: any) => ({
+            ...conv,
+            createdAt: new Date(conv.createdAt),
+            messages: conv.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
+          }));
         // Only use localStorage if no conversations loaded from backend
-        if (conversations.length === 0) {
+        if (conversations.length === 0 && withDates.length > 0) {
           setConversations(withDates);
         }
       } catch (error) {
         console.error('Failed to parse localStorage conversations:', error);
       }
     }
-  }, []);
+  }, [user?.id]);
 
   // Save conversations to localStorage (backup)
   useEffect(() => {
@@ -718,14 +742,36 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   const openConversation = (conversationId: string, reloadMessages = true) => {
-    const conversation = conversations.find(conv => conv.id === conversationId);
-    if (conversation) {
-      setActiveConversation(conversation);
+    let conversation = conversations.find(conv => conv.id === conversationId);
+
+    // If conversation not found (e.g. older job chat not returned by /provider/chats),
+    // create a minimal placeholder conversation so provider/customer can still open it.
+    if (!conversation && user) {
+      console.warn('⚠️ Conversation not found in state. Creating placeholder for chatId:', conversationId);
+      conversation = {
+        id: conversationId,
+        providerId: user.role === 'service_provider' ? user.id : 0,
+        providerName: user.role === 'service_provider' ? user.name : 'Provider',
+        customerId: user.role === 'customer' ? user.id : 0,
+        customerName: user.role === 'customer' ? user.name : 'Customer',
+        jobId: undefined,
+        messages: [],
+        isOpen: true,
+        isMinimized: false,
+        createdAt: new Date(),
+      };
+
+      setConversations(prev => [...prev, conversation!]);
+    } else if (conversation) {
       setConversations(prev => prev.map(conv => 
         conv.id === conversationId ? { ...conv, isOpen: true, isMinimized: false } : conv
       ));
-      
-      // Reload message history to get latest messages (especially when opened from notification)
+    }
+
+    if (conversation) {
+      setActiveConversation(conversation);
+
+      // Reload message history to get latest messages (especially when opened from notification or jobs page)
       if (reloadMessages && isSocketConnected) {
         console.log('🔄 Reloading messages for chat:', conversationId);
         loadMessageHistory(conversationId);
