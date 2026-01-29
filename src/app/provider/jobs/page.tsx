@@ -36,6 +36,15 @@ export default function ProviderJobs() {
       const pendingJobs = await providerApi.getPendingJobs(statusFilter === 'all' ? undefined : statusFilter);
       console.log('🔍 Fetching jobs with status filter:', statusFilter);
       console.log('🔍 All Jobs from API:', pendingJobs);
+      
+      // Check if pendingJobs is undefined or not an array
+      if (!pendingJobs || !Array.isArray(pendingJobs)) {
+        console.error('❌ Invalid API response - expected array, got:', pendingJobs);
+        setJobRequests([]);
+        setLoading(false);
+        return;
+      }
+      
       console.log('🔍 Jobs count:', pendingJobs.length);
       
       // Debug: Show all jobs regardless of status for now
