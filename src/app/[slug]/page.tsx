@@ -15,6 +15,8 @@ import type { ProviderDetail, ProviderService } from '@/types/homepage';
 import ProviderProfileSkeleton from '@/components/ui/ProviderProfileSkeleton';
 import ServiceImageViewer from '@/components/gallery/ServiceImageViewer';
 import ServiceImageCard from '@/components/gallery/ServiceImageCard';
+import AlertModal from '@/components/ui/AlertModal';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 function ProviderPageContent() {
   const params = useParams();
@@ -31,6 +33,48 @@ function ProviderPageContent() {
   const [backUrl, setBackUrl] = useState('/');
   const [showGalleryViewer, setShowGalleryViewer] = useState(false);
   const [galleryImageIndex, setGalleryImageIndex] = useState(0);
+
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error',
+  });
+
+  // Confirmation modal state for payment redirect
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showError = (message: string, title: string = 'Error') => {
+    setAlertModal({ isOpen: true, title, message, type: 'error' });
+  };
+
+  const showWarning = (message: string, title: string = 'Warning') => {
+    setAlertModal({ isOpen: true, title, message, type: 'warning' });
+  };
+
+  const closeAlertModal = () => {
+    setAlertModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   const slug = params.slug as string;
   const searchedService = searchParams.get('service');
@@ -109,14 +153,21 @@ function ProviderPageContent() {
     }
 
     if (user?.role !== 'customer') {
-      alert('Only customers can book services. Please sign up as a customer.');
+      showWarning('Only customers can book services. Please sign up as a customer.', 'Access Denied');
       return;
     }
 
     // If from AI flow, create chat with AI summary
     if (fromAI && aiSessionId && providerId) {
       try {
-        const result = await aiChatApi.createChatFromAI(providerId, aiSessionId);
+        // Retrieve uploaded images from sessionStorage
+        const uploadedImagesJson = sessionStorage.getItem('ai_chat_uploaded_images');
+        const uploadedImages: string[] = uploadedImagesJson ? JSON.parse(uploadedImagesJson) : [];
+        
+        const result = await aiChatApi.createChatFromAI(providerId, aiSessionId, uploadedImages);
+        
+        // Clear uploaded images from sessionStorage after successful chat creation
+        sessionStorage.removeItem('ai_chat_uploaded_images');
         
         // Open the chat using ChatContext
         if (result.chatId) {
@@ -141,16 +192,18 @@ function ProviderPageContent() {
           }));
           
           // Show confirmation dialog with Pay Now option
-          const shouldRedirect = window.confirm(
-            `${errorMessage}\n\nWould you like to go to your bookings to complete the payment?`
-          );
-          
-          if (shouldRedirect) {
-            // Redirect to the unpaid job in customer bookings
-            window.location.href = `/customer/bookings/${unpaidJobId}`;
-          }
+          setConfirmModal({
+            isOpen: true,
+            title: 'Payment Required',
+            message: `${errorMessage}\n\nWould you like to go to your bookings to complete the payment?`,
+            onConfirm: () => {
+              window.location.href = `/customer/bookings/${unpaidJobId}`;
+            },
+          });
         } else {
-          alert('Failed to create chat. Please try again.');
+          // Get error message from response or error object
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to create chat. Please try again.';
+          showError(errorMessage, 'Booking Error');
         }
       }
       return;
@@ -664,6 +717,29 @@ function ProviderPageContent() {
           initialIndex={galleryImageIndex}
         />
       )}
+
+      {/* Alert Modal for errors and warnings */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
+
+      {/* Confirmation Modal for payment redirect */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={() => {
+          confirmModal.onConfirm();
+          closeConfirmModal();
+        }}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Go to Bookings"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

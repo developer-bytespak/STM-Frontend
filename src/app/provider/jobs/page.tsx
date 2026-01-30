@@ -1,23 +1,15 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
 import { JobRequestCard } from '@/components/provider';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ProviderJobs() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  // Debug: Log user info
-  console.log('🔍 Current user:', user);
-  console.log('🔍 User role:', user?.role);
-  console.log('🔍 User ID:', user?.id);
-  
-  // State for data
-  const [jobRequests, setJobRequests] = useState<JobDetailsResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // State for filters - default to 'new' so only incoming requests show
   const [statusFilter, setStatusFilter] = useState('new');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,33 +19,16 @@ export default function ProviderJobs() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Show 6 items per page
 
-  const fetchJobRequests = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Get pending job requests for current provider
+  // Use React Query to fetch and cache job requests
+  const { data: jobRequests = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['providerJobs', statusFilter],
+    queryFn: async () => {
       const pendingJobs = await providerApi.getPendingJobs(statusFilter === 'all' ? undefined : statusFilter);
-      console.log('🔍 Fetching jobs with status filter:', statusFilter);
-      console.log('🔍 All Jobs from API:', pendingJobs);
       
       // Check if pendingJobs is undefined or not an array
       if (!pendingJobs || !Array.isArray(pendingJobs)) {
         console.error('❌ Invalid API response - expected array, got:', pendingJobs);
-        setJobRequests([]);
-        setLoading(false);
-        return;
-      }
-      
-      console.log('🔍 Jobs count:', pendingJobs.length);
-      
-      // Debug: Show all jobs regardless of status for now
-      if (pendingJobs.length === 0) {
-        console.log('⚠️ No jobs returned from API - this might indicate:');
-        console.log('1. Provider has no jobs assigned');
-        console.log('2. Authentication issue');
-        console.log('3. Backend error');
-        console.log('4. Database connection issue');
+        return [];
       }
       
       // Convert simplified jobs to JobDetailsResponse format for consistency
@@ -103,25 +78,18 @@ export default function ProviderJobs() {
       }));
       
       // Defensive filter: hide completed/paid jobs on the Job Requests page
-      const visibleRequests = requests.filter(r => r.job.status !== 'completed' && r.job.status !== 'paid');
-      setJobRequests(visibleRequests);
-    } catch (err: any) {
-      console.error('Failed to fetch job requests:', err);
-      console.error('Error details:', {
-        message: err.message,
-        status: err.status,
-        response: err.response
-      });
-      setError(err.message || 'Failed to load customer job requests');
-      setJobRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return requests.filter(r => r.job.status !== 'completed' && r.job.status !== 'paid');
+    },
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+  });
 
-  useEffect(() => {
-    fetchJobRequests();
-  }, [statusFilter]); // Refetch when status filter changes
+  const error = queryError ? (queryError as Error).message || 'Failed to load customer job requests' : null;
+
+  // Callback to refetch jobs when a job is updated
+  const fetchJobRequests = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['providerJobs'] });
+    queryClient.invalidateQueries({ queryKey: ['jobDetails'] });
+  }, [queryClient]);
 
   // Filter and sort requests
   const filteredRequests = useMemo(() => {

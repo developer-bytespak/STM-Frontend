@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { customerApi, CustomerJobDetails } from '@/api/customer';
 import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
@@ -18,12 +19,10 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   const { openConversationByJobId, createConversationFromAI } = useChat();
   const { showAlert, AlertComponent } = useAlert();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const resolvedParams = use(params);
   const jobId = parseInt(resolvedParams.id);
   
-  const [jobDetails, setJobDetails] = useState<CustomerJobDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   // TODO: Re-enable cancel and reassign functionality when needed
   // const [showCancelModal, setShowCancelModal] = useState(false);
@@ -42,6 +41,29 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     responseTime: 0,
   });
 
+  // Use React Query to fetch and cache job details - prevents duplicate calls
+  const { data: jobDetails, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['customerJobDetails', jobId],
+    queryFn: () => customerApi.getJobDetails(jobId),
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    enabled: !isNaN(jobId),
+  });
+
+  const error = queryError ? (queryError as Error).message || 'Failed to load job details' : null;
+
+  // Check for pending AI chat after job details load
+  useEffect(() => {
+    if (jobDetails) {
+      const pendingChat = sessionStorage.getItem('pendingAIChat');
+      if (pendingChat) {
+        const chatData = JSON.parse(pendingChat);
+        if (jobDetails.job.status !== 'pending' || jobDetails.job.id !== jobId) {
+          setPendingAIChat(chatData);
+        }
+      }
+    }
+  }, [jobDetails, jobId]);
+
   // Prevent background scroll when modals are open
   useEffect(() => {
     if (showFeedbackModal || showSupportModal) {
@@ -54,33 +76,10 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     };
   }, [showFeedbackModal, showSupportModal]);
 
-  useEffect(() => {
-    const fetchJobDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await customerApi.getJobDetails(jobId);
-        setJobDetails(data);
-        
-        // Check for pending AI chat after payment
-        const pendingChat = sessionStorage.getItem('pendingAIChat');
-        if (pendingChat) {
-          const chatData = JSON.parse(pendingChat);
-          // Check if this is the job that was blocking the chat
-          if (data.job.status !== 'pending' || data.job.id !== jobId) {
-            setPendingAIChat(chatData);
-          }
-        }
-      } catch (err: any) {
-        console.error('Error fetching job details:', err);
-        setError(err.message || 'Failed to load job details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobDetails();
-  }, [jobId]);
+  // Helper function to refetch job details
+  const refetchJobDetails = () => {
+    queryClient.invalidateQueries({ queryKey: ['customerJobDetails', jobId] });
+  };
 
   // TODO: Re-enable cancel functionality when needed
   // const handleCancelJob = async () => {
@@ -137,8 +136,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         type: 'success'
       });
       // Refresh job details
-      const data = await customerApi.getJobDetails(jobId);
-      setJobDetails(data);
+      refetchJobDetails();
     } catch (err: any) {
       showAlert({
         title: 'Error',
@@ -163,8 +161,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         type: 'success'
       });
       // Refresh job details
-      const data = await customerApi.getJobDetails(jobId);
-      setJobDetails(data);
+      refetchJobDetails();
     } catch (err: any) {
       showAlert({
         title: 'Error',
@@ -241,8 +238,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
       setFeedbackSubmitted(true); // Track that feedback was submitted
       setShowFeedbackModal(false);
       // Refresh job details
-      const data = await customerApi.getJobDetails(jobId);
-      setJobDetails(data);
+      refetchJobDetails();
     } catch (err: any) {
       showAlert({
         title: 'Error',

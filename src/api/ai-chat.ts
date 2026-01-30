@@ -58,6 +58,10 @@ export interface CreateChatFromAIResponse {
   message: string;
 }
 
+export interface UploadImagesResponse {
+  imageUrls: string[];
+}
+
 // ==================== AI CHAT API CLASS ====================
 
 class AiChatApi {
@@ -293,18 +297,40 @@ class AiChatApi {
   }
 
   /**
+   * Upload images for AI chat job request
+   */
+  async uploadImages(files: File[]): Promise<UploadImagesResponse> {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      const response = await apiClient.upload<UploadImagesResponse>(
+        '/jobs/images/upload',
+        formData
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Failed to upload images:', error);
+      throw new Error(error?.message || 'Failed to upload images');
+    }
+  }
+
+  /**
    * Create a chat from AI flow with summary injection
    */
   async createChatFromAI(
     providerId: number,
-    aiSessionId: string
+    aiSessionId: string,
+    images?: string[]
   ): Promise<CreateChatFromAIResponse> {
     try {
       const response = await apiClient.request<CreateChatFromAIResponse>(
         '/customer/ai-chat/chats/create',
         {
           method: 'POST',
-          body: JSON.stringify({ providerId, aiSessionId }),
+          body: JSON.stringify({ providerId, aiSessionId, images }),
         }
       );
       return response;

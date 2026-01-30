@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
 import { useChat } from '@/contexts/ChatContext';
 import ChatPopup from '@/components/chat/ChatPopup';
@@ -16,10 +17,8 @@ interface JobDetailsProps {
 export default function JobDetails({ params }: JobDetailsProps) {
   const router = useRouter();
   const { openConversation } = useChat();
+  const queryClient = useQueryClient();
   const resolvedParams = use(params);
-  const [jobDetails, setJobDetails] = useState<JobDetailsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -35,22 +34,18 @@ export default function JobDetails({ params }: JobDetailsProps) {
 
   const jobId = parseInt(resolvedParams.id);
 
-  useEffect(() => {
-    fetchJobDetails();
-  }, [jobId]);
+  // Use React Query to fetch and cache job details
+  const { data: jobDetails, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['jobDetails', jobId],
+    queryFn: () => providerApi.getJobDetails(jobId),
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    enabled: !isNaN(jobId),
+  });
 
-  const fetchJobDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await providerApi.getJobDetails(jobId);
-      setJobDetails(data);
-    } catch (err: any) {
-      console.error('Failed to fetch job details:', err);
-      setError(err.message || 'Failed to load job details');
-    } finally {
-      setLoading(false);
-    }
+  const error = queryError ? (queryError as Error).message || 'Failed to load job details' : null;
+
+  const fetchJobDetails = () => {
+    queryClient.invalidateQueries({ queryKey: ['jobDetails', jobId] });
   };
 
   const handleAccept = async () => {
