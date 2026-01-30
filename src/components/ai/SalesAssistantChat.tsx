@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { aiChatApi, AiChatSession, AiChatMessage, RecommendedProvider } from '@/api/ai-chat';
 import { homepageApi } from '@/api/homepage';
 import { generateProviderSlug } from '@/lib/slug';
+import AlertModal from '@/components/ui/AlertModal';
 import { 
   isValidZipcode, 
   isValidBudget,
@@ -90,6 +91,166 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
   const [chatHistory, setChatHistory] = useState<AiChatSession[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const servicesInitializedRef = useRef(false);
+
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error',
+  });
+
+  const showError = (message: string, title: string = 'Error') => {
+    setAlertModal({ isOpen: true, title, message, type: 'error' });
+  };
+
+  const showWarning = (message: string, title: string = 'Warning') => {
+    setAlertModal({ isOpen: true, title, message, type: 'warning' });
+  };
+
+  const showInfo = (message: string, title: string = 'Information') => {
+    setAlertModal({ isOpen: true, title, message, type: 'info' });
+  };
+
+  const closeAlertModal = () => {
+    setAlertModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // Image upload state
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [showImageUploadModal, setShowImageUploadModal] = useState(false);
+  const [showImageUploadPrompt, setShowImageUploadPrompt] = useState(false);
+  const [imageUploadSkipped, setImageUploadSkipped] = useState(false);
+  const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_IMAGES = 5;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  // Check if image upload prompt should be shown
+  const shouldShowImageUploadPrompt = 
+    collectedData.service &&
+    collectedData.zipcode &&
+    collectedData.budget &&
+    uploadedImages.length === 0 &&
+    !imageUploadSkipped &&
+    !showRecommendations &&
+    !showConfirmation &&
+    !showImageUploadModal;
+
+  // Handle image file selection
+  const handleImageFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    // Validate total count
+    if (selectedImageFiles.length + files.length > MAX_IMAGES) {
+      showWarning(`Maximum ${MAX_IMAGES} images allowed`, 'Upload Limit');
+      return;
+    }
+    
+    // Validate each file
+    const validFiles: File[] = [];
+    
+    for (const file of files) {
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        showWarning(`${file.name} is too large (max 5MB)`, 'File Too Large');
+        continue;
+      }
+      
+      // Check file type
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+        showWarning(`${file.name} is not a supported format (JPG, PNG, GIF, WEBP)`, 'Invalid Format');
+        continue;
+      }
+      
+      validFiles.push(file);
+    }
+    
+    // Create previews for valid files
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreviews((prev) => [...prev, e.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    setSelectedImageFiles((prev) => [...prev, ...validFiles]);
+  };
+
+  // Remove selected image before upload
+  const handleRemoveSelectedImage = (index: number) => {
+    setSelectedImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Remove uploaded image
+  const handleRemoveUploadedImage = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload images to server
+  const handleUploadImages = async () => {
+    if (selectedImageFiles.length === 0) {
+      showWarning('Please select at least one image', 'No Images Selected');
+      return;
+    }
+
+    setIsUploadingImages(true);
+
+    try {
+      console.log('Uploading', selectedImageFiles.length, 'images...');
+      
+      const response = await aiChatApi.uploadImages(selectedImageFiles);
+      
+      console.log('Upload successful:', response.imageUrls);
+      
+      // Store image URLs in state
+      setUploadedImages(response.imageUrls);
+      
+      // Clear selection
+      setSelectedImageFiles([]);
+      setImagePreviews([]);
+      setShowImageUploadModal(false);
+      
+      // Add AI message acknowledging the upload
+      const aiMessage: AiChatMessage = {
+        id: `ai-${Date.now()}`,
+        senderType: 'assistant',
+        message: `✅ Great! I've received ${response.imageUrls.length} image${response.imageUrls.length > 1 ? 's' : ''}. These will be shared with the provider you select. Now let me find the best providers for your ${collectedData.service} needs.`,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+      
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      showError(error.message || 'Failed to upload images. Please try again.', 'Upload Error');
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  // Skip image upload
+  const handleSkipImageUpload = () => {
+    setImageUploadSkipped(true);
+    setShowImageUploadPrompt(false);
+    
+    // Add AI message
+    const aiMessage: AiChatMessage = {
+      id: `ai-${Date.now()}`,
+      senderType: 'assistant',
+      message: `No problem! Let me find the best providers for your ${collectedData.service} needs.`,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, aiMessage]);
+  };
 
   // Fetch available services on mount - ONLY ONCE
   useEffect(() => {
@@ -568,7 +729,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       // Don't show service selection by default - only when user asks
     } catch (error) {
       console.error('Failed to create session:', error);
-      alert('Failed to start new session. Please try again.');
+      showError('Failed to start new session. Please try again.', 'Session Error');
     } finally {
       setIsLoading(false);
     }
@@ -603,7 +764,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       }
     } catch (error) {
       console.error('Failed to load session:', error);
-      alert('Failed to load session. Please try again.');
+      showError('Failed to load session. Please try again.', 'Session Error');
     } finally {
       setIsLoading(false);
     }
@@ -685,7 +846,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       setShowChatHistory(true);
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      alert('Failed to load chat history. Please try again.');
+      showError('Failed to load chat history. Please try again.', 'History Error');
     } finally {
       setIsLoadingHistory(false);
     }
@@ -755,7 +916,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       }
     } catch (error) {
       console.error('Failed to load historical session:', error);
-      alert('Failed to load session. Please try again.');
+      showError('Failed to load session. Please try again.', 'Session Error');
     } finally {
       setIsLoading(false);
     }
@@ -791,7 +952,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       console.error('Failed to send suggested question:', error);
       // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-      alert('Failed to send message. Please try again.');
+      showError('Failed to send message. Please try again.', 'Message Error');
     } finally {
       setIsSending(false);
     }
@@ -803,7 +964,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
 
     // Message limit check (pagination)
     if (messageCount >= MAX_MESSAGES) {
-      alert('Message limit reached. Please start a new conversation.');
+      showWarning('Message limit reached. Please start a new conversation.', 'Limit Reached');
       return;
     }
 
@@ -831,7 +992,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         // Validate zipcode
         if (!isValidZipcode(sanitizedText)) {
           setIsSending(false);
-          alert('Invalid zipcode. Please enter a valid 5-digit US zipcode (e.g., 75001, 90210).\n\nZipcode must be:\n• Exactly 5 digits\n• Between 00501 and 99950');
+          showWarning('Invalid zipcode. Please enter a valid 5-digit US zipcode (e.g., 75001, 90210).\n\nZipcode must be exactly 5 digits between 00501 and 99950.', 'Invalid Zipcode');
           setInput(text);
           return;
         }
@@ -846,7 +1007,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
         );
         if (!validation.valid) {
           setIsSending(false);
-          alert(validation.error || 'Invalid budget');
+          showWarning(validation.error || 'Invalid budget', 'Invalid Budget');
           setInput(text);
           return;
         }
@@ -962,7 +1123,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       console.error('Failed to send message:', error);
       // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-      alert('Failed to send message. Please try again.');
+      showError('Failed to send message. Please try again.', 'Message Error');
     } finally {
       setIsSending(false);
     }
@@ -978,7 +1139,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       if (!collectedData.budget) missing.push('Budget');
       if (!collectedData.zipcode) missing.push('Zipcode');
 
-      alert(`Please provide the following information:\n\n${missing.join('\n')}`);
+      showWarning(`Please provide the following information:\n\n${missing.join('\n')}`, 'Missing Information');
       return;
     }
 
@@ -1017,17 +1178,18 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           setRecommendedProviders(recommendations.providers);
           setShowRecommendations(true);
         } else {
-          alert(
-            `No providers found for ${service} in ${zipcode}. Please try a different location or service.`
+          showInfo(
+            `No providers found for ${service} in ${zipcode}. Please try a different location or service.`,
+            'No Providers Found'
           );
         }
       } catch (error) {
         console.error('Failed to get recommendations:', error);
-        alert('Failed to get recommendations. Please try again.');
+        showError('Failed to get recommendations. Please try again.', 'Recommendation Error');
       }
     } catch (error) {
       console.error('Failed during finish and get recommendations:', error);
-      alert('Failed to generate summary and get recommendations. Please try again.');
+      showError('Failed to generate summary and get recommendations. Please try again.', 'Processing Error');
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -1151,7 +1313,7 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
     } catch (error) {
       console.error('Failed to send service selection:', error);
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-      alert('Failed to send message. Please try again.');
+      showError('Failed to send message. Please try again.', 'Message Error');
     }
   };
 
@@ -1183,13 +1345,18 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
       sessionStorage.setItem('ai_chat_show_recommendations', 'true');
       sessionStorage.setItem('ai_chat_summary', summary || '');
       sessionStorage.setItem('ai_chat_providers', JSON.stringify(recommendedProviders));
+      
+      // Store uploaded images for passing to chat creation
+      if (uploadedImages.length > 0) {
+        sessionStorage.setItem('ai_chat_uploaded_images', JSON.stringify(uploadedImages));
+      }
 
       // Navigate to provider page with AI flow parameters
       router.push(`/${slug}?from_ai=true&session_id=${session.sessionId}`);
       // Don't close chat - keep it open for return
     } catch (error) {
       console.error('Failed to navigate to provider:', error);
-      alert('Failed to open provider page. Please try again.');
+      showError('Failed to open provider page. Please try again.', 'Navigation Error');
     }
   };
 
@@ -1556,6 +1723,47 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                           )}
                         </div>
                       </div>
+
+                      {/* Image Upload Section */}
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-gray-700">
+                              📸 Photos <span className="text-purple-600 text-xs font-normal">(Optional)</span>
+                            </h4>
+                            {uploadedImages.length > 0 ? (
+                              <div className="mt-2">
+                                <p className="text-sm text-gray-600 mb-2">{uploadedImages.length} image{uploadedImages.length > 1 ? 's' : ''} uploaded</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {uploadedImages.map((url, idx) => (
+                                    <div key={idx} className="relative group">
+                                      <img 
+                                        src={url} 
+                                        alt={`Upload ${idx + 1}`} 
+                                        className="w-16 h-16 object-cover rounded-lg border border-purple-200"
+                                      />
+                                      <button
+                                        onClick={() => handleRemoveUploadedImage(idx)}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-600 mt-1">Add photos to help providers understand your project</p>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => setShowImageUploadModal(true)}
+                            className="text-purple-600 hover:text-purple-800 text-sm font-semibold underline ml-4"
+                          >
+                            {uploadedImages.length > 0 ? 'Add More' : 'Add Photos'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="flex gap-3 mt-auto">
@@ -1846,6 +2054,172 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
           )}
         </div>
       </div>
+
+      {/* Image Upload Modal */}
+      {showImageUploadModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50"
+         style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
+        >
+          <div className="bg-white rounded-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">📸 Upload Photos</h3>
+                <button
+                  onClick={() => {
+                    setShowImageUploadModal(false);
+                    setSelectedImageFiles([]);
+                    setImagePreviews([]);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Upload up to 5 photos to help providers better understand your project. 
+                <span className="text-gray-500"> (Max 5MB per image, JPG/PNG/GIF/WEBP)</span>
+              </p>
+
+              {/* Hidden file input */}
+              <input
+                ref={imageFileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                multiple
+                onChange={handleImageFileSelect}
+                className="hidden"
+              />
+
+              {/* Upload Area */}
+              <div
+                onClick={() => imageFileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const files = Array.from(e.dataTransfer.files);
+                  const imageFiles = files.filter((f) => f.type.startsWith('image/'));
+                  if (imageFiles.length > 0) {
+                    // Simulate file input change
+                    const dt = new DataTransfer();
+                    imageFiles.forEach((f) => dt.items.add(f));
+                    if (imageFileInputRef.current) {
+                      imageFileInputRef.current.files = dt.files;
+                      imageFileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                  }
+                }}
+                className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors"
+              >
+                <div className="text-4xl mb-2">📷</div>
+                <p className="text-gray-700 font-medium">Click or drag & drop to add photos</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedImageFiles.length + uploadedImages.length}/{MAX_IMAGES} images selected
+                </p>
+              </div>
+
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Selected Images:</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {imagePreviews.map((preview, idx) => (
+                      <div key={idx} className="relative group aspect-square">
+                        <img
+                          src={preview}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveSelectedImage(idx);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Already Uploaded Images */}
+              {uploadedImages.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Already Uploaded:</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {uploadedImages.map((url, idx) => (
+                      <div key={idx} className="relative group aspect-square">
+                        <img
+                          src={url}
+                          alt={`Uploaded ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-lg border-2 border-green-400"
+                        />
+                        <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowImageUploadModal(false);
+                    setSelectedImageFiles([]);
+                    setImagePreviews([]);
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUploadImages}
+                  disabled={selectedImageFiles.length === 0 || isUploadingImages}
+                  className="flex-1 bg-purple-600 text-white px-4 py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingImages ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Uploading...
+                    </span>
+                  ) : (
+                    `Upload ${selectedImageFiles.length} Image${selectedImageFiles.length !== 1 ? 's' : ''}`
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error/Warning/Info Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }

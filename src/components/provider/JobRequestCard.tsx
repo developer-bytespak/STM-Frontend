@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { providerApi, JobDetailsResponse } from '@/api/provider';
 import { useChat } from '@/contexts/ChatContext';
 import Link from 'next/link';
@@ -13,9 +14,7 @@ interface JobRequestCardProps {
 
 export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardProps) {
   const { createConversation } = useChat();
-  const [jobDetails, setJobDetails] = useState<JobDetailsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [responding, setResponding] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -31,22 +30,17 @@ export default function JobRequestCard({ jobId, onJobUpdated }: JobRequestCardPr
   });
   const [responseMessage, setResponseMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  useEffect(() => {
-    fetchJobDetails();
-  }, [jobId]);
+  // Use React Query to fetch and cache job details
+  const { data: jobDetails, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['jobDetails', jobId],
+    queryFn: () => providerApi.getJobDetails(jobId),
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+  });
+
+  const error = queryError ? (queryError as Error).message || 'Failed to load job details' : null;
 
   const fetchJobDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await providerApi.getJobDetails(jobId);
-      setJobDetails(data);
-    } catch (err: any) {
-      console.error('Failed to fetch job details:', err);
-      setError(err.message || 'Failed to load job details');
-    } finally {
-      setLoading(false);
-    }
+    queryClient.invalidateQueries({ queryKey: ['jobDetails', jobId] });
   };
 
   const handleAccept = async () => {

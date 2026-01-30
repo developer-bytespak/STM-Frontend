@@ -705,28 +705,17 @@ export default function TotalJobsPage() {
                 )}
 
                 {/* Actions */}
-                {(selectedJobDetails.actions.canMarkComplete || selectedJobDetails.actions.canMarkPayment) && (
+                {selectedJobDetails.actions.canMarkComplete && (
                   <div className="border-t pt-4">
                     <h3 className="font-medium text-gray-900 mb-2">Available Actions</h3>
                     <div className="flex gap-3">
-                      {selectedJobDetails.actions.canMarkComplete && (
-                        <button 
-                          onClick={() => handleMarkComplete(selectedJobDetails.job.id)}
-                          disabled={isUpdating}
-                          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          {isUpdating ? 'Updating...' : 'Mark Complete'}
-                        </button>
-                      )}
-                      {selectedJobDetails.actions.canMarkPayment && (
-                        <button 
-                          onClick={() => handleMarkPayment(selectedJobDetails.job.id)}
-                          disabled={isUpdating}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          {isUpdating ? 'Updating...' : 'Mark Payment'}
-                        </button>
-                      )}
+                      <button 
+                        onClick={() => handleMarkComplete(selectedJobDetails.job.id)}
+                        disabled={isUpdating}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {isUpdating ? 'Updating...' : 'Mark Complete'}
+                      </button>
                     </div>
                   </div>
                 )}
