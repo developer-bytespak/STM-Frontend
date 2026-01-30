@@ -26,14 +26,17 @@ export interface Chat {
   } | null;
   provider?: {
     id: number;
+    userId?: number;
     businessName: string;
     user: {
+      id?: number;
       first_name: string;
       last_name: string;
       profile_picture: string | null;
     };
   };
   customer?: {
+    userId?: number;
     name: string;
     profilePicture: string | null;
   };
@@ -57,6 +60,35 @@ export interface ChatMessagesResponse {
 }
 
 // ==========================================
+// NEGOTIATION TYPES
+// ==========================================
+
+export interface NegotiationOfferPayload {
+  job_id: number;
+  proposed_price?: number;
+  proposed_date?: string; // ISO string
+  notes?: string;
+}
+
+export type NegotiationAction = 'accept' | 'decline' | 'counter';
+
+export interface NegotiationRespondPayload {
+  job_id: number;
+  action: NegotiationAction;
+  counter_proposed_price?: number;
+  counter_proposed_date?: string; // ISO string
+  counter_notes?: string;
+}
+
+export interface NegotiationHistoryResponse {
+  job_id: number;
+  current_status: 'awaiting_response' | 'no_active_negotiation';
+  current_offer: any;
+  original_price: number;
+  original_date: string | null;
+}
+
+// ==========================================
 // API FUNCTIONS
 // ==========================================
 
@@ -66,7 +98,7 @@ export const chatApi = {
    */
   async getCustomerChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/customer/chats');
+      const response = await apiClient.request<Chat[]>('/chat/customer/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch customer chats:', error);
@@ -79,7 +111,7 @@ export const chatApi = {
    */
   async getProviderChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/provider/chats');
+      const response = await apiClient.request<Chat[]>('/chat/provider/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch provider chats:', error);
@@ -92,7 +124,7 @@ export const chatApi = {
    */
   async getLSMChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/lsm/chats');
+      const response = await apiClient.request<Chat[]>('/chat/lsm/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch LSM chats:', error);
@@ -153,6 +185,81 @@ export const chatApi = {
     } catch (error: any) {
       console.error('Failed to upload chat files:', error);
       throw new Error(error?.message || 'Failed to upload files');
+    }
+  },
+
+  // ==========================================
+  // NEGOTIATION APIS (Job ↔ Chat)
+  // ==========================================
+
+  /**
+   * Send initial negotiation offer or counter-offer
+   * Backend will create a chat message and broadcast via Socket.IO
+   */
+  async sendNegotiationOffer(
+    payload: NegotiationOfferPayload
+  ): Promise<{
+    success: boolean;
+    message: string;
+    offer: any;
+  }> {
+    try {
+      const response = await apiClient.request<{
+        success: boolean;
+        message: string;
+        offer: any;
+      }>('/chat/negotiation/send-offer', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return response;
+    } catch (error: any) {
+      console.error('Failed to send negotiation offer:', error);
+      throw new Error(error?.message || 'Failed to send offer');
+    }
+  },
+
+  /**
+   * Respond to an existing negotiation offer
+   * action: accept | decline | counter
+   */
+  async respondToNegotiationOffer(
+    payload: NegotiationRespondPayload
+  ): Promise<{
+    success: boolean;
+    message: string;
+    action: NegotiationAction | string;
+  }> {
+    try {
+      const response = await apiClient.request<{
+        success: boolean;
+        message: string;
+        action: NegotiationAction | string;
+      }>('/chat/negotiation/respond', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return response;
+    } catch (error: any) {
+      console.error('Failed to respond to negotiation offer:', error);
+      throw new Error(error?.message || 'Failed to respond to offer');
+    }
+  },
+
+  /**
+   * Get current negotiation history/state for a job
+   */
+  async getNegotiationHistory(
+    jobId: number
+  ): Promise<NegotiationHistoryResponse> {
+    try {
+      const response = await apiClient.request<NegotiationHistoryResponse>(
+        `/chat/negotiation/job/${jobId}/history`
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Failed to fetch negotiation history:', error);
+      throw new Error(error?.message || 'Failed to load negotiation history');
     }
   },
 };

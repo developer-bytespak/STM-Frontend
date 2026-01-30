@@ -6,6 +6,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { useCall } from '@/contexts/CallContext';
 import { useAuth } from '@/hooks/useAuth';
 import { customerApi } from '@/api/customer';
+import { chatApi, NegotiationHistoryResponse } from '@/api/chat';
 
 export default function ChatPopup() {
   const { 
@@ -29,13 +30,66 @@ export default function ChatPopup() {
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [isNegotiationLoading, setIsNegotiationLoading] = useState(false);
+  const [negotiation, setNegotiation] = useState<NegotiationHistoryResponse | null>(null);
+  const [showNegotiationForm, setShowNegotiationForm] = useState(false);
+  const [negotiationPrice, setNegotiationPrice] = useState<string>('');
+  const [negotiationDate, setNegotiationDate] = useState<string>('');
+  const [negotiationNotes, setNegotiationNotes] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Safe date formatter to avoid "Invalid Date" when proposed_date is null or malformed
+  const formatNegotiationDate = (dateVal: string | null | undefined): string => {
+    if (dateVal == null || dateVal === '') return '';
+    const d = new Date(dateVal);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString();
+  };
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeConversation?.messages]);
+
+  useEffect(() => {
+    // Load negotiation state when a job-based chat opens
+    const loadNegotiation = async () => {
+      if (!activeConversation?.jobId) {
+        setNegotiation(null);
+        return;
+      }
+      try {
+        setIsNegotiationLoading(true);
+        const data = await chatApi.getNegotiationHistory(activeConversation.jobId);
+        setNegotiation(data);
+      } catch (error) {
+        console.error('Failed to load negotiation history:', error);
+      } finally {
+        setIsNegotiationLoading(false);
+      }
+    };
+
+    loadNegotiation();
+  }, [activeConversation?.jobId]);
+
+  // Keep negotiation banner in sync in real-time when new messages arrive
+  useEffect(() => {
+    const syncNegotiationWithMessages = async () => {
+      const jobId = activeConversation?.jobId;
+      if (!jobId) return;
+      try {
+        const data = await chatApi.getNegotiationHistory(jobId);
+        setNegotiation(data);
+      } catch (error) {
+        console.error('Failed to sync negotiation after new message:', error);
+      }
+    };
+
+    // Trigger on message count changes for the active conversation
+    syncNegotiationWithMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversation?.jobId, activeConversation?.messages?.length]);
 
   if (!activeConversation) return null;
 
@@ -56,6 +110,17 @@ export default function ChatPopup() {
   
   const otherPersonRole = isLSM ? 'Dispute' : isProvider ? 'Customer' : 'Provider';
   const otherPersonId = isProvider ? activeConversation.customerId : activeConversation.providerId;
+  const hasJob = !!activeConversation.jobId;
+  const hasPendingOffer =
+    negotiation?.current_status === 'awaiting_response' &&
+    negotiation.current_offer &&
+    negotiation.current_offer.status === 'pending';
+  const isOfferFromCurrentUser =
+    hasPendingOffer &&
+    user &&
+    negotiation?.current_offer?.offered_by &&
+    ((user.role === 'customer' && negotiation.current_offer.offered_by === 'customer') ||
+      (user.role === 'service_provider' && negotiation.current_offer.offered_by === 'service_provider'));
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +131,89 @@ export default function ChatPopup() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const resetNegotiationForm = () => {
+    setNegotiationPrice('');
+    setNegotiationDate('');
+    setNegotiationNotes('');
+  };
+
+  const handleSendOffer = async () => {
+    if (!hasJob || !activeConversation.jobId) return;
+
+    if (!negotiationPrice && !negotiationDate) {
+      alert('Please provide at least a price or date for the offer.');
+      return;
+    }
+
+    try {
+      setIsNegotiationLoading(true);
+      await chatApi.sendNegotiationOffer({
+        job_id: activeConversation.jobId,
+        proposed_price: negotiationPrice ? Number(negotiationPrice) : undefined,
+        proposed_date: negotiationDate || undefined,
+        notes: negotiationNotes || undefined,
+      });
+      // Backend will push the formatted message via socket; just refresh state
+      const data = await chatApi.getNegotiationHistory(activeConversation.jobId);
+      setNegotiation(data);
+      setShowNegotiationForm(false);
+      resetNegotiationForm();
+    } catch (error: any) {
+      console.error('Failed to send offer:', error);
+      alert(error?.message || 'Failed to send offer. Please try again.');
+    } finally {
+      setIsNegotiationLoading(false);
+    }
+  };
+
+  const handleRespond = async (action: 'accept' | 'decline') => {
+    if (!hasJob || !activeConversation.jobId) return;
+
+    try {
+      setIsNegotiationLoading(true);
+      await chatApi.respondToNegotiationOffer({
+        job_id: activeConversation.jobId,
+        action,
+      });
+      const data = await chatApi.getNegotiationHistory(activeConversation.jobId);
+      setNegotiation(data);
+    } catch (error: any) {
+      console.error('Failed to respond to offer:', error);
+      alert(error?.message || 'Failed to respond to offer. Please try again.');
+    } finally {
+      setIsNegotiationLoading(false);
+    }
+  };
+
+  const handleCounterOffer = async () => {
+    if (!hasJob || !activeConversation.jobId) return;
+
+    if (!negotiationPrice && !negotiationDate) {
+      alert('Please provide at least a price or date for the counter offer.');
+      return;
+    }
+
+    try {
+      setIsNegotiationLoading(true);
+      await chatApi.respondToNegotiationOffer({
+        job_id: activeConversation.jobId,
+        action: 'counter',
+        counter_proposed_price: negotiationPrice ? Number(negotiationPrice) : undefined,
+        counter_proposed_date: negotiationDate || undefined,
+        counter_notes: negotiationNotes || undefined,
+      });
+      const data = await chatApi.getNegotiationHistory(activeConversation.jobId);
+      setNegotiation(data);
+      setShowNegotiationForm(false);
+      resetNegotiationForm();
+    } catch (error: any) {
+      console.error('Failed to send counter offer:', error);
+      alert(error?.message || 'Failed to send counter offer. Please try again.');
+    } finally {
+      setIsNegotiationLoading(false);
     }
   };
 
@@ -610,9 +758,125 @@ export default function ChatPopup() {
           </div>
         )}
 
+        {/* Negotiation banner - Compact (only for job chats) */}
+        {hasJob && (
+          <div className="border-b border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">Job Negotiation</span>
+              <button
+                type="button"
+                onClick={() => setShowNegotiationForm((prev) => !prev)}
+                className="text-[11px] px-2 py-1 rounded border border-navy-500 text-navy-600 hover:bg-navy-50 cursor-pointer"
+              >
+                {showNegotiationForm ? 'Close' : 'New offer'}
+              </button>
+            </div>
+            {isNegotiationLoading && (
+              <p className="text-[11px] text-gray-500">Loading negotiation...</p>
+            )}
+            {hasPendingOffer && negotiation?.current_offer && (
+              <div className="mt-1 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 space-y-1">
+                <p className="text-[11px] font-semibold text-amber-800">
+                  {isOfferFromCurrentUser
+                    ? 'You sent an offer. Waiting for response.'
+                    : `Pending offer from ${
+                        negotiation.current_offer.offered_by_name || negotiation.current_offer.offered_by
+                      }`}
+                </p>
+                <p className="text-[11px] text-amber-900">
+                  💰 {negotiation.current_offer.proposed_price ?? negotiation.current_offer.original_price}
+                  {formatNegotiationDate(negotiation.current_offer.proposed_date) && (
+                    <>
+                      {' '}
+                      · 📅{' '}
+                      {formatNegotiationDate(negotiation.current_offer.proposed_date)}
+                    </>
+                  )}
+                </p>
+                {!isOfferFromCurrentUser && (
+                  <div className="flex gap-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleRespond('accept')}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-[11px] px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRespond('decline')}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-[11px] px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-60 cursor-pointer"
+                    >
+                      Decline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowNegotiationForm(true)}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-[11px] px-2 py-1 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Counter
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {showNegotiationForm && (
+              <div className="mt-1 bg-gray-50 border border-gray-200 rounded px-2 py-2 space-y-1">
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Price"
+                    value={negotiationPrice}
+                    onChange={(e) => setNegotiationPrice(e.target.value)}
+                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-[11px] text-gray-900"
+                  />
+                  <input
+                    type="date"
+                    value={negotiationDate}
+                    onChange={(e) => setNegotiationDate(e.target.value)}
+                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-[11px] text-gray-900"
+                  />
+                </div>
+                <textarea
+                  rows={2}
+                  placeholder="Notes (optional)"
+                  value={negotiationNotes}
+                  onChange={(e) => setNegotiationNotes(e.target.value)}
+                  className="w-full mt-1 px-2 py-1 border border-gray-300 rounded text-[11px] text-gray-900 resize-none"
+                />
+                <div className="flex gap-1 mt-1">
+                  {hasPendingOffer && !isOfferFromCurrentUser ? (
+                    <button
+                      type="button"
+                      onClick={handleCounterOffer}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-[11px] px-2 py-1 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Send counter
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOffer}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-[11px] px-2 py-1 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Send offer
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Messages - Compact */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-          {activeConversation.messages.map((message) => {
+          {activeConversation.messages.map((message, index) => {
             const isOwnMessage = user && Number(message.senderId) === Number(user.id);
             const isSystem = message.senderId === 'system';
 
@@ -627,7 +891,7 @@ export default function ChatPopup() {
             }
 
             return (
-              <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+              <div key={`${message.id}-${index}`} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                 <div className={`${isOwnMessage ? (message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-2 w-full' : 'order-2 max-w-[80%]' : (message.type === 'form-data' || message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-1 mb-1">
                     {!isOwnMessage && (
@@ -916,9 +1180,125 @@ export default function ChatPopup() {
           </div>
         )}
 
+        {/* Negotiation banner - Full (only for job chats) */}
+        {hasJob && (
+          <div className="border-b border-gray-200 bg-white px-4 py-3 text-xs sm:text-sm text-gray-700 flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">Job Negotiation</span>
+              <button
+                type="button"
+                onClick={() => setShowNegotiationForm((prev) => !prev)}
+                className="text-xs px-3 py-1 rounded border border-navy-500 text-navy-600 hover:bg-navy-50 cursor-pointer"
+              >
+                {showNegotiationForm ? 'Close' : 'New offer'}
+              </button>
+            </div>
+            {isNegotiationLoading && (
+              <p className="text-xs text-gray-500">Loading negotiation...</p>
+            )}
+            {hasPendingOffer && negotiation?.current_offer && (
+              <div className="mt-2 bg-amber-50 border border-amber-200 rounded px-3 py-2 space-y-1">
+                <p className="text-xs font-semibold text-amber-800">
+                  {isOfferFromCurrentUser
+                    ? 'You sent an offer. Waiting for response.'
+                    : `Pending offer from ${
+                        negotiation.current_offer.offered_by_name || negotiation.current_offer.offered_by
+                      }`}
+                </p>
+                <p className="text-xs text-amber-900">
+                  💰 {negotiation.current_offer.proposed_price ?? negotiation.current_offer.original_price}
+                  {formatNegotiationDate(negotiation.current_offer.proposed_date) && (
+                    <>
+                      {' '}
+                      · 📅{' '}
+                      {formatNegotiationDate(negotiation.current_offer.proposed_date)}
+                    </>
+                  )}
+                </p>
+                {!isOfferFromCurrentUser && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRespond('accept')}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-xs px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRespond('decline')}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-xs px-3 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-60 cursor-pointer"
+                    >
+                      Decline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowNegotiationForm(true)}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-xs px-3 py-1.5 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Counter
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {showNegotiationForm && (
+              <div className="mt-2 bg-gray-50 border border-gray-200 rounded px-3 py-2 space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Price"
+                    value={negotiationPrice}
+                    onChange={(e) => setNegotiationPrice(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900"
+                  />
+                  <input
+                    type="date"
+                    value={negotiationDate}
+                    onChange={(e) => setNegotiationDate(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900"
+                  />
+                </div>
+                <textarea
+                  rows={2}
+                  placeholder="Notes (optional)"
+                  value={negotiationNotes}
+                  onChange={(e) => setNegotiationNotes(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 resize-none"
+                />
+                <div className="flex gap-2 mt-1">
+                  {hasPendingOffer && !isOfferFromCurrentUser ? (
+                    <button
+                      type="button"
+                      onClick={handleCounterOffer}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-xs px-3 py-1.5 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Send counter
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOffer}
+                      disabled={isNegotiationLoading}
+                      className="flex-1 text-xs px-3 py-1.5 rounded bg-navy-600 text-white hover:bg-navy-700 disabled:opacity-60 cursor-pointer"
+                    >
+                      Send offer
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-gray-50">
-          {activeConversation.messages.map((message) => {
+          {activeConversation.messages.map((message, index) => {
             const isOwnMessage = user && Number(message.senderId) === Number(user.id);
             const isSystem = message.senderId === 'system';
 
@@ -933,7 +1313,7 @@ export default function ChatPopup() {
             }
 
             return (
-              <div key={message.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+              <div key={`${message.id}-${index}`} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                 <div className={`${isOwnMessage ? (message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-2 w-full' : 'order-2 max-w-[80%]' : (message.type === 'form-data' || message.type === 'image' || (message.content && message.content.includes('"images":'))) ? 'order-1 w-full' : 'order-1 max-w-[80%]'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     {!isOwnMessage && (
