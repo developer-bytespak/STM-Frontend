@@ -40,8 +40,10 @@ export interface BookingFormData {
 export interface ChatConversation {
   id: string;  // UUID from backend
   providerId: string | number;
+  providerUserId?: number;  // Provider's user id (for matching message sender_id)
   providerName: string;
   customerId: string | number;
+  customerUserId?: number;  // Customer's user id (for matching message sender_id)
   customerName: string;
   jobId?: number;  // Link to backend job
   lsmId?: string | number;
@@ -139,9 +141,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           return {
             id: chat.id,
             providerId: chat.provider?.id || 0,
-            providerName: chat.provider?.businessName || 
+            providerUserId: chat.provider?.userId ?? chat.provider?.user?.id,
+            providerName: chat.provider?.businessName ||
                          (chat.provider?.user ? `${chat.provider.user.first_name} ${chat.provider.user.last_name}` : 'Provider'),
             customerId: isProvider || isLSM ? (chat.customer ? 0 : user.id) : user.id,
+            customerUserId: (chat as { customer?: { userId?: number } }).customer?.userId,
             customerName: chat.customer?.name || user.name,
             jobId: chat.job?.id,
             lsmId,
@@ -365,33 +369,45 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const handleIncomingMessage = (messageData: {
     id: string;
     chatId: string;
-    sender_type: 'customer' | 'service_provider' | 'local_service_manager';
-    sender_id: number;
+    sender_type?: 'customer' | 'service_provider' | 'local_service_manager';
+    sender_id?: number;
     sender_name?: string;
-    message: string;
-    message_type: 'text' | 'image' | 'document';
-    created_at: string;
+    message?: string;
+    message_type?: 'text' | 'image' | 'document';
+    created_at?: string;
+    // Legacy camelCase from negotiation socket (now backend uses snake_case; keep for compatibility)
+    senderId?: number;
+    senderName?: string;
+    content?: string;
+    timestamp?: string | Date;
   }) => {
-    // Convert backend message to frontend Message format
-    const isFileMessage = messageData.message_type === 'document';
-    const isImageGallery = messageData.message_type === 'image';
-    
-    // For file messages, the 'message' field contains the file URL
-    // For image gallery, the 'message' field contains JSON with image array
+    // Normalize: backend gateway uses snake_case; negotiation used to send camelCase
+    const sender_id = messageData.sender_id ?? (messageData as { senderId?: number }).senderId;
+    const sender_type = messageData.sender_type ?? (messageData as { senderRole?: string }).senderRole ?? 'customer';
+    const sender_name = messageData.sender_name ?? (messageData as { senderName?: string }).senderName;
+    const content = messageData.message ?? (messageData as { content?: string }).content ?? '';
+    const created_at = messageData.created_at ?? (messageData as { timestamp?: string | Date }).timestamp;
+
+    const isFileMessage = (messageData.message_type ?? 'text') === 'document';
+    const isImageGallery = (messageData.message_type ?? 'text') === 'image';
+
+    const ts = created_at != null ? new Date(created_at) : new Date();
+    const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
+
     const newMessage: Message = {
       id: messageData.id,
-      senderId: messageData.sender_id,
-      senderName: messageData.sender_name || getSenderName(messageData.sender_id, messageData.sender_type),
-      senderRole: messageData.sender_type,
-      content: isFileMessage ? extractFileName(messageData.message) : messageData.message,
-      timestamp: new Date(messageData.created_at),
+      senderId: sender_id ?? 0,
+      senderName: sender_name || getSenderName(Number(sender_id), sender_type),
+      senderRole: sender_type as Message['senderRole'],
+      content: isFileMessage ? extractFileName(content) : content,
+      timestamp,
       type: isImageGallery ? 'image' : isFileMessage ? 'file' : 'text',
       // If it's a file message, parse the file URL and create file object
       files: isFileMessage ? [{
-        name: extractFileName(messageData.message),
+        name: extractFileName(content),
         size: 0, // Size not available from backend
         type: 'application/*',
-        url: messageData.message, // The message content IS the file URL
+        url: content, // The message content IS the file URL
       }] : undefined,
     };
 
@@ -450,25 +466,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Helper function to get sender name (you can enhance this to fetch from backend)
+  // Helper function to get sender name (matches message sender_id which is user id)
   const getSenderName = (senderId: number, senderType: string): string => {
-    // If it's current user
-    if (user && Number(user.id) === senderId) {
+    const sid = Number(senderId);
+    if (user && Number(user.id) === sid) {
       return user.name;
     }
 
-    // Try to find sender name from conversations
     for (const conv of conversations) {
-      if (senderType === 'customer' && Number(conv.customerId) === senderId) {
+      // Message sender_id is user id; use providerUserId/customerUserId when available
+      if (senderType === 'customer' && (conv.customerUserId !== undefined ? Number(conv.customerUserId) === sid : Number(conv.customerId) === sid)) {
         return conv.customerName;
-      } else if (senderType === 'service_provider' && Number(conv.providerId) === senderId) {
+      }
+      if (senderType === 'service_provider' && (conv.providerUserId !== undefined ? Number(conv.providerUserId) === sid : Number(conv.providerId) === sid)) {
         return conv.providerName;
-      } else if (senderType === 'local_service_manager' && Number(conv.lsmId) === senderId) {
+      }
+      if (senderType === 'local_service_manager' && Number(conv.lsmId) === sid) {
         return conv.lsmName || 'Local Service Manager';
       }
     }
 
-    // Fallback
     return 'Unknown User';
   };
 
@@ -495,13 +512,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const isFileMessage = msg.message_type === 'document';
         const isImageGallery = msg.message_type === 'image';
         
+        const ts = msg.created_at ? new Date(msg.created_at) : new Date();
+        const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
         return {
           id: msg.id,
           senderId: msg.sender_id,
-          senderName: msg.sender_name || getSenderName(msg.sender_id, msg.sender_type),
+          senderName: msg.sender_name || getSenderName(Number(msg.sender_id), msg.sender_type),
           senderRole: msg.sender_type,
           content: isFileMessage ? extractFileName(msg.message) : msg.message,
-          timestamp: new Date(msg.created_at),
+          timestamp,
           type: isImageGallery ? 'image' : isFileMessage ? 'file' : 'text',
           // If it's a file message, parse the file URL and create file object
           files: isFileMessage ? [{

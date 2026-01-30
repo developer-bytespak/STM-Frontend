@@ -26,14 +26,17 @@ export interface Chat {
   } | null;
   provider?: {
     id: number;
+    userId?: number;
     businessName: string;
     user: {
+      id?: number;
       first_name: string;
       last_name: string;
       profile_picture: string | null;
     };
   };
   customer?: {
+    userId?: number;
     name: string;
     profilePicture: string | null;
   };
@@ -95,7 +98,7 @@ export const chatApi = {
    */
   async getCustomerChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/customer/chats');
+      const response = await apiClient.request<Chat[]>('/chat/customer/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch customer chats:', error);
@@ -108,7 +111,7 @@ export const chatApi = {
    */
   async getProviderChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/provider/chats');
+      const response = await apiClient.request<Chat[]>('/chat/provider/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch provider chats:', error);
@@ -121,7 +124,7 @@ export const chatApi = {
    */
   async getLSMChats(): Promise<Chat[]> {
     try {
-      const response = await apiClient.request<Chat[]>('/lsm/chats');
+      const response = await apiClient.request<Chat[]>('/chat/lsm/chats');
       return response;
     } catch (error: any) {
       console.error('Failed to fetch LSM chats:', error);

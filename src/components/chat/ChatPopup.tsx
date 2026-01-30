@@ -39,6 +39,14 @@ export default function ChatPopup() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Safe date formatter to avoid "Invalid Date" when proposed_date is null or malformed
+  const formatNegotiationDate = (dateVal: string | null | undefined): string => {
+    if (dateVal == null || dateVal === '') return '';
+    const d = new Date(dateVal);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString();
+  };
+
   useEffect(() => {
     // Scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,9 +76,10 @@ export default function ChatPopup() {
   // Keep negotiation banner in sync in real-time when new messages arrive
   useEffect(() => {
     const syncNegotiationWithMessages = async () => {
-      if (!hasJob || !activeConversation?.jobId) return;
+      const jobId = activeConversation?.jobId;
+      if (!jobId) return;
       try {
-        const data = await chatApi.getNegotiationHistory(activeConversation.jobId);
+        const data = await chatApi.getNegotiationHistory(jobId);
         setNegotiation(data);
       } catch (error) {
         console.error('Failed to sync negotiation after new message:', error);
@@ -80,7 +89,7 @@ export default function ChatPopup() {
     // Trigger on message count changes for the active conversation
     syncNegotiationWithMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeConversation?.messages.length]);
+  }, [activeConversation?.jobId, activeConversation?.messages?.length]);
 
   if (!activeConversation) return null;
 
@@ -776,11 +785,11 @@ export default function ChatPopup() {
                 </p>
                 <p className="text-[11px] text-amber-900">
                   💰 {negotiation.current_offer.proposed_price ?? negotiation.current_offer.original_price}
-                  {negotiation.current_offer.proposed_date && (
+                  {formatNegotiationDate(negotiation.current_offer.proposed_date) && (
                     <>
                       {' '}
                       · 📅{' '}
-                      {new Date(negotiation.current_offer.proposed_date).toLocaleDateString()}
+                      {formatNegotiationDate(negotiation.current_offer.proposed_date)}
                     </>
                   )}
                 </p>
@@ -1198,11 +1207,11 @@ export default function ChatPopup() {
                 </p>
                 <p className="text-xs text-amber-900">
                   💰 {negotiation.current_offer.proposed_price ?? negotiation.current_offer.original_price}
-                  {negotiation.current_offer.proposed_date && (
+                  {formatNegotiationDate(negotiation.current_offer.proposed_date) && (
                     <>
                       {' '}
                       · 📅{' '}
-                      {new Date(negotiation.current_offer.proposed_date).toLocaleDateString()}
+                      {formatNegotiationDate(negotiation.current_offer.proposed_date)}
                     </>
                   )}
                 </p>
