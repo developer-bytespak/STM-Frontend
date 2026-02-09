@@ -6,5 +6,6 @@ export { default as TotalJobsCard } from './TotalJobsCard';
 export { default as MyRequestsCard } from './MyRequestsCard';
 export { default as ActiveJobsCard } from './ActiveJobsCard';
 export { default as JobRequestCard } from './JobRequestCard';
+export { default as MessageTemplateCard } from './MessageTemplateCard';
 
 
