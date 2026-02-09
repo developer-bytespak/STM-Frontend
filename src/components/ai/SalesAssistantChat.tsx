@@ -1326,6 +1326,9 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
     
     if (field === 'service') {
       setShowServiceSelection(true);
+    } else {
+      // For budget, zipcode, requirements - ensure input is enabled
+      setShowServiceSelection(false);
     }
   };
 
@@ -2019,11 +2022,11 @@ export default function SalesAssistantChat({ isOpen, onClose }: SalesAssistantCh
                             : "Tell me about what you need..."
                         }
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500 text-sm text-black placeholder-gray-500"
-                        disabled={isSending || showServiceSelection}
+                        disabled={isSending || (showServiceSelection && editMode !== 'budget' && editMode !== 'zipcode' && editMode !== 'requirements')}
                       />
                       <button
                         onClick={sendMessage}
-                        disabled={isSending || !input.trim() || showServiceSelection}
+                        disabled={isSending || !input.trim() || (showServiceSelection && editMode !== 'budget' && editMode !== 'zipcode' && editMode !== 'requirements')}
                         className="bg-navy-600 text-white px-6 py-2 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Send

@@ -365,6 +365,34 @@ function ProviderDashboardContent() {
       {/* My Service Requests Card */}
       <MyRequestsCard />
 
+      {/* Custom Templates Card */}
+      <Link
+        href="/provider/custom-templates"
+        className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 p-6"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <span className="text-2xl">✉️</span>
+              Custom Message Templates
+            </h2>
+            <p className="text-gray-600 text-sm">
+              Customize welcome messages and email templates for your customers
+            </p>
+            <div className="mt-4 flex gap-4 text-sm">
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">💬 Chat Message</span>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full">✅ Job Accepted</span>
+              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">💡 Negotiation</span>
+            </div>
+          </div>
+          <div className="text-gray-400">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+
       {/* Recent Jobs & Feedback Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Jobs */}

@@ -54,7 +54,31 @@ export interface DashboardResponse {
   recentFeedback: RecentFeedback[];
 }
 
+export interface MessageTemplate {
+  id: number;
+  provider_id: number;
+  first_message_template: string | null;
+  job_accepted_subject?: string | null;
+  job_accepted_body?: string | null;
+  negotiation_subject?: string | null;
+  negotiation_body?: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
+export interface UpdateMessageTemplateRequest {
+  first_message_template?: string;
+  job_accepted_subject?: string;
+  job_accepted_body?: string;
+  negotiation_subject?: string;
+  negotiation_body?: string;
+}
+
+export interface MessageTemplateResponse {
+  success: boolean;
+  message: string;
+  data?: MessageTemplate;
+}
 
 export interface RequestServiceDto {
   serviceName: string;
@@ -754,6 +778,43 @@ class ProviderApi {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ imageIds })
+    });
+    return response;
+  }
+
+  /**
+   * Get provider's message template
+   * Endpoint: GET /provider/email-templates
+   */
+  async getMessageTemplate(): Promise<MessageTemplate> {
+    const response = await apiClient.request<MessageTemplate>('/provider/email-templates', {
+      method: 'GET'
+    });
+    return response;
+  }
+
+  /**
+   * Update provider's message template
+   * Endpoint: PUT /provider/email-templates
+   */
+  async updateMessageTemplate(templateData: UpdateMessageTemplateRequest): Promise<MessageTemplateResponse> {
+    const response = await apiClient.request<MessageTemplateResponse>('/provider/email-templates', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(templateData)
+    });
+    return response;
+  }
+
+  /**
+   * Reset message template to default
+   * Endpoint: DELETE /provider/email-templates
+   */
+  async resetMessageTemplate(): Promise<MessageTemplateResponse> {
+    const response = await apiClient.request<MessageTemplateResponse>('/provider/email-templates', {
+      method: 'DELETE'
     });
     return response;
   }
