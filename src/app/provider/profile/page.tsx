@@ -7,6 +7,8 @@ import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 import { SERVICES, getGranularServices } from '@/data/services';
 import { providerApi, ProfileData, UpdateProfileDto  } from '@/api/provider';
 import ProfileSkeleton from '@/components/ui/ProfileSkeleton';
+import { useToast } from '@/components/ui/Toast';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface ServiceData {
   id: string;
@@ -39,6 +41,8 @@ interface ProviderProfile {
 export default function ProviderProfile() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
+  const { fetchNotifications } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -50,6 +54,9 @@ export default function ProviderProfile() {
   const [currentStatus, setCurrentStatus] = useState<'active' | 'inactive'>('active');
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<'active' | 'inactive' | null>(null);
+  const [isConfirmingAvailability, setIsConfirmingAvailability] = useState(false);
+  const [lastConfirmationTime, setLastConfirmationTime] = useState<string | null>(null);
+  const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
   
   const [profileData, setProfileData] = useState<ProviderProfile>({
     firstName: '',
@@ -234,6 +241,64 @@ export default function ProviderProfile() {
     }
   };
 
+  // Handle confirm availability
+  const handleConfirmAvailability = async () => {
+    try {
+      setIsConfirmingAvailability(true);
+      setErrorMessage('');
+      
+      const response = await providerApi.confirmAvailability();
+      
+      // Update confirmation time and mark as confirmed
+      const confirmationTime = new Date(response.confirmedAt).toLocaleString();
+      setLastConfirmationTime(confirmationTime);
+      setAvailabilityConfirmed(true);
+      
+      // Backup to localStorage (until backend persists it properly)
+      localStorage.setItem('provider_availability_confirmed', JSON.stringify({
+        confirmedAt: response.confirmedAt,
+        confirmationTime: confirmationTime,
+        confirmedTimestamp: Date.now()
+      }));
+      
+      showToast('Availability confirmed! ✓', 'success');
+      
+      // Refresh profile data and notifications
+      try {
+        const updatedProfile = await providerApi.getProfile();
+        setApiProfileData(updatedProfile);
+        
+        // Refresh notifications to show any updates
+        await fetchNotifications();
+      } catch (refreshError) {
+        console.error('Failed to refresh profile/notifications after confirmation:', refreshError);
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to confirm availability:', error);
+      
+      if (error.status === 401) {
+        showToast('Your session has expired. Please login again.', 'error');
+        router.push('/login');
+        return;
+      }
+      
+      if (error.status === 404) {
+        showToast('Provider profile not found. Please contact support.', 'error');
+        return;
+      }
+      
+      if (error.status === 500) {
+        showToast('Server error. Please try again later.', 'error');
+        return;
+      }
+      
+      showToast('Failed to confirm availability. Please try again.', 'error');
+    } finally {
+      setIsConfirmingAvailability(false);
+    }
+  };
+
   // Helper functions for managing multiple services
   const addService = () => {
     const newService: ServiceData = {
@@ -400,6 +465,24 @@ export default function ProviderProfile() {
           const accountStatus = apiData.status.current;
           if (accountStatus === 'active' || accountStatus === 'inactive') {
             setCurrentStatus(accountStatus);
+          }
+        }
+        
+        // Check if availability was already confirmed
+        if (apiData?.status?.lastAvailabilityConfirmedAt) {
+          setAvailabilityConfirmed(true);
+          setLastConfirmationTime(new Date(apiData.status.lastAvailabilityConfirmedAt).toLocaleString());
+        } else {
+          // Fallback to localStorage until backend persists properly
+          const storedConfirmation = localStorage.getItem('provider_availability_confirmed');
+          if (storedConfirmation) {
+            try {
+              const confirmation = JSON.parse(storedConfirmation);
+              setAvailabilityConfirmed(true);
+              setLastConfirmationTime(confirmation.confirmationTime);
+            } catch (e) {
+              console.error('Failed to parse stored confirmation:', e);
+            }
           }
         }
         
@@ -1117,6 +1200,94 @@ export default function ProviderProfile() {
             </div>
           </div>
         </div>
+
+        {/* Availability Confirmation Section */}
+        {canEdit && !availabilityConfirmed && (
+          <div id="confirmation-section" className="mt-4 sm:mt-6 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl px-4 sm:px-6 py-4 sm:py-6 shadow-sm">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex-shrink-0 mt-1">
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2">
+                  📌 Weekly Availability Confirmation
+                </h3>
+                
+                <p className="text-sm sm:text-base text-blue-800 mb-4">
+                  Please confirm that your profile information is accurate and you are available to serve customers.
+                </p>
+                
+                {lastConfirmationTime && (
+                  <div className="mb-4 p-3 bg-green-100 rounded-lg border border-green-300">
+                    <p className="text-sm text-green-800">
+                      <span className="font-medium">✓ Confirmed:</span> {lastConfirmationTime}
+                    </p>
+                  </div>
+                )}
+                
+                <button
+                  id="confirm-btn"
+                  onClick={handleConfirmAvailability}
+                  disabled={isConfirmingAvailability}
+                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-sm sm:text-base"
+                >
+                  {isConfirmingAvailability ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Confirm Availability
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Already Confirmed Section */}
+        {canEdit && availabilityConfirmed && lastConfirmationTime && (
+          <div className="mt-4 sm:mt-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl px-4 sm:px-6 py-4 sm:py-6 shadow-sm">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex-shrink-0 mt-1">
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-600">
+                  <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-2">
+                  ✓ Availability Confirmed
+                </h3>
+                
+                <p className="text-sm sm:text-base text-green-800 mb-3">
+                  Thank you! Your availability has been confirmed.
+                </p>
+                
+                <div className="bg-white rounded-lg p-3 border border-green-300">
+                  <p className="text-sm text-green-800">
+                    <span className="font-medium">Last confirmed:</span> {lastConfirmationTime}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
          {/* Account Info */}
          <div className="mt-4 sm:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 px-4 sm:px-6 py-3 sm:py-4">

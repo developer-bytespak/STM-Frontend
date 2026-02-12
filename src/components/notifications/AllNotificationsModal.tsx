@@ -58,7 +58,23 @@ export default function AllNotificationsModal({
     return true;
   });
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, title?: string) => {
+    // Handle system notifications with specific icons based on title
+    if (type === 'system' && title) {
+      const titleLower = title.toLowerCase();
+      
+      // Availability confirmation
+      if (titleLower.includes('availability') || titleLower.includes('confirm')) {
+        return (
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      }
+    }
+
     switch (type) {
       case 'job':
         return (
@@ -619,7 +635,7 @@ export default function AllNotificationsModal({
 
                   <div className="flex items-start gap-3 relative">
                     {/* Icon */}
-                    {getNotificationIcon(notification.type)}
+                    {getNotificationIcon(notification.type, notification.title)}
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">

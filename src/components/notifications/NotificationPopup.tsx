@@ -351,6 +351,15 @@ export default function NotificationPopup({
           }
         }
 
+        // Provider availability confirmation
+        if (titleLower.includes('availability') || titleLower.includes('confirm availability')) {
+          if (isProvider) {
+            return '/provider/profile?tab=confirmation'; // Navigate to provider profile with confirmation tab
+          } else if (isAdmin) {
+            return ROUTES.ADMIN.DASHBOARD;
+          }
+        }
+
         // Fallback: Redirect to appropriate dashboard
         if (isCustomer) {
           return ROUTES.CUSTOMER.DASHBOARD;
@@ -374,7 +383,23 @@ export default function NotificationPopup({
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, title?: string) => {
+    // Handle system notifications with specific icons based on title
+    if (type === 'system' && title) {
+      const titleLower = title.toLowerCase();
+      
+      // Availability confirmation
+      if (titleLower.includes('availability') || titleLower.includes('confirm')) {
+        return (
+          <div className="w-6 h-6 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-3 h-3 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      }
+    }
+
     switch (type) {
       case 'job':
         return (
@@ -688,7 +713,7 @@ export default function NotificationPopup({
 
                   <div className="flex items-start gap-2 sm:gap-3 relative">
                     {/* Icon */}
-                    {getNotificationIcon(notification.type)}
+                    {getNotificationIcon(notification.type, notification.title)}
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">

@@ -13,11 +13,37 @@ import QuickActions from '@/components/admin/QuickActions';
 import LSMRegionsCard from '@/components/admin/LSMRegionsCard';
 import Loader from '@/components/ui/Loader';
 import { mockJobStatusData, mockRevenueData, mockRecentActivities } from '@/data/mockAdminData';
+import { useToast } from '@/components/ui/Toast';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [revenuePeriod, setRevenuePeriod] = useState<string>('7days');
   const [jobsPeriod, setJobsPeriod] = useState<string>('7days');
+  const [isTriggering, setIsTriggering] = useState(false);
+  const [reminderStats, setReminderStats] = useState<{ success: number; failed: number; total: number } | null>(null);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+
+  // Handle trigger availability reminders
+  const handleTriggerReminders = async () => {
+    try {
+      setIsTriggering(true);
+      const response = await adminApi.triggerAvailabilityReminders();
+      
+      setReminderStats(response.stats);
+      setShowReminderDialog(false);
+      
+      showToast(
+        `${response.stats.success} reminders sent, ${response.stats.failed} failed`,
+        'success'
+      );
+    } catch (error: any) {
+      console.error('Failed to trigger reminders:', error);
+      showToast('Failed to send reminders. Please try again.', 'error');
+    } finally {
+      setIsTriggering(false);
+    }
+  };
 
   // Fetch dashboard stats
   const { data: statsData, isLoading: isStatsLoading } = useQuery({
@@ -226,6 +252,138 @@ export default function AdminDashboard() {
 
         {/* Quick Actions */}
         <QuickActions />
+
+        {/* Admin Testing Tools Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Provider Availability Check</h2>
+              <p className="text-sm text-gray-600 mt-1">Send weekly availability confirmation reminders to all active providers</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {reminderStats && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-sm font-medium text-green-800">Reminders Sent Successfully</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4 bg-white rounded p-3">
+                  <div>
+                    <p className="text-xs text-green-700 font-medium">Success</p>
+                    <p className="text-2xl font-bold text-green-700">{reminderStats.success}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-red-700 font-medium">Failed</p>
+                    <p className="text-2xl font-bold text-red-700">{reminderStats.failed}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-700 font-medium">Total</p>
+                    <p className="text-2xl font-bold text-gray-700">{reminderStats.total}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowReminderDialog(true)}
+              disabled={isTriggering}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              Send Availability Reminders
+            </button>
+          </div>
+        </div>
+
+        {/* Reminder Confirmation Dialog */}
+        {showReminderDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+              <div className="p-6 space-y-4">
+                {/* Modal Header with Icon */}
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Send Availability Reminders
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Confirm to proceed
+                    </p>
+                  </div>
+                </div>
+
+                {/* What This Does */}
+                <div className="bg-blue-50 rounded-lg p-4 space-y-3">
+                  <p className="text-sm font-medium text-blue-900">What will happen:</p>
+                  <ul className="text-sm text-blue-800 space-y-2">
+                    <li className="flex gap-2">
+                      <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Send emails to all active service providers</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Request profile verification and availability confirmation</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowReminderDialog(false)}
+                    disabled={isTriggering}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleTriggerReminders}
+                    disabled={isTriggering}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isTriggering ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send Reminders
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Pending Actions */}
       {isPendingLoading ? (
