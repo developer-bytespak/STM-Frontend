@@ -299,6 +299,7 @@ export interface ProfileStatus {
   canDeactivate: boolean;
   activeJobsCount: number;
   warnings: number;
+  lastAvailabilityConfirmedAt?: string; // Last confirmation timestamp
 }
 
 export interface ServiceInfo {
@@ -372,6 +373,19 @@ export interface UpdateProfileDto {
 export interface UpdateProfileResponse {
   message: string;
 }
+
+export interface ConfirmAvailabilityResponse {
+  success: boolean;
+  message: string;
+  confirmedAt: string;
+  provider: {
+    id: number;
+    name: string;
+    status: string;
+    is_active: boolean;
+  };
+}
+
 export interface SetAvailabilityDto {
   status: 'active' | 'inactive';
 }
@@ -815,6 +829,21 @@ class ProviderApi {
   async resetMessageTemplate(): Promise<MessageTemplateResponse> {
     const response = await apiClient.request<MessageTemplateResponse>('/provider/email-templates', {
       method: 'DELETE'
+    });
+    return response;
+  }
+
+  /**
+   * Confirm availability - Provider confirms their availability weekly
+   * Endpoint: POST /provider/confirm-availability
+   */
+  async confirmAvailability(): Promise<ConfirmAvailabilityResponse> {
+    const response = await apiClient.request<ConfirmAvailabilityResponse>('/provider/confirm-availability', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
     });
     return response;
   }

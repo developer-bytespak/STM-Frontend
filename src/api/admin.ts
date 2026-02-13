@@ -63,6 +63,18 @@ export interface PendingAction {
   link: string;
 }
 
+export interface AvailabilityRemindersStats {
+  success: number;
+  failed: number;
+  total: number;
+}
+
+export interface AvailabilityRemindersResponse {
+  success: boolean;
+  message: string;
+  stats: AvailabilityRemindersStats;
+}
+
 // ==================== ADMIN API CLASS ====================
 
 class AdminApi {
@@ -512,6 +524,24 @@ class AdminApi {
   async getAllDisputes(status?: string): Promise<any> {
     // This will be implemented once backend endpoint is ready
     throw new Error('Disputes endpoint not implemented yet.');
+  }
+
+  /**
+   * Trigger availability reminders for all active providers (Testing endpoint)
+   * Endpoint: POST /admin/test/send-availability-reminders
+   */
+  async triggerAvailabilityReminders(): Promise<AvailabilityRemindersResponse> {
+    const response = await apiClient.request<AvailabilityRemindersResponse>(
+      '/admin/test/send-availability-reminders',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      }
+    );
+    return response;
   }
 }
 
