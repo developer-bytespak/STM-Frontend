@@ -54,13 +54,34 @@ export default function AvailedJobsPage() {
   const handleSubmitFeedback = async () => {
     if (!selectedJob) return;
 
-    if (!feedbackData.feedback.trim()) {
-      showAlert({
-        title: 'Validation Error',
-        message: 'Please provide feedback comments',
-        type: 'warning'
-      });
-      return;
+    // For LOW ratings (1-2 stars), feedback is REQUIRED
+    if (feedbackData.rating < 3) {
+      if (!feedbackData.feedback.trim()) {
+        showAlert({
+          title: 'Feedback Required',
+          message: 'Please tell us what we can improve (required for low ratings)',
+          type: 'warning'
+        });
+        return;
+      }
+      if (feedbackData.feedback.trim().length < 10) {
+        showAlert({
+          title: 'Feedback Too Short',
+          message: 'Please provide more details (at least 10 characters)',
+          type: 'warning'
+        });
+        return;
+      }
+    } else {
+      // For NORMAL/HIGH ratings (3-5 stars), feedback is OPTIONAL
+      if (feedbackData.feedback.trim() && feedbackData.feedback.trim().length < 10) {
+        showAlert({
+          title: 'Feedback Too Short',
+          message: 'Feedback should be at least 10 characters',
+          type: 'warning'
+        });
+        return;
+      }
     }
 
     try {
@@ -424,14 +445,31 @@ export default function AvailedJobsPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Share your experience
+                    {feedbackData.rating < 3 ? (
+                      <span className="text-red-500">*</span>
+                    ) : (
+                      <span className="text-gray-400">(Optional)</span>
+                    )}
                   </label>
+                  
+                  {/* Dynamic help text based on rating */}
+                  {feedbackData.rating < 3 ? (
+                    <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm text-orange-800">
+                        <span className="font-semibold">⚠️ We'd love to hear more!</span> Since you rated this service lower than expected, please share what could be improved. Your feedback helps providers better serve customers.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 mb-2">Share what made your experience great (optional)</p>
+                  )}
+                  
                   <textarea
                     value={feedbackData.feedback}
                     onChange={(e) => setFeedbackData({ ...feedbackData, feedback: e.target.value })}
                     rows={6}
                     maxLength={1000}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
-                    placeholder="Tell us about your experience with this service provider..."
+                    placeholder={feedbackData.rating < 3 ? 'What could we improve? What went wrong? Tell us...' : 'Tell us about your experience with this service provider...'}
                   />
                   <p className="text-sm text-gray-500 mt-1 text-right">{feedbackData.feedback.length}/1000</p>
                 </div>
@@ -440,8 +478,13 @@ export default function AvailedJobsPage() {
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleSubmitFeedback}
-                    disabled={submitting}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 cursor-pointer"
+                    disabled={submitting || (feedbackData.rating < 3 && !feedbackData.feedback.trim())}
+                    title={feedbackData.rating < 3 && !feedbackData.feedback.trim() ? 'Please provide feedback for low ratings' : ''}
+                    className={`flex-1 py-3 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      submitting || (feedbackData.rating < 3 && !feedbackData.feedback.trim())
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
                     {submitting ? 'Submitting...' : 'Submit Feedback'}
                   </button>

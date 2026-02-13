@@ -69,10 +69,19 @@ export default function FeedbackPage() {
       errors.rating = 'Please select a rating between 1 and 5';
     }
 
-    if (!feedback.feedback.trim()) {
-      errors.feedback = 'Please provide feedback comments';
-    } else if (feedback.feedback.trim().length < 10) {
-      errors.feedback = 'Please provide more detailed feedback (at least 10 characters)';
+    // For LOW ratings (1-2 stars), feedback is REQUIRED
+    if (feedback.rating < 3) {
+      if (!feedback.feedback.trim()) {
+        errors.feedback = 'Please tell us what we can improve (required for low ratings)';
+      } else if (feedback.feedback.trim().length < 10) {
+        errors.feedback = 'Please provide more details (at least 10 characters)';
+      }
+    } else {
+      // For NORMAL/HIGH ratings (3-5 stars), feedback is OPTIONAL
+      // Only validate minimum length if feedback is provided
+      if (feedback.feedback.trim() && feedback.feedback.trim().length < 10) {
+        errors.feedback = 'Feedback should be at least 10 characters';
+      }
     }
 
     setFeedbackErrors(errors);
@@ -342,17 +351,40 @@ export default function FeedbackPage() {
                 {/* Comment */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Share your experience <span className="text-red-500">*</span>
+                    Share your experience
+                    {feedback.rating < 3 ? (
+                      <span className="text-red-500">*</span>
+                    ) : (
+                      <span className="text-gray-400">(Optional)</span>
+                    )}
                   </label>
+                  
+                  {/* Dynamic help text based on rating */}
+                  {feedback.rating < 3 ? (
+                    <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm text-orange-800">
+                        <span className="font-semibold">⚠️ We'd love to hear more!</span> Since you rated this service lower than expected, please share what could be improved. Your feedback helps providers better serve customers.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 mb-2">Share what made your experience great (optional)</p>
+                  )}
+                  
                   <textarea
                     value={feedback.feedback}
-                    onChange={(e) => setFeedback({ ...feedback, feedback: e.target.value })}
+                    onChange={(e) => {
+                      setFeedback({ ...feedback, feedback: e.target.value });
+                      // Clear error when user starts typing (only for low rating feedback)
+                      if (feedback.rating < 3 && feedbackErrors.feedback) {
+                        setFeedbackErrors({ ...feedbackErrors, feedback: '' });
+                      }
+                    }}
                     rows={6}
                     maxLength={1000}
                     className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500 ${
                       feedbackErrors.feedback ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="Tell us about your experience with this service provider. What did they do well? What could be improved?"
+                    placeholder={feedback.rating < 3 ? 'What could we improve? What went wrong? Tell us...' : 'Tell us about your experience (optional)'}
                   />
                   <div className="flex justify-between items-center mt-1">
                     {feedbackErrors.feedback && (
@@ -366,8 +398,13 @@ export default function FeedbackPage() {
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer"
+                    disabled={submitting || (feedback.rating < 3 && !feedback.feedback.trim())}
+                    title={feedback.rating < 3 && !feedback.feedback.trim() ? 'Please provide feedback for low ratings' : ''}
+                    className={`flex-1 py-3 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      submitting || (feedback.rating < 3 && !feedback.feedback.trim())
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
                     {submitting ? 'Submitting...' : 'Submit Feedback'}
                   </button>
