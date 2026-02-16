@@ -54,6 +54,7 @@ export default function CustomTemplatesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [charCounts, setCharCounts] = useState({
     first_message_template: 0,
     job_accepted_subject: 0,
@@ -111,6 +112,45 @@ export default function CustomTemplatesPage() {
     setTemplates(newData);
     updateCharCounts(newData);
     setError(null);
+    // Clear field error when user starts typing
+    setFieldErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleSaveIndividual = async (fieldsToSave: (keyof FormData)[]) => {
+    // Validate email subjects are not empty
+    const newFieldErrors: Record<string, string> = {};
+    
+    if (fieldsToSave.includes('job_accepted_subject') && !templates.job_accepted_subject.trim()) {
+      newFieldErrors['job_accepted_subject'] = 'Email Subject cannot be empty';
+    }
+    if (fieldsToSave.includes('negotiation_subject') && !templates.negotiation_subject.trim()) {
+      newFieldErrors['negotiation_subject'] = 'Email Subject cannot be empty';
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+      setFieldErrors({});
+
+      const dataToSave: Partial<FormData> = {};
+      fieldsToSave.forEach(field => {
+        dataToSave[field] = templates[field] || undefined;
+      });
+
+      await providerApi.updateMessageTemplate(dataToSave as FormData);
+      setSuccess('Template saved successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      console.error('Failed to save template:', err);
+      setError(err.message || 'Failed to save template. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const insertVariable = (field: keyof FormData, variable: string) => {
@@ -133,9 +173,25 @@ export default function CustomTemplatesPage() {
   };
 
   const handleSave = async () => {
+    // Validate email subjects are not empty
+    const newFieldErrors: Record<string, string> = {};
+    
+    if (!templates.job_accepted_subject.trim()) {
+      newFieldErrors['job_accepted_subject'] = 'Email Subject cannot be empty';
+    }
+    if (!templates.negotiation_subject.trim()) {
+      newFieldErrors['negotiation_subject'] = 'Email Subject cannot be empty';
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
+      setFieldErrors({});
 
       await providerApi.updateMessageTemplate({
         first_message_template: templates.first_message_template || undefined,
@@ -301,12 +357,19 @@ export default function CustomTemplatesPage() {
                 placeholder="Hi [CUSTOMER_NAME]! Thanks for your [SERVICE_NAME] request. We're reviewing your request and will respond shortly."
                 maxLength={MAX_LENGTH}
                 rows={5}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm text-gray-900 placeholder:text-gray-700"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
             {/* Character Counter */}
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <button
+                onClick={() => handleSaveIndividual(['first_message_template'])}
+                disabled={saving}
+                className="px-4 py-1.5 bg-blue-50 hover:bg-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed text-blue-600 font-medium rounded-lg transition-colors text-sm"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
               <span className={`text-sm ${charCounts.first_message_template > MAX_LENGTH * 0.9 ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                 {charCounts.first_message_template} / {MAX_LENGTH}
               </span>
@@ -348,7 +411,7 @@ export default function CustomTemplatesPage() {
 
             {/* Subject */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject <span className="text-red-500">*</span></label>
               <input
                 id="job_accepted_subject"
                 type="text"
@@ -356,8 +419,13 @@ export default function CustomTemplatesPage() {
                 onChange={(e) => handleChange('job_accepted_subject', e.target.value)}
                 placeholder="✅ Your [SERVICE_NAME] is Ready!"
                 maxLength={MAX_SUBJECT_LENGTH}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-700"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 ${
+                  fieldErrors.job_accepted_subject ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {fieldErrors.job_accepted_subject && (
+                <p className="text-sm text-red-500 mt-1.5">{fieldErrors.job_accepted_subject}</p>
+              )}
               <div className="flex justify-end mt-1">
                 <span className={`text-sm ${charCounts.job_accepted_subject > MAX_SUBJECT_LENGTH * 0.9 ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                   {charCounts.job_accepted_subject} / {MAX_SUBJECT_LENGTH}
@@ -375,13 +443,24 @@ export default function CustomTemplatesPage() {
                 placeholder="<p>Hi [CUSTOMER_NAME],</p><p>We're excited to work on your [SERVICE_NAME]!</p>"
                 maxLength={MAX_LENGTH}
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm font-mono text-gray-900 placeholder:text-gray-700"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm font-mono text-gray-900 placeholder:text-gray-400"
               />
               <div className="flex justify-end mt-1">
                 <span className={`text-sm ${charCounts.job_accepted_body > MAX_LENGTH * 0.9 ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                   {charCounts.job_accepted_body} / {MAX_LENGTH}
                 </span>
               </div>
+            </div>
+
+            {/* Individual Save Button */}
+            <div className="pt-2">
+              <button
+                onClick={() => handleSaveIndividual(['job_accepted_subject', 'job_accepted_body'])}
+                disabled={saving}
+                className="px-4 py-1.5 bg-green-50 hover:bg-green-100 disabled:bg-gray-100 disabled:cursor-not-allowed text-green-600 font-medium rounded-lg transition-colors text-sm"
+              >
+                {saving ? 'Saving...' : 'Save This Template'}
+              </button>
             </div>
           </div>
 
@@ -420,7 +499,7 @@ export default function CustomTemplatesPage() {
 
             {/* Subject */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Subject <span className="text-red-500">*</span></label>
               <input
                 id="negotiation_subject"
                 type="text"
@@ -428,8 +507,13 @@ export default function CustomTemplatesPage() {
                 onChange={(e) => handleChange('negotiation_subject', e.target.value)}
                 placeholder="💡 Better Solution for Your [SERVICE_NAME]"
                 maxLength={MAX_SUBJECT_LENGTH}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-700"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-900 placeholder:text-gray-400 ${
+                  fieldErrors.negotiation_subject ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {fieldErrors.negotiation_subject && (
+                <p className="text-sm text-red-500 mt-1.5">{fieldErrors.negotiation_subject}</p>
+              )}
               <div className="flex justify-end mt-1">
                 <span className={`text-sm ${charCounts.negotiation_subject > MAX_SUBJECT_LENGTH * 0.9 ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                   {charCounts.negotiation_subject} / {MAX_SUBJECT_LENGTH}
@@ -447,13 +531,24 @@ export default function CustomTemplatesPage() {
                 placeholder="<p>Hi [CUSTOMER_NAME],</p><p>We have a better solution for your [SERVICE_NAME]...</p>"
                 maxLength={MAX_LENGTH}
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm font-mono text-gray-900 placeholder:text-gray-700"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm font-mono text-gray-900 placeholder:text-gray-400"
               />
               <div className="flex justify-end mt-1">
                 <span className={`text-sm ${charCounts.negotiation_body > MAX_LENGTH * 0.9 ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
                   {charCounts.negotiation_body} / {MAX_LENGTH}
                 </span>
               </div>
+            </div>
+
+            {/* Individual Save Button */}
+            <div className="pt-2">
+              <button
+                onClick={() => handleSaveIndividual(['negotiation_subject', 'negotiation_body'])}
+                disabled={saving}
+                className="px-4 py-1.5 bg-purple-50 hover:bg-purple-100 disabled:bg-gray-100 disabled:cursor-not-allowed text-purple-600 font-medium rounded-lg transition-colors text-sm"
+              >
+                {saving ? 'Saving...' : 'Save This Template'}
+              </button>
             </div>
           </div>
         </div>
