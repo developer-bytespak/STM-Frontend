@@ -299,6 +299,64 @@ class HomepageApi {
   }
 
   /**
+   * Smart Search: get best-matching providers by service, zipcode, budget (and optional project size).
+   * POST /services/smart-providers
+   */
+  async getSmartProviders(params: {
+    serviceId: number;
+    zipcode: string;
+    budget: number;
+    projectSizeSqft?: number;
+  }): Promise<{
+    success: boolean;
+    providers: Array<{
+      id: number;
+      businessName: string;
+      ownerName: string;
+      rating: number;
+      totalJobs: number;
+      minPrice: number;
+      maxPrice: number;
+      serviceAreas: string[];
+    }>;
+    totalMatches: number;
+    message: string;
+  }> {
+    try {
+      const body: Record<string, unknown> = {
+        serviceId: params.serviceId,
+        zipcode: params.zipcode,
+        budget: params.budget,
+      };
+      if (params.projectSizeSqft != null) {
+        body.projectSizeSqft = params.projectSizeSqft;
+      }
+      const response = await apiClient.request<{
+        success: boolean;
+        providers: Array<{
+          id: number;
+          businessName: string;
+          ownerName: string;
+          rating: number;
+          totalJobs: number;
+          minPrice: number;
+          maxPrice: number;
+          serviceAreas: string[];
+        }>;
+        totalMatches: number;
+        message: string;
+      }>('/services/smart-providers', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      return response;
+    } catch (error) {
+      console.error('Error fetching smart providers:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all approved services
    */
   async getAllServices(): Promise<

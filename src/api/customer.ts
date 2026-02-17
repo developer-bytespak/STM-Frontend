@@ -108,6 +108,7 @@ export interface CreateJobDto {
   customerBudget?: number; // Optional - customer's budget as number (backend expects customerBudget)
   location: string;  // Required - customer's address
   zipcode: string;   // Required - customer's zipcode
+  projectSizeSqft?: number;  // Optional - project size in square feet (sent with job to provider)
   answers: {         // Required - wrapped answers object
     description?: string;
     urgency?: string;
