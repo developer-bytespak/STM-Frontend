@@ -42,7 +42,7 @@ export default function BookingModal({
     if (mode === 'sp-quote' && initialData) {
       return initialData;
     }
-    return {
+    const base = {
       serviceType: serviceType,
       description: '',
       dimensions: '',
@@ -51,8 +51,19 @@ export default function BookingModal({
       urgency: '3-7 days',
       additionalDetails: '',
       address: (user as any)?.address || '',
-      zipcode: (user as any)?.zipcode || ''
+      zipcode: (user as any)?.zipcode || '',
     };
+    if (mode === 'customer-booking' && initialData) {
+      return {
+        ...base,
+        ...initialData,
+        address: (initialData as any).address ?? base.address,
+        zipcode: (initialData as any).zipcode ?? base.zipcode,
+        budget: initialData.budget ?? base.budget,
+        projectSizeSqft: (initialData as any).projectSizeSqft ?? undefined,
+      };
+    }
+    return base;
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,7 +171,7 @@ export default function BookingModal({
           throw new Error('Service ID is required. Please select a service first.');
         }
         
-        const jobResponse = await customerApi.createJob({
+        const jobPayload: Parameters<typeof customerApi.createJob>[0] = {
           serviceId: serviceId,  // Numeric service ID (required)
           providerId: providerId,  // Provider ID as string (backend validates numeric string)
           customerBudget: parseFloat(formData.budget) || 0,  // Customer budget as number (backend expects customerBudget)
@@ -176,7 +187,12 @@ export default function BookingModal({
           images: images,  // Customer uploaded images
           preferredDate: formData.preferredDate || undefined,
           requiresInPersonVisit: false,
-        });
+        };
+        if (formData.projectSizeSqft != null && formData.projectSizeSqft !== '') {
+          const sqft = typeof formData.projectSizeSqft === 'string' ? parseFloat(formData.projectSizeSqft) : formData.projectSizeSqft;
+          if (!Number.isNaN(sqft)) jobPayload.projectSizeSqft = sqft;
+        }
+        const jobResponse = await customerApi.createJob(jobPayload);
 
         // Backend returns: { job: { id: ... }, chat: { id: ... } }
         const jobId = jobResponse.job?.id || jobResponse.id; // Handle both response formats
@@ -202,7 +218,8 @@ export default function BookingModal({
           urgency: '3-7 days',
           additionalDetails: '',
           address: '',
-          zipcode: ''
+          zipcode: '',
+          projectSizeSqft: '',
         });
         setImages([]);
         setAgreedToTerms(false);
@@ -533,6 +550,24 @@ export default function BookingModal({
               </p>
             )}
           </div>
+
+          {/* Project size (sq ft) - optional */}
+          {mode === 'customer-booking' && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Project size (sq ft) <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={formData.projectSizeSqft ?? ''}
+                onChange={(e) => setFormData({ ...formData, projectSizeSqft: e.target.value === '' ? '' : e.target.value })}
+                placeholder="e.g. 300"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-500"
+              />
+            </div>
+          )}
 
           {/* Additional Details */}
           <div>

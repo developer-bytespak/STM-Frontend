@@ -35,6 +35,8 @@ export interface BookingFormData {
   preferredDate?: string;
   urgency?: string;
   additionalDetails?: string;
+  /** Project size in square feet (optional; used for job create and Smart Search pre-fill) */
+  projectSizeSqft?: string | number;
 }
 
 export interface ChatConversation {
