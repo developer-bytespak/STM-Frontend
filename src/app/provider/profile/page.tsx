@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { validatePhone, formatPhoneNumber } from '@/lib/validation';
 import { SERVICES, getGranularServices } from '@/data/services';
-import { providerApi, ProfileData, UpdateProfileDto  } from '@/api/provider';
+import { providerApi, ProfileData, UpdateProfileDto } from '@/api/provider';
+import { homepageApi } from '@/api/homepage';
 import ProfileSkeleton from '@/components/ui/ProfileSkeleton';
 import { useToast } from '@/components/ui/Toast';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -57,6 +58,12 @@ export default function ProviderProfile() {
   const [isConfirmingAvailability, setIsConfirmingAvailability] = useState(false);
   const [lastConfirmationTime, setLastConfirmationTime] = useState<string | null>(null);
   const [availabilityConfirmed, setAvailabilityConfirmed] = useState(false);
+  const [showAddExistingServiceModal, setShowAddExistingServiceModal] = useState(false);
+  const [availableServicesList, setAvailableServicesList] = useState<Array<{ id: number; name: string; description: string; category: string }>>([]);
+  const [loadingExistingServices, setLoadingExistingServices] = useState(false);
+  const [addingServiceId, setAddingServiceId] = useState<number | null>(null);
+  const [showAddServiceSuccessDialog, setShowAddServiceSuccessDialog] = useState(false);
+  const [addedServiceName, setAddedServiceName] = useState<string | null>(null);
   
   const [profileData, setProfileData] = useState<ProviderProfile>({
     firstName: '',
@@ -366,6 +373,70 @@ export default function ProviderProfile() {
     }
     
     return [categoryType];
+  };
+
+  const openAddExistingServiceModal = async () => {
+    setShowAddExistingServiceModal(true);
+    setLoadingExistingServices(true);
+    setAvailableServicesList([]);
+    try {
+      const all = await homepageApi.getAllServices();
+      const existingIds = new Set((apiProfileData?.services ?? []).map((s) => s.id));
+      const available = all.filter((s) => !existingIds.has(s.id));
+      setAvailableServicesList(available);
+    } catch {
+      showToast('Failed to load services. Please try again.', 'error');
+    } finally {
+      setLoadingExistingServices(false);
+    }
+  };
+
+  const handleAddExistingService = async (serviceId: number) => {
+    setAddingServiceId(serviceId);
+    try {
+      const result = await providerApi.addExistingService(serviceId);
+      setShowAddExistingServiceModal(false);
+      const updatedProfile = await providerApi.getProfile();
+      setApiProfileData(updatedProfile);
+      const profile = {
+        firstName: updatedProfile.user.name.split(' ')[0] || '',
+        lastName: updatedProfile.user.name.split(' ').slice(1).join(' ') || '',
+        email: updatedProfile.user.email || '',
+        phone: updatedProfile.user.phone || '',
+        businessName: updatedProfile.business.businessName || '',
+        description: updatedProfile.business.description || '',
+        websiteUrl: updatedProfile.business.websiteUrl || '',
+        services: updatedProfile.services.map((service) => ({
+          id: service.id.toString(),
+          categoryType: service.category || '',
+          serviceType: service.name || '',
+          experience: updatedProfile.business.experience?.toString() || '',
+          zipCodes: updatedProfile.serviceAreas.map((area) => area.zipcode) || [''],
+          minPrice: updatedProfile.business.minPrice?.toString() || '',
+          maxPrice: updatedProfile.business.maxPrice?.toString() || '',
+        })),
+        documents: updatedProfile.documents.list.map((doc) => ({
+          file: null,
+          description: doc.fileName,
+          type: doc.status,
+        })),
+      };
+      setProfileData(profile);
+      setEditData(profile);
+      setAddedServiceName(result.serviceName || 'Service');
+      setShowAddServiceSuccessDialog(true);
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      if (status === 409) {
+        showToast('You are already offering this service.', 'error');
+      } else if (status === 404) {
+        showToast('Service not found.', 'error');
+      } else {
+        showToast('Failed to add service. Please try again.', 'error');
+      }
+    } finally {
+      setAddingServiceId(null);
+    }
   };
 
   const addDocument = () => {
@@ -1098,6 +1169,18 @@ export default function ProviderProfile() {
                         </div>
                       ))}
                     </div>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={openAddExistingServiceModal}
+                        className="inline-flex items-center gap-2 px-3 py-2 border border-navy-600 text-navy-600 rounded-lg hover:bg-navy-50 text-sm font-medium transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add existing service
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1383,6 +1466,109 @@ export default function ProviderProfile() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add existing service modal */}
+      {showAddExistingServiceModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[85vh] flex flex-col">
+            <div className="p-6 flex-shrink-0">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Add existing service</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddExistingServiceModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Choose a service from the platform to add to your profile. Services you already offer are not shown.
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              {loadingExistingServices ? (
+                <div className="flex items-center justify-center py-8">
+                  <svg className="animate-spin h-8 w-8 text-navy-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : availableServicesList.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">No other services available to add. You may already offer all approved services.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {availableServicesList.map((service) => (
+                    <li
+                      key={service.id}
+                      className="flex items-center justify-between gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{service.name}</p>
+                        <p className="text-sm text-gray-500">{service.category}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddExistingService(service.id)}
+                        disabled={addingServiceId === service.id}
+                        className="flex-shrink-0 px-3 py-1.5 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {addingServiceId === service.id ? 'Adding...' : 'Add'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success confirmation dialog after adding existing service */}
+      {showAddServiceSuccessDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Service added</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  {addedServiceName} has been added to your profile. It is now shown below with your other services.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddServiceSuccessDialog(false);
+                setAddedServiceName(null);
+              }}
+              className="w-full px-4 py-2.5 bg-navy-600 text-white rounded-lg hover:bg-navy-700 font-medium"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
