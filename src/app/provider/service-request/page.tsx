@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { providerApi, RequestServiceDto } from '@/api/provider';
 import { ServiceRequestForm } from '@/components/provider';
 
@@ -10,11 +11,13 @@ export default function ServiceRequestPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExistingServiceDialog, setShowExistingServiceDialog] = useState(false);
 
   const handleSubmit = async (data: RequestServiceDto) => {
     try {
       setLoading(true);
       setError(null);
+      setShowExistingServiceDialog(false);
 
       await providerApi.requestNewService(data);
 
@@ -27,8 +30,14 @@ export default function ServiceRequestPage() {
 
     } catch (err: unknown) {
       console.error('Error submitting service request:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to submit service request. Please try again.';
-      setError(errorMessage);
+      const status = (err as { status?: number })?.status;
+      if (status === 409) {
+        setShowExistingServiceDialog(true);
+        setError(null);
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to submit service request. Please try again.';
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -125,6 +134,49 @@ export default function ServiceRequestPage() {
           <ServiceRequestForm onSubmit={handleSubmit} loading={loading} />
         </div>
       </div>
+
+      {/* Dialog: service already exists — add from profile */}
+      {showExistingServiceDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">This service already exists</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  You can add this service from your profile instead. Go to your profile, click Edit, then use &quot;Add existing service&quot; to offer it.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowExistingServiceDialog(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Close
+              </button>
+              <Link
+                href="/provider/profile"
+                onClick={() => setShowExistingServiceDialog(false)}
+                className="flex-1 px-4 py-2.5 bg-navy-600 text-white text-center rounded-lg hover:bg-navy-700 font-medium"
+              >
+                Go to profile
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

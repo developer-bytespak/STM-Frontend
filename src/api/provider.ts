@@ -112,7 +112,14 @@ export interface ServiceRequest {
 
 export interface MyServiceRequestsResponse {
   requests: ServiceRequest[];
-} 
+}
+
+export interface AddExistingServiceResponse {
+  message: string;
+  serviceId: number;
+  serviceName: string;
+  category: string;
+}
 
 export interface Review {
   id: number;
@@ -442,6 +449,25 @@ class ProviderApi {
   async getMyServiceRequests(): Promise<ServiceRequest[]> {
     const response = await apiClient.request<ServiceRequest[]>('/provider/my-service-requests', {
       method: 'GET'
+    });
+    return response;
+  }
+
+  /**
+   * Add an existing approved service to the provider's profile.
+   * Endpoint: POST /provider/add-service
+   * Body: { serviceId: number }
+   * 200: { message, serviceId, serviceName, category }
+   * 404: Service not found
+   * 409: Already offering this service
+   */
+  async addExistingService(serviceId: number): Promise<AddExistingServiceResponse> {
+    const response = await apiClient.request<AddExistingServiceResponse>('/provider/add-service', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ serviceId })
     });
     return response;
   }
