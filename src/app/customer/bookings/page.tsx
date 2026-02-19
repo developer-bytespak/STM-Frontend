@@ -90,6 +90,7 @@ export default function CustomerBookings() {
       'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
       'cancelled': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
       'disputed': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Disputed' },
+      'rejected_by_sp': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Declined' },
     };
 
     const config = statusConfig[status] || statusConfig['pending'];

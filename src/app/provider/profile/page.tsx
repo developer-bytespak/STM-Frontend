@@ -256,17 +256,10 @@ export default function ProviderProfile() {
       
       const response = await providerApi.confirmAvailability();
       
-      // Update confirmation time and mark as confirmed
+      // Update confirmation time and mark as confirmed (backend persists last_availability_confirmed_at)
       const confirmationTime = new Date(response.confirmedAt).toLocaleString();
       setLastConfirmationTime(confirmationTime);
       setAvailabilityConfirmed(true);
-      
-      // Backup to localStorage (until backend persists it properly)
-      localStorage.setItem('provider_availability_confirmed', JSON.stringify({
-        confirmedAt: response.confirmedAt,
-        confirmationTime: confirmationTime,
-        confirmedTimestamp: Date.now()
-      }));
       
       showToast('Availability confirmed! ✓', 'success');
       
@@ -539,22 +532,10 @@ export default function ProviderProfile() {
           }
         }
         
-        // Check if availability was already confirmed
+        // Availability confirmation is persisted by backend (last_availability_confirmed_at)
         if (apiData?.status?.lastAvailabilityConfirmedAt) {
           setAvailabilityConfirmed(true);
           setLastConfirmationTime(new Date(apiData.status.lastAvailabilityConfirmedAt).toLocaleString());
-        } else {
-          // Fallback to localStorage until backend persists properly
-          const storedConfirmation = localStorage.getItem('provider_availability_confirmed');
-          if (storedConfirmation) {
-            try {
-              const confirmation = JSON.parse(storedConfirmation);
-              setAvailabilityConfirmed(true);
-              setLastConfirmationTime(confirmation.confirmationTime);
-            } catch (e) {
-              console.error('Failed to parse stored confirmation:', e);
-            }
-          }
         }
         
       } catch (error: any) {
