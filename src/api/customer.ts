@@ -128,9 +128,44 @@ export interface JobActionDto {
   cancellationReason?: string;  // Backend expects cancellationReason, not reason
 }
 
+/** Alternative provider (same service, same area) for reassign flow */
+export interface AlternativeProvider {
+  id: number;
+  businessName: string;
+  ownerName: string;
+  rating: number;
+  totalJobs: number;
+  minPrice: number;
+  maxPrice: number;
+  location: string;
+  serviceAreas: string[];
+  experience: number;
+}
+
+export interface AlternativeProvidersResponse {
+  service: {
+    id: number;
+    name: string;
+    category: string;
+    description?: string;
+    questionsJson?: Record<string, unknown>;
+  };
+  providers: AlternativeProvider[];
+  zipcode: string;
+}
+
 export interface ReassignJobDto {
   newProviderId: number;
-  reason: string;
+  customerBudget?: number;
+  preferredDate?: string; // ISO date
+}
+
+export interface ReassignJobResponse {
+  jobId: number;
+  status: string;
+  newProviderId: number;
+  chatId: string;
+  message: string;
 }
 
 export interface SubmitFeedbackDto {
@@ -225,11 +260,24 @@ class CustomerApi {
   }
 
   /**
-   * Reassign job to different provider
+   * Get alternative providers for a job (same service, same area).
+   * Used when job is rejected_by_sp so customer can send request to another provider.
+   * Endpoint: GET /jobs/:id/alternative-providers
+   */
+  async getAlternativeProviders(jobId: number): Promise<AlternativeProvidersResponse> {
+    const response = await apiClient.request<AlternativeProvidersResponse>(
+      `/jobs/${jobId}/alternative-providers`
+    );
+    return response;
+  }
+
+  /**
+   * Reassign job to a different provider (customer-driven).
+   * Optional customerBudget and preferredDate update the job before reassigning.
    * Endpoint: POST /jobs/:id/reassign
    */
-  async reassignJob(jobId: number, data: ReassignJobDto): Promise<{ message: string }> {
-    const response = await apiClient.request<{ message: string }>(`/jobs/${jobId}/reassign`, {
+  async reassignJob(jobId: number, data: ReassignJobDto): Promise<ReassignJobResponse> {
+    const response = await apiClient.request<ReassignJobResponse>(`/jobs/${jobId}/reassign`, {
       method: 'POST',
       body: JSON.stringify(data),
     });

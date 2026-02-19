@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { customerApi, CustomerJobDetails } from '@/api/customer';
+import { customerApi, CustomerJobDetails, AlternativeProvider } from '@/api/customer';
 import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
 import DetailPageSkeleton from '@/components/ui/DetailPageSkeleton';
@@ -24,16 +24,14 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
   const jobId = parseInt(resolvedParams.id);
   
   const [actionLoading, setActionLoading] = useState(false);
-  // TODO: Re-enable cancel and reassign functionality when needed
-  // const [showCancelModal, setShowCancelModal] = useState(false);
-  // const [showReassignModal, setShowReassignModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  // const [cancelReason, setCancelReason] = useState('');
-  // const [reassignReason, setReassignReason] = useState('');
-  // const [newProviderId, setNewProviderId] = useState('');
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [pendingAIChat, setPendingAIChat] = useState<any>(null);
+  const [showReassignReviewModal, setShowReassignReviewModal] = useState(false);
+  const [selectedProviderForReassign, setSelectedProviderForReassign] = useState<AlternativeProvider | null>(null);
+  const [reviewBudget, setReviewBudget] = useState<string>('');
+  const [reviewPreferredDate, setReviewPreferredDate] = useState<string>('');
   const [feedback, setFeedback] = useState({
     rating: 5,
     feedback: '',
@@ -47,6 +45,14 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     queryFn: () => customerApi.getJobDetails(jobId),
     staleTime: 30 * 1000, // Consider data fresh for 30 seconds
     enabled: !isNaN(jobId),
+  });
+
+  const isRejected = jobDetails?.job?.status === 'rejected_by_sp';
+  const { data: alternativeData, isLoading: loadingAlternatives, error: alternativesError } = useQuery({
+    queryKey: ['alternativeProviders', jobId],
+    queryFn: () => customerApi.getAlternativeProviders(jobId),
+    staleTime: 60 * 1000,
+    enabled: !isNaN(jobId) && isRejected,
   });
 
   const error = queryError ? (queryError as Error).message || 'Failed to load job details' : null;
@@ -66,7 +72,7 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
 
   // Prevent background scroll when modals are open
   useEffect(() => {
-    if (showFeedbackModal || showSupportModal) {
+    if (showFeedbackModal || showSupportModal || showReassignReviewModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -74,7 +80,57 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [showFeedbackModal, showSupportModal]);
+  }, [showFeedbackModal, showSupportModal, showReassignReviewModal]);
+
+  // Pre-fill review form when opening reassign review for a provider
+  const openReassignReview = (provider: AlternativeProvider) => {
+    setSelectedProviderForReassign(provider);
+    if (jobDetails?.job) {
+      setReviewBudget(String(jobDetails.job.price ?? ''));
+      setReviewPreferredDate(
+        jobDetails.job.scheduledAt
+          ? new Date(jobDetails.job.scheduledAt).toISOString().slice(0, 10)
+          : ''
+      );
+    }
+    setShowReassignReviewModal(true);
+  };
+
+  const handleReassignSubmit = async () => {
+    if (!selectedProviderForReassign || !jobDetails?.job) return;
+    const budgetNum = reviewBudget.trim() ? parseFloat(reviewBudget) : undefined;
+    if (reviewBudget.trim() && (isNaN(budgetNum!) || budgetNum! <= 0)) {
+      showAlert({
+        title: 'Validation Error',
+        message: 'Please enter a valid budget amount.',
+        type: 'warning',
+      });
+      return;
+    }
+    try {
+      setActionLoading(true);
+      const payload: { newProviderId: number; customerBudget?: number; preferredDate?: string } = {
+        newProviderId: selectedProviderForReassign.id,
+      };
+      if (budgetNum != null && budgetNum > 0) payload.customerBudget = budgetNum;
+      if (reviewPreferredDate.trim()) payload.preferredDate = reviewPreferredDate.trim();
+      const result = await customerApi.reassignJob(jobId, payload);
+      showAlert({
+        title: 'Request sent',
+        message: result.message || `Request sent to ${selectedProviderForReassign.businessName}.`,
+        type: 'success',
+      });
+      setShowReassignReviewModal(false);
+      setSelectedProviderForReassign(null);
+      refetchJobDetails();
+      queryClient.invalidateQueries({ queryKey: ['alternativeProviders', jobId] });
+    } catch (err: any) {
+      const msg = err.message || 'Failed to reassign job. Please try another provider.';
+      showAlert({ title: 'Error', message: msg, type: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Helper function to refetch job details
   const refetchJobDetails = () => {
@@ -481,6 +537,73 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
         )}
       </div>
 
+      {/* Rejected job: alternative providers + reassign */}
+      {job.status === 'rejected_by_sp' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Send to another provider</h3>
+          <p className="text-gray-600 mb-4">
+            This request was declined. You can send it to another provider in your area.
+          </p>
+          {loadingAlternatives && (
+            <div className="flex items-center gap-2 text-gray-500 py-4">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Loading providers…
+            </div>
+          )}
+          {!loadingAlternatives && alternativesError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p className="font-medium">Could not load providers</p>
+              <p className="text-sm mt-1">{(alternativesError as Error).message}</p>
+              <p className="text-sm mt-2">You may not have access to this job, or the job may not allow reassignment.</p>
+            </div>
+          )}
+          {!loadingAlternatives && !alternativesError && alternativeData && alternativeData.providers.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+              <p className="font-medium">No other providers available</p>
+              <p className="text-sm mt-1">No other providers in your area offer this service right now. Try again later or change your location.</p>
+            </div>
+          )}
+          {!loadingAlternatives && !alternativesError && alternativeData && alternativeData.providers.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                {alternativeData.service.name} • {alternativeData.zipcode}
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {alternativeData.providers.map((p) => (
+                  <div
+                    key={p.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-navy-300 transition-colors"
+                  >
+                    <p className="font-semibold text-gray-900">{p.businessName}</p>
+                    <p className="text-sm text-gray-600">{p.ownerName}</p>
+                    <div className="flex flex-wrap gap-2 mt-2 text-sm text-gray-700">
+                      <span>⭐ {p.rating}</span>
+                      <span>•</span>
+                      <span>{p.totalJobs} jobs</span>
+                      <span>•</span>
+                      <span>${p.minPrice}–${p.maxPrice}</span>
+                      {p.experience > 0 && <span>• {p.experience} yr</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{p.location}</p>
+                    <button
+                      type="button"
+                      onClick={() => openReassignReview(p)}
+                      disabled={actionLoading}
+                      className="mt-3 w-full px-3 py-2 bg-navy-600 text-white text-sm font-medium rounded-lg hover:bg-navy-700 disabled:opacity-50"
+                    >
+                      Send request to this provider
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
@@ -824,6 +947,77 @@ export default function BookingDetails({ params }: BookingDetailsProps) {
                 className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 font-medium"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign review modal (budget / preferred date then send) */}
+      {showReassignReviewModal && selectedProviderForReassign && jobDetails && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Send request to provider</h3>
+              <button
+                type="button"
+                onClick={() => { setShowReassignReviewModal(false); setSelectedProviderForReassign(null); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Sending <span className="font-semibold">{jobDetails.job.service}</span> to <span className="font-semibold">{selectedProviderForReassign.businessName}</span>. You can update budget and preferred date below.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Budget ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={reviewBudget}
+                  onChange={(e) => setReviewBudget(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent text-gray-900"
+                  placeholder="e.g. 200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred date</label>
+                <input
+                  type="date"
+                  value={reviewPreferredDate}
+                  onChange={(e) => setReviewPreferredDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-transparent text-gray-900"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={handleReassignSubmit}
+                disabled={actionLoading}
+                className="flex-1 bg-navy-600 text-white py-2 rounded-lg hover:bg-navy-700 disabled:opacity-50 font-medium"
+              >
+                {actionLoading ? 'Sending…' : 'Send request'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowReassignReviewModal(false); setSelectedProviderForReassign(null); }}
+                disabled={actionLoading}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium"
+              >
+                Cancel
               </button>
             </div>
           </div>
